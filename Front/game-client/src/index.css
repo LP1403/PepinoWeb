@@ -1368,6 +1368,31 @@ button:focus-visible {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     margin: 1rem 0;
+    position: relative;
+    overflow: hidden;
+    max-height: 200px; /* Limitar altura para evitar scroll */
+}
+
+.table-card-container {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.table-card-container.recent {
+    /* Cartas recientes: completamente visibles */
+    filter: none;
+}
+
+.table-card-container.old {
+    /* Cartas viejas: ligeramente desvanecidas */
+    filter: blur(0.5px);
+    transform: translateY(2px);
+}
+
+.table-card-container.very-old {
+    /* Cartas muy viejas: muy desvanecidas */
+    filter: blur(1px);
+    transform: translateY(4px);
 }
 
 .table-card {
@@ -1377,6 +1402,31 @@ button:focus-visible {
 
 .table-card:hover {
     transform: scale(0.9);
+}
+
+/* Efecto de apilamiento para cartas viejas */
+.table-card-container.old .table-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.table-card-container.very-old .table-card {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Animación de desvanecimiento suave */
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0.1;
+        transform: scale(0.3);
+    }
+}
+
+.table-card-container.very-old {
+    animation: fadeOut 2s ease-in-out infinite alternate;
 }
 
 /* Mejoras en la lista de jugadores */

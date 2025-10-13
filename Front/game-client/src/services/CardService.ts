@@ -143,12 +143,20 @@ export class CardService {
             return { cards: selectedCards, playerId: '', isValid: false, reason: `Debes jugar ${lastPlayedCards.length} carta(s)` };
         }
 
-        // Verificar que el valor sea mayor
+        // Verificar que el valor sea mayor O IGUAL (para PEPINEADO)
         const lastValue = this.getCardValue(lastPlayedCards[0]);
         const currentValue = this.getCardValue(selectedCards[0]);
 
-        if (currentValue <= lastValue) {
-            return { cards: selectedCards, playerId: '', isValid: false, reason: 'Debes jugar cartas de mayor valor' };
+        // Debug logs para entender qué está pasando
+        console.log('🔍 Validación de jugada:');
+        console.log(`   📋 Cartas seleccionadas: ${selectedCards.map(c => `${c.value}${c.suit}`).join(', ')}`);
+        console.log(`   📋 Última jugada: ${lastPlayedCards.map(c => `${c.value}${c.suit}`).join(', ')}`);
+        console.log(`   🎯 Valor actual: ${currentValue} (carta: ${selectedCards[0].value}${selectedCards[0].suit})`);
+        console.log(`   🎯 Valor anterior: ${lastValue} (carta: ${lastPlayedCards[0].value}${lastPlayedCards[0].suit})`);
+        console.log(`   ✅ ¿Es válida? ${currentValue >= lastValue ? 'SÍ' : 'NO'}`);
+
+        if (currentValue < lastValue) {
+            return { cards: selectedCards, playerId: '', isValid: false, reason: 'Debes jugar cartas de mayor o igual valor' };
         }
 
         return { cards: selectedCards, playerId: '', isValid: true };

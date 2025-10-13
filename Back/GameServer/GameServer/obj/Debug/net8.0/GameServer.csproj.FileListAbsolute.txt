@@ -29,3 +29,4 @@ C:\MisRepos\PepinoWeb\Back\GameServer\GameServer\obj\Debug\net8.0\GameServer.pdb
 C:\MisRepos\PepinoWeb\Back\GameServer\GameServer\obj\Debug\net8.0\GameServer.genruntimeconfig.cache
 C:\MisRepos\PepinoWeb\Back\GameServer\GameServer\obj\Debug\net8.0\ref\GameServer.dll
 C:\MisRepos\PepinoWeb\Back\GameServer\GameServer\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
+C:\MisRepos\PepinoWeb\Back\GameServer\GameServer\obj\Debug\net8.0\GameServer.sourcelink.json

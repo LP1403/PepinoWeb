@@ -150,160 +150,188 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
 
                     <div className="table-cards">
                         <AnimatePresence>
-                            {tableCards.map((card, index) => (
-                                <motion.div
-                                    key={`${card.id}-${index}`}
-                                    initial={{
-                                        opacity: 0,
-                                        scale: 0.5,
-                                        y: 50,
-                                        rotate: -180
-                                    }}
-                                    animate={{
-                                        opacity: 1,
-                                        scale: 1,
-                                        y: 0,
-                                        rotate: 0
-                                    }}
-                                    exit={{
-                                        opacity: 0,
-                                        scale: 0.5,
-                                        y: -50
-                                    }}
-                                    transition={{
-                                        duration: 0.6,
-                                        type: "spring",
-                                        stiffness: 150
-                                    }}
-                                >
-                                    <AnimatedCard
-                                        card={card}
-                                        isSelected={false}
-                                        isPlayable={false}
-                                        showValue={true}
-                                        className="table-card"
-                                    />
-                                </motion.div>
-                            ))}
+                            {tableCards.map((card, index) => {
+                                // Calcular el efecto de desvanecimiento basado en la posición
+                                const totalCards = tableCards.length;
+                                const isRecent = index >= totalCards - 6; // Últimas 6 cartas son visibles
+                                const isVeryOld = index < totalCards - 20; // Cartas muy viejas se desvanecen más
+
+                                // Calcular escala y opacidad basado en la antigüedad
+                                const ageFactor = Math.max(0, (totalCards - index - 6) / 14); // 0 a 1
+                                const scale = isRecent ? 1 : Math.max(0.3, 1 - ageFactor * 0.7);
+                                const opacity = isRecent ? 1 : Math.max(0.1, 1 - ageFactor * 0.9);
+                                const zIndex = totalCards - index; // Cartas más nuevas encima
+
+                                return (
+                                    <motion.div
+                                        key={`${card.id}-${index}`}
+                                        style={{ zIndex }}
+                                        initial={{
+                                            opacity: 0,
+                                            scale: 0.5,
+                                            y: 50,
+                                            rotate: -180
+                                        }}
+                                        animate={{
+                                            opacity: opacity,
+                                            scale: scale,
+                                            y: 0,
+                                            rotate: 0
+                                        }}
+                                        exit={{
+                                            opacity: 0,
+                                            scale: 0.2,
+                                            y: -50
+                                        }}
+                                        transition={{
+                                            duration: 0.6,
+                                            type: "spring",
+                                            stiffness: 150
+                                        }}
+                                        className={`table-card-container ${isRecent ? 'recent' : 'old'} ${isVeryOld ? 'very-old' : ''}`}
+                                    >
+                                        <AnimatedCard
+                                            card={card}
+                                            isSelected={false}
+                                            isPlayable={false}
+                                            showValue={isRecent} // Solo mostrar valor en cartas recientes
+                                            className="table-card"
+                                        />
+                                    </motion.div>
+                                );
+                            })}
                         </AnimatePresence>
                     </div>
                 </div>
 
-                {/* Controles del juego */}
-                <div className="game-controls">
-                    {!isGameStarted && players.length >= 1 && (
-                        <div className="game-setup">
-                            {(() => {
-                                console.log("🎮 Renderizando controles:", {
-                                    isRoomCreator,
-                                    gameMode: gameMode?.deckCount,
-                                    shouldShowSelector: isRoomCreator && !gameMode,
-                                    shouldShowStartButton: isRoomCreator && gameMode,
-                                    shouldShowWaiting: !isRoomCreator
-                                });
+                {/* Controles del juego - Solo se muestra si hay contenido */}
+                {(() => {
+                    // Determinar si hay controles que mostrar
+                    const hasGameSetup = !isGameStarted && players.length >= 1;
+                    const hasWaitingPlayers = !isGameStarted && players.length < 1;
+                    const hasWinners = isGameStarted && winners.length > 0;
 
-                                // Si es el creador y no hay modo seleccionado, mostrar selector
-                                if (isRoomCreator && !gameMode) {
-                                    console.log("🎯 Mostrando selector de modo (eres el creador)");
-                                    return (
-                                        <GameModeSelector
-                                            onSelectMode={handleSelectGameMode}
-                                            playerCount={players.length}
-                                        />
-                                    );
-                                }
+                    const hasControls = hasGameSetup || hasWaitingPlayers || hasWinners;
 
-                                // Si es el creador y hay modo seleccionado, mostrar botón de iniciar
-                                if (isRoomCreator && gameMode) {
-                                    console.log("🎮 Mostrando botón de iniciar juego (modo seleccionado)");
-                                    return (
-                                        <motion.div
-                                            className="game-ready"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.5 }}
-                                        >
-                                            <div className="mode-selected">
-                                                <h3>✅ Modo seleccionado: {gameMode.deckCount} mazo{gameMode.deckCount > 1 ? 's' : ''}</h3>
-                                                <p>{gameMode.cardsPerPlayer} cartas por jugador • {gameMode.maxWinners} ganadores máximos</p>
-                                            </div>
-                                            <motion.button
-                                                className="start-game-btn"
-                                                onClick={handleStartGame}
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                style={{
-                                                    background: '#4caf50',
-                                                    color: 'white',
-                                                    fontSize: '16px',
-                                                    padding: '15px 30px',
-                                                    border: 'none',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    fontWeight: 'bold'
-                                                }}
-                                            >
-                                                🎮 Iniciar Juego de Pepino
-                                            </motion.button>
-                                        </motion.div>
-                                    );
-                                }
+                    if (!hasControls) return null;
 
-                                // Si no es el creador, mostrar mensaje de espera
-                                if (!isRoomCreator) {
-                                    console.log("⏳ Mostrando mensaje de espera (no eres el creador)");
-                                    return (
-                                        <div className="waiting-creator">
-                                            <motion.div
-                                                animate={{ rotate: 360 }}
-                                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                            >
-                                                ⏳
-                                            </motion.div>
-                                            <p>Esperando que el creador de la sala inicie el juego...</p>
-                                        </div>
-                                    );
-                                }
+                    return (
+                        <div className="game-controls">
+                            {hasGameSetup && (
+                                <div className="game-setup">
+                                    {(() => {
+                                        console.log("🎮 Renderizando controles:", {
+                                            isRoomCreator,
+                                            gameMode: gameMode?.deckCount,
+                                            shouldShowSelector: isRoomCreator && !gameMode,
+                                            shouldShowStartButton: isRoomCreator && gameMode,
+                                            shouldShowWaiting: !isRoomCreator
+                                        });
 
-                                return null;
-                            })()}
+                                        // Si es el creador y no hay modo seleccionado, mostrar selector
+                                        if (isRoomCreator && !gameMode) {
+                                            console.log("🎯 Mostrando selector de modo (eres el creador)");
+                                            return (
+                                                <GameModeSelector
+                                                    onSelectMode={handleSelectGameMode}
+                                                    playerCount={players.length}
+                                                />
+                                            );
+                                        }
+
+                                        // Si es el creador y hay modo seleccionado, mostrar botón de iniciar
+                                        if (isRoomCreator && gameMode) {
+                                            console.log("🎮 Mostrando botón de iniciar juego (modo seleccionado)");
+                                            return (
+                                                <motion.div
+                                                    className="game-ready"
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.5 }}
+                                                >
+                                                    <div className="mode-selected">
+                                                        <h3>✅ Modo seleccionado: {gameMode.deckCount} mazo{gameMode.deckCount > 1 ? 's' : ''}</h3>
+                                                        <p>{gameMode.cardsPerPlayer} cartas por jugador • {gameMode.maxWinners} ganadores máximos</p>
+                                                    </div>
+                                                    <motion.button
+                                                        className="start-game-btn"
+                                                        onClick={handleStartGame}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        style={{
+                                                            background: '#4caf50',
+                                                            color: 'white',
+                                                            fontSize: '16px',
+                                                            padding: '15px 30px',
+                                                            border: 'none',
+                                                            borderRadius: '8px',
+                                                            cursor: 'pointer',
+                                                            fontWeight: 'bold'
+                                                        }}
+                                                    >
+                                                        🎮 Iniciar Juego de Pepino
+                                                    </motion.button>
+                                                </motion.div>
+                                            );
+                                        }
+
+                                        // Si no es el creador, mostrar mensaje de espera
+                                        if (!isRoomCreator) {
+                                            console.log("⏳ Mostrando mensaje de espera (no eres el creador)");
+                                            return (
+                                                <div className="waiting-creator">
+                                                    <motion.div
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                                    >
+                                                        ⏳
+                                                    </motion.div>
+                                                    <p>Esperando que el creador de la sala inicie el juego...</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return null;
+                                    })()}
+                                </div>
+                            )}
+
+                            {hasWaitingPlayers && (
+                                <div className="waiting-players">
+                                    <motion.div
+                                        animate={{ scale: [1, 1.1, 1] }}
+                                        transition={{ duration: 1, repeat: Infinity }}
+                                    >
+                                        👥
+                                    </motion.div>
+                                    <p>Esperando jugadores... ({players.length}/1 mínimo)</p>
+                                </div>
+                            )}
+
+                            {hasWinners && (
+                                <div className="winners-section">
+                                    <h3>🏆 Ganadores:</h3>
+                                    <div className="winners-list">
+                                        {winners.map((winnerId, index) => {
+                                            const winner = players.find(p => p.connectionId === winnerId);
+                                            return (
+                                                <motion.div
+                                                    key={winnerId}
+                                                    className="winner-item"
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ delay: index * 0.2 }}
+                                                >
+                                                    {index + 1}. {winner?.name || 'Jugador'}
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
-
-                    {!isGameStarted && players.length < 1 && (
-                        <div className="waiting-players">
-                            <motion.div
-                                animate={{ scale: [1, 1.1, 1] }}
-                                transition={{ duration: 1, repeat: Infinity }}
-                            >
-                                👥
-                            </motion.div>
-                            <p>Esperando jugadores... ({players.length}/1 mínimo)</p>
-                        </div>
-                    )}
-
-                    {isGameStarted && winners.length > 0 && (
-                        <div className="winners-section">
-                            <h3>🏆 Ganadores:</h3>
-                            <div className="winners-list">
-                                {winners.map((winnerId, index) => {
-                                    const winner = players.find(p => p.connectionId === winnerId);
-                                    return (
-                                        <motion.div
-                                            key={winnerId}
-                                            className="winner-item"
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ delay: index * 0.2 }}
-                                        >
-                                            {index + 1}. {winner?.name || 'Jugador'}
-                                        </motion.div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                    );
+                })()}
             </div>
 
             {/* Mano del jugador */}

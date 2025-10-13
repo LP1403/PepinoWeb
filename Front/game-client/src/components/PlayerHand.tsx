@@ -141,49 +141,52 @@ export default function PlayerHand({
                 </div>
             )}
 
-            {/* Cartas en una sola línea */}
-            <div className="cards-container-single-line">
-                {cards.map((card, index) => (
-                    <motion.div
-                        key={card.id}
-                        style={{
-                            zIndex: cards.length - index
-                        }}
-                        initial={{
-                            opacity: 0,
-                            y: 50,
-                            rotateY: -90,
-                            scale: 0.8
-                        }}
-                        animate={{
-                            opacity: 1,
-                            y: 0,
-                            rotateY: 0,
-                            scale: 1
-                        }}
-                        transition={{
-                            duration: 0.5,
-                            delay: index * 0.05,
-                            type: "spring",
-                            stiffness: 200
-                        }}
-                    >
-                        <AnimatedCard
-                            card={card}
-                            isSelected={isCardSelected(card)}
-                            isPlayable={isMyTurn}
-                            onClick={() => handleCardClick(card)}
-                            showValue={true}
-                        />
-                    </motion.div>
-                ))}
-            </div>
-
+            {/* Mensaje de espera - arriba de las cartas */}
             {!isMyTurn && cards.length > 0 && (
                 <div className="turn-indicator">
                     Esperando tu turno...
                 </div>
             )}
+
+            {/* Cartas en una sola línea - ordenadas de menor a mayor valor */}
+            <div className="cards-container-single-line">
+                {cards
+                    .sort((a, b) => a.value - b.value)
+                    .map((card, index) => (
+                        <motion.div
+                            key={card.id}
+                            style={{
+                                zIndex: cards.length - index
+                            }}
+                            initial={{
+                                opacity: 0,
+                                y: 50,
+                                rotateY: -90,
+                                scale: 0.8
+                            }}
+                            animate={{
+                                opacity: 1,
+                                y: 0,
+                                rotateY: 0,
+                                scale: 1
+                            }}
+                            transition={{
+                                duration: 0.5,
+                                delay: index * 0.05,
+                                type: "spring",
+                                stiffness: 200
+                            }}
+                        >
+                            <AnimatedCard
+                                card={card}
+                                isSelected={isCardSelected(card)}
+                                isPlayable={isMyTurn}
+                                onClick={() => handleCardClick(card)}
+                                showValue={true}
+                            />
+                        </motion.div>
+                    ))}
+            </div>
         </div>
     );
 }
