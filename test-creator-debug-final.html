@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Creador - Pepino</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .creator {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .not-creator {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        .game-state {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🥒 Debug Creador - Pepino</h1>
+
+        <div id="connectionStatus" class="status disconnected">
+            🔴 Desconectado
+        </div>
+
+        <div>
+            <input type="text" id="playerName" placeholder="Tu nombre" value="TestUser">
+            <input type="text" id="roomId" placeholder="ID de sala" value="test123">
+            <button onclick="connect()">🔌 Conectar</button>
+            <button onclick="disconnect()">🔌 Desconectar</button>
+        </div>
+
+        <div>
+            <button onclick="selectMode(1)" disabled id="select1">🎯 1 Mazo</button>
+            <button onclick="selectMode(2)" disabled id="select2">🎯 2 Mazos</button>
+            <button onclick="selectMode(3)" disabled id="select3">🎯 3 Mazos</button>
+            <button onclick="startGame()" disabled id="startBtn">🎮 Iniciar Juego</button>
+        </div>
+
+        <div id="gameState" class="game-state" style="display: none;">
+            <h3>Estado del Juego:</h3>
+            <div id="stateInfo"></div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let connection;
+        let currentState = {
+            isRoomCreator: false,
+            gameMode: null,
+            isGameStarted: false,
+            players: []
+        };
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, className) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function updateGameState() {
+            const stateDiv = document.getElementById('gameState');
+            const stateInfo = document.getElementById('stateInfo');
+
+            stateInfo.innerHTML = `
+                <p><strong>Es Creador:</strong> ${currentState.isRoomCreator ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Modo de Juego:</strong> ${currentState.gameMode ? currentState.gameMode.deckCount + ' mazos' : 'No seleccionado'}</p>
+                <p><strong>Juego Iniciado:</strong> ${currentState.isGameStarted ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Jugadores:</strong> ${currentState.players.length}</p>
+            `;
+
+            stateDiv.style.display = 'block';
+        }
+
+        function updateButtons() {
+            const isCreator = currentState.isRoomCreator;
+            const hasMode = currentState.gameMode !== null;
+            const isStarted = currentState.isGameStarted;
+
+            document.getElementById('select1').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('select2').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('select3').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('startBtn').disabled = !isCreator || !hasMode || isStarted;
+        }
+
+        async function connect() {
+            const playerName = document.getElementById('playerName').value;
+            const roomId = document.getElementById('roomId').value;
+
+            if (!playerName || !roomId) {
+                alert('Por favor ingresa nombre y ID de sala');
+                return;
+            }
+
+            log('🔄 Iniciando conexión...');
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("http://127.0.0.1:5264/gamehub")
+                .build();
+
+            // Configurar eventos
+            connection.on("GameStateUpdated", (state) => {
+                log(`🔄 Estado actualizado recibido:`);
+                log(`   👑 Es creador: ${state.isRoomCreator}`);
+                log(`   🎯 Modo: ${state.gameMode ? state.gameMode.deckCount + ' mazos' : 'No seleccionado'}`);
+                log(`   🎮 Iniciado: ${state.isGameStarted}`);
+                log(`   👥 Jugadores: ${state.players.length}`);
+
+                currentState = {
+                    isRoomCreator: state.isRoomCreator,
+                    gameMode: state.gameMode,
+                    isGameStarted: state.isGameStarted,
+                    players: state.players || []
+                };
+
+                updateGameState();
+                updateButtons();
+            });
+
+            connection.on("Error", (message) => {
+                log(`❌ Error: ${message}`);
+                alert(`Error: ${message}`);
+            });
+
+            connection.on("PlayerJoined", (name, count) => {
+                log(`👤 ${name} se unió. Total: ${count}`);
+            });
+
+            connection.on("CardsDealt", (cards) => {
+                log(`🎴 Cartas repartidas: ${cards.length} cartas`);
+            });
+
+            try {
+                await connection.start();
+                log('✅ Conectado exitosamente');
+                updateStatus('🟢 Conectado', 'connected');
+
+                log(`🎯 Uniéndose a sala: ${roomId} como: ${playerName}`);
+                await connection.invoke("JoinRoom", roomId, playerName);
+
+            } catch (err) {
+                log(`❌ Error de conexión: ${err}`);
+                updateStatus('🔴 Error de conexión', 'disconnected');
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                await connection.stop();
+                log('🔌 Desconectado');
+                updateStatus('🔴 Desconectado', 'disconnected');
+                currentState = {
+                    isRoomCreator: false,
+                    gameMode: null,
+                    isGameStarted: false,
+                    players: []
+                };
+                updateGameState();
+                updateButtons();
+            }
+        }
+
+        async function selectMode(deckCount) {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log(`🎯 Seleccionando modo: ${deckCount} mazos`);
+
+            try {
+                await connection.invoke("SelectGameMode", roomId, deckCount);
+                log('✅ Modo seleccionado enviado al servidor');
+            } catch (err) {
+                log(`❌ Error seleccionando modo: ${err}`);
+            }
+        }
+
+        async function startGame() {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log('🎮 Iniciando juego...');
+
+            try {
+                await connection.invoke("StartGame", roomId);
+                log('✅ Comando de inicio enviado al servidor');
+            } catch (err) {
+                log(`❌ Error iniciando juego: ${err}`);
+            }
+        }
+
+        // Inicializar
+        updateButtons();
+        log('🚀 Debug iniciado. Conecta al servidor para comenzar.');
+    </script>
+</body>
+
+</html>

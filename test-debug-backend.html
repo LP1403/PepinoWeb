@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Backend - Pepino</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🥒 Debug Backend - Pepino</h1>
+
+    <div>
+        <input type="text" id="playerName" placeholder="Tu nombre" value="DebugUser">
+        <input type="text" id="roomId" placeholder="ID de sala" value="debug123">
+        <button onclick="connect()">🔌 Conectar</button>
+        <button onclick="disconnect()">🔌 Desconectar</button>
+    </div>
+
+    <div>
+        <button onclick="selectMode(1)" disabled id="select1">🎯 1 Mazo</button>
+        <button onclick="startGame()" disabled id="startBtn">🎮 Iniciar Juego</button>
+    </div>
+
+    <div id="status">🔴 Desconectado</div>
+    <div class="log" id="log"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let connection;
+        let currentState = {
+            isRoomCreator: false,
+            gameMode: null,
+            isGameStarted: false
+        };
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function updateButtons() {
+            const isCreator = currentState.isRoomCreator;
+            const hasMode = currentState.gameMode !== null;
+            const isStarted = currentState.isGameStarted;
+
+            document.getElementById('select1').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('startBtn').disabled = !isCreator || !hasMode || isStarted;
+        }
+
+        async function connect() {
+            const playerName = document.getElementById('playerName').value;
+            const roomId = document.getElementById('roomId').value;
+
+            if (!playerName || !roomId) {
+                alert('Por favor ingresa nombre y ID de sala');
+                return;
+            }
+
+            log('🔄 Iniciando conexión...');
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("http://127.0.0.1:5264/gamehub")
+                .build();
+
+            // Configurar eventos
+            connection.on("GameStateUpdated", (state) => {
+                log(`🔄 Estado actualizado recibido:`);
+                log(`   📋 Estado completo: ${JSON.stringify(state, null, 2)}`);
+                log(`   👑 isRoomCreator: ${state.isRoomCreator}`);
+                log(`   🎯 gameMode: ${state.gameMode ? JSON.stringify(state.gameMode) : 'null'}`);
+                log(`   🎮 isGameStarted: ${state.isGameStarted}`);
+
+                currentState = {
+                    isRoomCreator: state.isRoomCreator,
+                    gameMode: state.gameMode,
+                    isGameStarted: state.isGameStarted
+                };
+
+                updateButtons();
+            });
+
+            connection.on("Error", (message) => {
+                log(`❌ Error: ${message}`);
+                alert(`Error: ${message}`);
+            });
+
+            connection.on("PlayerJoined", (name, count) => {
+                log(`👤 ${name} se unió. Total: ${count}`);
+            });
+
+            try {
+                await connection.start();
+                log('✅ Conectado exitosamente');
+                updateStatus('🟢 Conectado');
+
+                log(`🎯 Uniéndose a sala: ${roomId} como: ${playerName}`);
+                await connection.invoke("JoinRoom", roomId, playerName);
+
+            } catch (err) {
+                log(`❌ Error de conexión: ${err}`);
+                updateStatus('🔴 Error de conexión');
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                await connection.stop();
+                log('🔌 Desconectado');
+                updateStatus('🔴 Desconectado');
+                currentState = {
+                    isRoomCreator: false,
+                    gameMode: null,
+                    isGameStarted: false
+                };
+                updateButtons();
+            }
+        }
+
+        async function selectMode(deckCount) {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log(`🎯 Seleccionando modo: ${deckCount} mazos`);
+
+            try {
+                await connection.invoke("SelectGameMode", roomId, deckCount);
+                log('✅ Modo seleccionado enviado al servidor');
+            } catch (err) {
+                log(`❌ Error seleccionando modo: ${err}`);
+            }
+        }
+
+        async function startGame() {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log('🎮 Iniciando juego...');
+
+            try {
+                await connection.invoke("StartGame", roomId);
+                log('✅ Comando de inicio enviado al servidor');
+            } catch (err) {
+                log(`❌ Error iniciando juego: ${err}`);
+            }
+        }
+
+        // Inicializar
+        updateButtons();
+        log('🚀 Debug iniciado. Conecta al servidor para comenzar.');
+    </script>
+</body>
+
+</html>

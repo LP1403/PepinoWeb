@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pepino Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        input,
+        button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🥒 Test Pepino Game</h1>
+
+        <div class="test-section">
+            <h3>Configuración</h3>
+            <input type="text" id="roomId" placeholder="ID de Sala" value="test123">
+            <input type="text" id="playerName" placeholder="Nombre del Jugador" value="TestPlayer">
+            <button onclick="connect()">Conectar</button>
+            <button onclick="disconnect()">Desconectar</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Acciones</h3>
+            <button onclick="selectMode(1)">Seleccionar 1 Mazo</button>
+            <button onclick="selectMode(2)">Seleccionar 2 Mazos</button>
+            <button onclick="selectMode(3)">Seleccionar 3 Mazos</button>
+            <button onclick="startGame()">Iniciar Juego</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Estado</h3>
+            <div id="status">Desconectado</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Logs</h3>
+            <div id="logs" class="log"></div>
+            <button onclick="clearLogs()">Limpiar Logs</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let connection = null;
+        let gameState = null;
+
+        function log(message) {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.innerHTML += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = message;
+        }
+
+        async function connect() {
+            const roomId = document.getElementById('roomId').value;
+            const playerName = document.getElementById('playerName').value;
+
+            if (!roomId || !playerName) {
+                alert('Por favor ingresa sala y nombre');
+                return;
+            }
+
+            try {
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("http://127.0.0.1:5264/gamehub")
+                    .build();
+
+                // Configurar eventos
+                connection.on("GameStateUpdated", (state) => {
+                    gameState = state;
+                    log(`🔄 Estado actualizado: GameMode=${state.gameMode?.deckCount || 'null'}, IsRoomCreator=${state.isRoomCreator}`);
+                    updateStatus(`Conectado - GameMode: ${state.gameMode?.deckCount || 'No seleccionado'}, Creador: ${state.isRoomCreator}`);
+                });
+
+                connection.on("Error", (msg) => {
+                    log(`❌ Error: ${msg}`);
+                });
+
+                connection.on("PlayerJoined", (name, count) => {
+                    log(`👤 ${name} se unió. Total: ${count}`);
+                });
+
+                connection.on("PlayerLeft", (name, count) => {
+                    log(`👋 ${name} se fue. Total: ${count}`);
+                });
+
+                await connection.start();
+                log("✅ Conectado a SignalR");
+
+                await connection.invoke("JoinRoom", roomId, playerName);
+                log(`🎯 Unido a sala: ${roomId} como: ${playerName}`);
+
+                updateStatus("Conectado - Esperando estado...");
+
+            } catch (err) {
+                log(`❌ Error de conexión: ${err}`);
+                updateStatus("Error de conexión");
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                await connection.stop();
+                connection = null;
+                gameState = null;
+                log("🔌 Desconectado");
+                updateStatus("Desconectado");
+            }
+        }
+
+        async function selectMode(deckCount) {
+            if (!connection) {
+                log("❌ No conectado");
+                return;
+            }
+
+            const roomId = document.getElementById('roomId').value;
+            try {
+                log(`🎯 Seleccionando modo: ${deckCount} mazos`);
+                await connection.invoke("SelectGameMode", roomId, deckCount);
+                log("✅ Modo seleccionado enviado");
+            } catch (err) {
+                log(`❌ Error seleccionando modo: ${err}`);
+            }
+        }
+
+        async function startGame() {
+            if (!connection) {
+                log("❌ No conectado");
+                return;
+            }
+
+            const roomId = document.getElementById('roomId').value;
+            try {
+                log("🎮 Iniciando juego");
+                await connection.invoke("StartGame", roomId);
+                log("✅ Inicio de juego enviado");
+            } catch (err) {
+                log(`❌ Error iniciando juego: ${err}`);
+            }
+        }
+
+        // Limpiar logs al cargar
+        clearLogs();
+    </script>
+</body>
+
+</html>

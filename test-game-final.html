@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Final - Pepino</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .my-turn {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .not-my-turn {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        .game-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .card {
+            width: 40px;
+            height: 60px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .card.selected {
+            background: #007bff;
+            color: white;
+        }
+
+        .card.playable {
+            border-color: #28a745;
+            border-width: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🥒 Test Final - Pepino</h1>
+
+        <div id="connectionStatus" class="status disconnected">
+            🔴 Desconectado
+        </div>
+
+        <div>
+            <input type="text" id="playerName" placeholder="Tu nombre" value="Jugador1">
+            <input type="text" id="roomId" placeholder="ID de sala" value="test123">
+            <button onclick="connect()">🔌 Conectar</button>
+            <button onclick="disconnect()">🔌 Desconectar</button>
+        </div>
+
+        <div>
+            <button onclick="selectMode(1)" disabled id="select1">🎯 1 Mazo</button>
+            <button onclick="selectMode(2)" disabled id="select2">🎯 2 Mazos</button>
+            <button onclick="selectMode(3)" disabled id="select3">🎯 3 Mazos</button>
+            <button onclick="startGame()" disabled id="startBtn">🎮 Iniciar Juego</button>
+        </div>
+
+        <div id="gameInfo" class="game-info" style="display: none;">
+            <h3>Estado del Juego:</h3>
+            <div id="gameStateInfo"></div>
+        </div>
+
+        <div id="myHand" style="display: none;">
+            <h3>Mi Mano:</h3>
+            <div id="handCards" class="cards"></div>
+            <div>
+                <button onclick="playSelectedCards()" disabled id="playBtn">Jugar Cartas Seleccionadas</button>
+                <button onclick="passTurn()" disabled id="passBtn">Pasar Turno</button>
+            </div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let connection;
+        let currentState = {
+            isRoomCreator: false,
+            gameMode: null,
+            isGameStarted: false,
+            players: [],
+            myHand: [],
+            isMyTurn: false,
+            lastPlayedCards: [],
+            isFirstPlay: true
+        };
+        let selectedCards = [];
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, className) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function updateGameInfo() {
+            const gameInfo = document.getElementById('gameInfo');
+            const gameStateInfo = document.getElementById('gameStateInfo');
+
+            gameStateInfo.innerHTML = `
+                <p><strong>Es Creador:</strong> ${currentState.isRoomCreator ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Modo de Juego:</strong> ${currentState.gameMode ? `${currentState.gameMode.deckCount} mazos` : 'No seleccionado'}</p>
+                <p><strong>Juego Iniciado:</strong> ${currentState.isGameStarted ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Jugadores:</strong> ${currentState.players.length}</p>
+                <p><strong>Mi Turno:</strong> ${currentState.isMyTurn ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Primera Jugada:</strong> ${currentState.isFirstPlay ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Última Jugada:</strong> ${currentState.lastPlayedCards.length > 0 ? `${currentState.lastPlayedCards.length} cartas de valor ${currentState.lastPlayedCards[0].value}` : 'Ninguna'}</p>
+            `;
+
+            gameInfo.style.display = 'block';
+        }
+
+        function updateButtons() {
+            const isCreator = currentState.isRoomCreator;
+            const hasMode = currentState.gameMode !== null;
+            const isStarted = currentState.isGameStarted;
+
+            document.getElementById('select1').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('select2').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('select3').disabled = !isCreator || hasMode || isStarted;
+            document.getElementById('startBtn').disabled = !isCreator || !hasMode || isStarted;
+        }
+
+        function updateHand() {
+            const handDiv = document.getElementById('myHand');
+            const handCards = document.getElementById('handCards');
+
+            if (currentState.myHand.length > 0) {
+                handDiv.style.display = 'block';
+                handCards.innerHTML = '';
+
+                currentState.myHand.forEach((card, index) => {
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = `card ${currentState.isMyTurn ? 'playable' : ''}`;
+                    cardDiv.textContent = `${card.value}${card.suit}`;
+                    cardDiv.onclick = () => toggleCardSelection(card, cardDiv);
+                    handCards.appendChild(cardDiv);
+                });
+            } else {
+                handDiv.style.display = 'none';
+            }
+
+            updateHandButtons();
+        }
+
+        function updateHandButtons() {
+            const playBtn = document.getElementById('playBtn');
+            const passBtn = document.getElementById('passBtn');
+
+            playBtn.disabled = !currentState.isMyTurn || selectedCards.length === 0;
+            passBtn.disabled = !currentState.isMyTurn || currentState.isFirstPlay;
+        }
+
+        function toggleCardSelection(card, cardDiv) {
+            if (!currentState.isMyTurn) return;
+
+            const index = selectedCards.findIndex(c => c.id === card.id);
+            if (index >= 0) {
+                selectedCards.splice(index, 1);
+                cardDiv.classList.remove('selected');
+            } else {
+                // Verificar que todas las cartas seleccionadas tengan el mismo valor
+                if (selectedCards.length > 0 && selectedCards[0].value !== card.value) {
+                    log('❌ Solo puedes seleccionar cartas del mismo valor');
+                    return;
+                }
+                selectedCards.push(card);
+                cardDiv.classList.add('selected');
+            }
+
+            updateHandButtons();
+        }
+
+        async function connect() {
+            const playerName = document.getElementById('playerName').value;
+            const roomId = document.getElementById('roomId').value;
+
+            if (!playerName || !roomId) {
+                alert('Por favor ingresa nombre y ID de sala');
+                return;
+            }
+
+            log('🔄 Iniciando conexión...');
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("http://127.0.0.1:5264/gamehub")
+                .build();
+
+            // Configurar eventos
+            connection.on("GameStateUpdated", (state) => {
+                log(`🔄 Estado actualizado:`);
+                log(`   👑 Es creador: ${state.isRoomCreator}`);
+                log(`   🎯 Modo: ${state.gameMode ? state.gameMode.deckCount + ' mazos' : 'No seleccionado'}`);
+                log(`   🎮 Iniciado: ${state.isGameStarted}`);
+                log(`   👥 Jugadores: ${state.players.length}`);
+                log(`   🎯 Mi turno: ${state.players.find(p => p.name === playerName)?.isCurrentTurn || false}`);
+
+                currentState = {
+                    isRoomCreator: state.isRoomCreator,
+                    gameMode: state.gameMode,
+                    isGameStarted: state.isGameStarted,
+                    players: state.players || [],
+                    myHand: state.yourHand || [],
+                    isMyTurn: state.players.find(p => p.name === playerName)?.isCurrentTurn || false,
+                    lastPlayedCards: state.lastPlayedCards || [],
+                    isFirstPlay: (state.lastPlayedCards || []).length === 0
+                };
+
+                updateGameInfo();
+                updateButtons();
+                updateHand();
+            });
+
+            connection.on("CardsDealt", (cards) => {
+                log(`🎴 Cartas repartidas: ${cards.length} cartas`);
+                currentState.myHand = cards;
+                updateHand();
+            });
+
+            connection.on("CardsPlayed", (playedCards) => {
+                log(`🃏 ${playedCards.playerName} jugó: ${playedCards.cards.map(c => `${c.value}${c.suit}`).join(', ')}`);
+                if (playedCards.isPepineado) {
+                    log(`🥒 PEPINEADO! ${playedCards.playerName} jugó la misma jugada!`);
+                }
+            });
+
+            connection.on("PlayerSkipped", (playerName) => {
+                log(`⏭️ ${playerName} fue saltado!`);
+            });
+
+            connection.on("PlayerWon", (playerName) => {
+                log(`🏆 ${playerName} ganó!`);
+                alert(`¡${playerName} ha ganado!`);
+            });
+
+            connection.on("Error", (message) => {
+                log(`❌ Error: ${message}`);
+                alert(`Error: ${message}`);
+            });
+
+            try {
+                await connection.start();
+                log('✅ Conectado exitosamente');
+                updateStatus('🟢 Conectado', 'connected');
+
+                log(`🎯 Uniéndose a sala: ${roomId} como: ${playerName}`);
+                await connection.invoke("JoinRoom", roomId, playerName);
+
+            } catch (err) {
+                log(`❌ Error de conexión: ${err}`);
+                updateStatus('🔴 Error de conexión', 'disconnected');
+            }
+        }
+
+        async function disconnect() {
+            if (connection) {
+                await connection.stop();
+                log('🔌 Desconectado');
+                updateStatus('🔴 Desconectado', 'disconnected');
+                currentState = {
+                    isRoomCreator: false,
+                    gameMode: null,
+                    isGameStarted: false,
+                    players: [],
+                    myHand: [],
+                    isMyTurn: false,
+                    lastPlayedCards: [],
+                    isFirstPlay: true
+                };
+                updateGameInfo();
+                updateButtons();
+                updateHand();
+            }
+        }
+
+        async function selectMode(deckCount) {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log(`🎯 Seleccionando modo: ${deckCount} mazos`);
+
+            try {
+                await connection.invoke("SelectGameMode", roomId, deckCount);
+                log('✅ Modo seleccionado enviado al servidor');
+            } catch (err) {
+                log(`❌ Error seleccionando modo: ${err}`);
+            }
+        }
+
+        async function startGame() {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log('🎮 Iniciando juego...');
+
+            try {
+                await connection.invoke("StartGame", roomId);
+                log('✅ Comando de inicio enviado al servidor');
+            } catch (err) {
+                log(`❌ Error iniciando juego: ${err}`);
+            }
+        }
+
+        async function playSelectedCards() {
+            if (!connection || selectedCards.length === 0) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log(`🎯 Jugando cartas: ${selectedCards.map(c => `${c.value}${c.suit}`).join(', ')}`);
+
+            try {
+                await connection.invoke("PlayCards", roomId, selectedCards);
+                selectedCards = [];
+                updateHand();
+            } catch (err) {
+                log(`❌ Error jugando cartas: ${err}`);
+            }
+        }
+
+        async function passTurn() {
+            if (!connection) return;
+
+            const roomId = document.getElementById('roomId').value;
+            log('⏭️ Pasando turno...');
+
+            try {
+                await connection.invoke("PassTurn", roomId);
+            } catch (err) {
+                log(`❌ Error pasando turno: ${err}`);
+            }
+        }
+
+        // Inicializar
+        updateButtons();
+        log('🚀 Test iniciado. Conecta al servidor para comenzar.');
+    </script>
+</body>
+
+</html>

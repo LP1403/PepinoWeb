@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Cards - Pepino</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        .cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: white;
+            font-weight: bold;
+        }
+
+        .diamonds {
+            color: red;
+        }
+
+        .hearts {
+            color: red;
+        }
+
+        .spades {
+            color: black;
+        }
+
+        .clubs {
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🧪 Test de Cartas - Pepino</h1>
+
+    <div>
+        <label>Room ID: <input type="text" id="roomId" value="test-room-1"></label><br>
+        <label>Player Name: <input type="text" id="playerName" value="TestPlayer"></label><br>
+        <button onclick="connect()">🔌 Conectar</button>
+        <button onclick="joinRoom()">🚪 Unirse a Sala</button>
+        <button onclick="selectMode()">🎯 Seleccionar Modo (1 mazo)</button>
+        <button onclick="startGame()">🎮 Iniciar Juego</button>
+        <button onclick="getState()">📊 Obtener Estado</button>
+    </div>
+
+    <div id="logs"></div>
+    <div id="cards"></div>
+
+    <script>
+        let connection;
+        let roomId = 'test-room-1';
+        let playerName = 'TestPlayer';
+
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logsDiv.appendChild(logDiv);
+            console.log(message);
+        }
+
+        function displayCards(cards, title) {
+            const cardsDiv = document.getElementById('cards');
+            const section = document.createElement('div');
+            section.innerHTML = `<h3>${title} (${cards.length} cartas)</h3>`;
+
+            const cardsContainer = document.createElement('div');
+            cardsContainer.className = 'cards';
+
+            cards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = `card ${card.suit === '♦' || card.suit === '♥' ? 'diamonds' : 'spades'}`;
+                cardDiv.textContent = `${card.value}${card.suit}`;
+                cardsContainer.appendChild(cardDiv);
+            });
+
+            section.appendChild(cardsContainer);
+            cardsDiv.appendChild(section);
+        }
+
+        async function connect() {
+            try {
+                roomId = document.getElementById('roomId').value;
+                playerName = document.getElementById('playerName').value;
+
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("http://127.0.0.1:5264/gamehub")
+                    .build();
+
+                connection.on("GameStateUpdated", (state) => {
+                    log(`🔄 Estado actualizado: IsGameStarted=${state.isGameStarted}, Jugadores=${state.players?.length || 0}`, 'success');
+                    log(`📊 GameMode: ${state.gameMode ? `${state.gameMode.deckCount} mazos` : 'No seleccionado'}`, 'info');
+
+                    const currentPlayer = state.players?.find(p => p.name === playerName);
+                    if (currentPlayer) {
+                        log(`🎴 Tu mano: ${currentPlayer.hand?.length || 0} cartas`, 'success');
+                        if (currentPlayer.hand && currentPlayer.hand.length > 0) {
+                            displayCards(currentPlayer.hand, `Mano de ${playerName}`);
+                        }
+                    }
+                });
+
+                connection.on("CardsDealt", (cards) => {
+                    log(`🎴 Cartas repartidas: ${cards.length} cartas`, 'success');
+                    displayCards(cards, 'Cartas Repartidas');
+                });
+
+                connection.on("Error", (msg) => {
+                    log(`❌ Error: ${msg}`, 'error');
+                });
+
+                await connection.start();
+                log("✅ Conectado a SignalR", 'success');
+            } catch (err) {
+                log(`❌ Error de conexión: ${err}`, 'error');
+            }
+        }
+
+        async function joinRoom() {
+            try {
+                await connection.invoke("JoinRoom", roomId, playerName);
+                log(`🚪 Unido a sala: ${roomId} como ${playerName}`, 'success');
+            } catch (err) {
+                log(`❌ Error al unirse: ${err}`, 'error');
+            }
+        }
+
+        async function selectMode() {
+            try {
+                await connection.invoke("SelectGameMode", roomId, 1);
+                log("🎯 Modo seleccionado: 1 mazo", 'success');
+            } catch (err) {
+                log(`❌ Error al seleccionar modo: ${err}`, 'error');
+            }
+        }
+
+        async function startGame() {
+            try {
+                await connection.invoke("StartGame", roomId);
+                log("🎮 Iniciando juego...", 'success');
+            } catch (err) {
+                log(`❌ Error al iniciar juego: ${err}`, 'error');
+            }
+        }
+
+        async function getState() {
+            try {
+                await connection.invoke("GetGameState", roomId);
+                log("📊 Solicitando estado del juego", 'info');
+            } catch (err) {
+                log(`❌ Error al obtener estado: ${err}`, 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

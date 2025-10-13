@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Generación de Cartas - Pepino</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+        }
+
+        .error {
+            background: #ffe8e8;
+            border-color: #f44336;
+        }
+
+        .log {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .game-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+
+        .cards-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .card {
+            display: inline-block;
+            width: 40px;
+            height: 60px;
+            margin: 2px;
+            border: 1px solid #000;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 60px;
+            font-weight: bold;
+            background: white;
+            font-size: 12px;
+        }
+
+        .card.hearts {
+            color: red;
+        }
+
+        .card.diamonds {
+            color: red;
+        }
+
+        .card.spades {
+            color: black;
+        }
+
+        .card.clubs {
+            color: black;
+        }
+
+        .card.pepino-oro {
+            background: #ffd700;
+            border: 2px solid #ff8c00;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f0f8ff;
+            border-left: 4px solid #007bff;
+        }
+
+        .step.completed {
+            background: #f0fff0;
+            border-left-color: #4caf50;
+        }
+
+        .step.error {
+            background: #fff0f0;
+            border-left-color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🃏 Test Generación de Cartas - Pepino</h1>
+        <p><strong>Objetivo:</strong> Verificar que las cartas se generen y repartan correctamente al iniciar el juego
+        </p>
+
+        <div class="form-group">
+            <label for="playerName">Tu Nombre:</label>
+            <input type="text" id="playerName" placeholder="Ingresa tu nombre" value="TestPlayer">
+        </div>
+
+        <div class="form-group">
+            <label for="roomId">ID de Sala:</label>
+            <input type="text" id="roomId" placeholder="Ingresa el ID de la sala" value="test123">
+        </div>
+
+        <button id="connectBtn" onclick="startTest()">🚀 Iniciar Test de Cartas</button>
+
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div class="step" id="step1">
+            <h3>Paso 1: Conectar y unirse</h3>
+            <p>Estado: <span id="step1Status">Pendiente</span></p>
+        </div>
+
+        <div class="step" id="step2">
+            <h3>Paso 2: Seleccionar modo de juego</h3>
+            <p>Estado: <span id="step2Status">Pendiente</span></p>
+        </div>
+
+        <div class="step" id="step3">
+            <h3>Paso 3: Iniciar juego</h3>
+            <p>Estado: <span id="step3Status">Pendiente</span></p>
+        </div>
+
+        <div class="step" id="step4">
+            <h3>Paso 4: Verificar cartas recibidas</h3>
+            <p>Estado: <span id="step4Status">Pendiente</span></p>
+        </div>
+
+        <div class="step" id="step5">
+            <h3>Paso 5: Verificar Pepino de Oro</h3>
+            <p>Estado: <span id="step5Status">Pendiente</span></p>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <button onclick="selectMode(1)">🎯 1 Mazo</button>
+            <button onclick="selectMode(2)">🎯 2 Mazos</button>
+            <button onclick="selectMode(3)">🎯 3 Mazos</button>
+            <button onclick="startGame()" id="startBtn" style="display: none;">🎮 Iniciar Juego</button>
+        </div>
+
+        <div id="gameInfo" class="game-info" style="display: none;">
+            <h3>📊 Información del Juego</h3>
+            <div id="gameDetails"></div>
+        </div>
+
+        <div id="cardsDisplay" class="cards-display" style="display: none;">
+            <h3>🃏 Mis Cartas</h3>
+            <div id="cardsContainer"></div>
+            <div id="cardsStats" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.0/signalr.min.js"></script>
+    <script>
+        let connection;
+        let isConnected = false;
+        let isRoomCreator = false;
+        let gameMode = null;
+        let players = [];
+        let myCards = [];
+        let currentStep = 0;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            statusDiv.className = isError ? 'status error' : 'status';
+        }
+
+        function updateStep(stepNumber, status, isError = false) {
+            const stepDiv = document.getElementById(`step${stepNumber}`);
+            const statusSpan = document.getElementById(`step${stepNumber}Status`);
+
+            statusSpan.textContent = status;
+            stepDiv.className = isError ? 'step error' : 'step completed';
+        }
+
+        function updateGameInfo() {
+            const gameInfo = document.getElementById('gameInfo');
+            const gameDetails = document.getElementById('gameDetails');
+
+            gameDetails.innerHTML = `
+                <p><strong>Conectado:</strong> ${isConnected ? '✅ Sí' : '❌ No'}</p>
+                <p><strong>Es Creador:</strong> ${isRoomCreator ? '👑 Sí' : '❌ No'}</p>
+                <p><strong>Modo de Juego:</strong> ${gameMode ? `${gameMode.deckCount} mazos` : 'No seleccionado'}</p>
+                <p><strong>Jugadores:</strong> ${players.length}</p>
+                <p><strong>Mis Cartas:</strong> ${myCards.length}</p>
+            `;
+
+            gameInfo.style.display = 'block';
+        }
+
+        function displayCards() {
+            const cardsDisplay = document.getElementById('cardsDisplay');
+            const cardsContainer = document.getElementById('cardsContainer');
+            const cardsStats = document.getElementById('cardsStats');
+
+            if (myCards.length === 0) {
+                cardsContainer.innerHTML = '<p>No tienes cartas aún</p>';
+                cardsStats.innerHTML = '';
+            } else {
+                cardsContainer.innerHTML = myCards.map(card => {
+                    const isPepinoOro = card.suit === '♦' && card.value === 3;
+                    const cardClass = `card ${card.suit === '♥' || card.suit === '♦' ? 'hearts' : 'spades'} ${isPepinoOro ? 'pepino-oro' : ''}`;
+                    return `<div class="${cardClass}" title="${isPepinoOro ? '🥒 Pepino de Oro' : ''}">${card.value}${card.suit}</div>`;
+                }).join('');
+
+                // Estadísticas de las cartas
+                const stats = {
+                    total: myCards.length,
+                    hearts: myCards.filter(c => c.suit === '♥').length,
+                    diamonds: myCards.filter(c => c.suit === '♦').length,
+                    spades: myCards.filter(c => c.suit === '♠').length,
+                    clubs: myCards.filter(c => c.suit === '♣').length,
+                    pepinoOro: myCards.filter(c => c.suit === '♦' && c.value === 3).length
+                };
+
+                cardsStats.innerHTML = `
+                    <strong>📊 Estadísticas:</strong> 
+                    Total: ${stats.total} | 
+                    ♥: ${stats.hearts} | 
+                    ♦: ${stats.diamonds} | 
+                    ♠: ${stats.spades} | 
+                    ♣: ${stats.clubs} | 
+                    🥒 Pepino de Oro: ${stats.pepinoOro}
+                `;
+            }
+
+            cardsDisplay.style.display = 'block';
+        }
+
+        async function startTest() {
+            const playerName = document.getElementById('playerName').value.trim();
+            const roomId = document.getElementById('roomId').value.trim();
+
+            if (!playerName || !roomId) {
+                updateStatus('Por favor ingresa nombre y ID de sala', true);
+                return;
+            }
+
+            log('🃏 Iniciando test de generación de cartas...');
+            updateStatus('Iniciando test de cartas...');
+
+            try {
+                // Paso 1: Conectar
+                log('🔄 Paso 1: Conectando...');
+                updateStep(1, 'Conectando...');
+
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl("http://127.0.0.1:5264/gamehub")
+                    .build();
+
+                // Configurar eventos
+                connection.on("PlayerJoined", (name, count) => {
+                    log(`👤 ${name} se unió. Total: ${count}`);
+                    updateStatus(`Conectado. Jugadores: ${count}`);
+                });
+
+                connection.on("GameStateUpdated", (state) => {
+                    log('🔄 Estado del juego actualizado');
+                    log(`👑 IsRoomCreator: ${state.isRoomCreator}`);
+                    log(`🎯 GameMode: ${state.gameMode ? state.gameMode.deckCount + ' mazos' : 'null'}`);
+                    log(`👥 Jugadores: ${state.players.length}`);
+
+                    isRoomCreator = state.isRoomCreator;
+                    gameMode = state.gameMode;
+                    players = state.players;
+
+                    updateGameInfo();
+                    updateControls();
+
+                    // Verificar paso 1: Conexión
+                    if (currentStep >= 1) {
+                        updateStep(1, '✅ Conectado y unido');
+                        log('✅ Paso 1 completado: Conectado y unido');
+                        currentStep = 1;
+                    }
+                });
+
+                connection.on("CardsDealt", (playerHand) => {
+                    log('🎴 Cartas repartidas');
+                    log(`📊 Cantidad de cartas: ${playerHand?.length || 0}`);
+
+                    myCards = playerHand || [];
+
+                    // Verificar paso 4: Cartas recibidas
+                    if (currentStep >= 4) {
+                        if (myCards.length > 0) {
+                            updateStep(4, `✅ ${myCards.length} cartas recibidas`);
+                            log(`🎴 Cartas recibidas: ${myCards.length}`);
+                            displayCards();
+
+                            // Verificar paso 5: Pepino de Oro
+                            const pepinoOro = myCards.find(c => c.suit === '♦' && c.value === 3);
+                            if (pepinoOro) {
+                                updateStep(5, '✅ Pepino de Oro encontrado en tu mano');
+                                log('🥒 Pepino de Oro encontrado en tu mano');
+                            } else {
+                                updateStep(5, '❌ Pepino de Oro no está en tu mano');
+                                log('❌ Pepino de Oro no está en tu mano');
+                            }
+                        } else {
+                            updateStep(4, '❌ No se recibieron cartas', true);
+                            log('❌ No se recibieron cartas');
+                        }
+                    }
+
+                    updateGameInfo();
+                });
+
+                connection.on("Error", (msg) => {
+                    log(`❌ Error: ${msg}`);
+                    updateStatus(`Error: ${msg}`, true);
+                });
+
+                await connection.start();
+                isConnected = true;
+
+                log(`🎯 Uniéndose a sala: ${roomId} como: ${playerName}`);
+                await connection.invoke("JoinRoom", roomId, playerName);
+
+                document.getElementById('controls').style.display = 'flex';
+                updateGameInfo();
+
+            } catch (error) {
+                log(`❌ Error en test: ${error}`);
+                updateStatus(`Error en test: ${error}`, true);
+                updateStep(1, '❌ Error de conexión', true);
+            }
+        }
+
+        function updateControls() {
+            const startBtn = document.getElementById('startBtn');
+
+            if (isRoomCreator && gameMode) {
+                startBtn.style.display = 'block';
+                log('🎮 Botón de iniciar juego mostrado');
+            } else {
+                startBtn.style.display = 'none';
+                if (!isRoomCreator) {
+                    log('⏳ No eres el creador, esperando...');
+                } else if (!gameMode) {
+                    log('🎯 Selecciona un modo de juego');
+                }
+            }
+        }
+
+        async function selectMode(deckCount) {
+            if (!connection || !isRoomCreator) {
+                log('❌ No puedes seleccionar modo (no eres creador o no conectado)');
+                return;
+            }
+
+            try {
+                log(`🎯 Paso 2: Seleccionando modo ${deckCount} mazos...`);
+                updateStep(2, 'Seleccionando...');
+
+                await connection.invoke("SelectGameMode", document.getElementById('roomId').value, deckCount);
+
+                updateStep(2, `✅ Modo ${deckCount} mazos seleccionado`);
+                log('✅ Paso 2 completado: Modo seleccionado');
+                currentStep = 2;
+
+            } catch (error) {
+                log(`❌ Error seleccionando modo: ${error}`);
+                updateStep(2, '❌ Error seleccionando modo', true);
+            }
+        }
+
+        async function startGame() {
+            if (!connection || !isRoomCreator || !gameMode) {
+                log('❌ No puedes iniciar el juego');
+                return;
+            }
+
+            try {
+                log('🎮 Paso 3: Iniciando juego...');
+                updateStep(3, 'Iniciando...');
+
+                await connection.invoke("StartGame", document.getElementById('roomId').value);
+
+                updateStep(3, '✅ Juego iniciado');
+                log('✅ Paso 3 completado: Juego iniciado');
+                currentStep = 3;
+
+                // Paso 4: Verificar cartas (se hará en el evento CardsDealt)
+                log('🎴 Paso 4: Esperando cartas...');
+                updateStep(4, 'Esperando cartas...');
+                currentStep = 4;
+
+                // Paso 5: Verificar Pepino de Oro (se hará en el evento CardsDealt)
+                log('🥒 Paso 5: Verificando Pepino de Oro...');
+                updateStep(5, 'Verificando...');
+                currentStep = 5;
+
+            } catch (error) {
+                log(`❌ Error iniciando juego: ${error}`);
+                updateStep(3, '❌ Error iniciando juego', true);
+            }
+        }
+    </script>
+</body>
+
+</html>

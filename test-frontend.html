@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend Real - Pepino</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-section {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .warning {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #2196f3;
+            color: white;
+        }
+
+        button:hover {
+            background: #1976d2;
+        }
+
+        .start-btn {
+            background: #4caf50 !important;
+            font-size: 16px;
+            padding: 15px 30px;
+            font-weight: bold;
+        }
+
+        .start-btn:hover {
+            background: #388e3c !important;
+        }
+
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Test Frontend Real - Pepino</h1>
+
+        <div class="test-section">
+            <h3>📋 Instrucciones:</h3>
+            <ol>
+                <li>Asegúrate de que el backend esté corriendo en <code>Back/GameServer/GameServer</code></li>
+                <li>Asegúrate de que el frontend esté corriendo en <code>Front/game-client</code></li>
+                <li>Usa el iframe de abajo para probar el juego real</li>
+                <li>Observa los logs en la consola del navegador</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>🎮 Frontend Real:</h3>
+            <p>Si el frontend está corriendo en <code>http://localhost:5173</code>, deberías ver el juego aquí:</p>
+            <iframe src="http://localhost:5173" title="Pepino Game"></iframe>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Comandos para ejecutar:</h3>
+            <div class="log">
+                <strong>Backend:</strong><br>
+                cd Back/GameServer/GameServer<br>
+                dotnet run<br><br>
+                <strong>Frontend:</strong><br>
+                cd Front/game-client<br>
+                npm run dev
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Estado esperado:</h3>
+            <div class="log">
+                <strong>1. Conectar:</strong> Debería mostrar "Conectado: true"<br>
+                <strong>2. Unirse a sala:</strong> Debería mostrar "Es Creador: true"<br>
+                <strong>3. Seleccionar modo:</strong> Debería aparecer el botón verde "Iniciar Juego"<br>
+                <strong>4. Iniciar juego:</strong> Debería mostrar las cartas repartidas
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🐛 Debugging:</h3>
+            <p>Si algo no funciona, revisa:</p>
+            <ul>
+                <li>¿El backend está corriendo en <code>http://127.0.0.1:5264</code>?</li>
+                <li>¿El frontend está corriendo en <code>http://localhost:5173</code>?</li>
+                <li>¿Hay errores en la consola del navegador?</li>
+                <li>¿Los logs del backend muestran las conexiones?</li>
+            </ul>
+        </div>
+    </div>
+</body>
+
+</html>
