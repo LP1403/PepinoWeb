@@ -38,9 +38,9 @@ namespace GameServer.Services
             room.GameStartedAt = DateTime.UtcNow;
         }
 
-        public bool IsValidCardPlay(List<Card> selectedCards, List<Card> lastPlayedCards, bool isFirstPlay)
+        public bool IsValidCardPlay(List<Card> selectedCards, List<Card> lastPlayedCards, bool isFirstPlay, bool isNewRound = false)
         {
-            return CardService.ValidatePlay(selectedCards, lastPlayedCards, isFirstPlay);
+            return CardService.ValidatePlay(selectedCards, lastPlayedCards, isFirstPlay, isNewRound);
         }
 
         public void PlayCards(GameRoom room, Player player, List<Card> cards)
@@ -49,7 +49,9 @@ namespace GameServer.Services
                 return;
 
             var isFirstPlay = room.LastPlayedCards.Count == 0;
-            if (!IsValidCardPlay(cards, room.LastPlayedCards, isFirstPlay))
+            var isNewRound = room.LastPlayerId == player.ConnectionId && room.LastPlayedCards.Count > 0;
+            
+            if (!IsValidCardPlay(cards, room.LastPlayedCards, isFirstPlay, isNewRound))
                 return;
 
             // Remover cartas de la mano del jugador

@@ -11,6 +11,7 @@ interface PlayerHandProps {
     isMyTurn: boolean;
     lastPlayedCards: Card[] | null;
     isFirstPlay: boolean;
+    isNewRound?: boolean;
 }
 
 export default function PlayerHand({
@@ -18,7 +19,8 @@ export default function PlayerHand({
     onPlay,
     isMyTurn,
     lastPlayedCards,
-    isFirstPlay
+    isFirstPlay,
+    isNewRound = false
 }: PlayerHandProps) {
     const [selectedCards, setSelectedCards] = useState<Card[]>([]);
     const [validationMessage, setValidationMessage] = useState<string>('');
@@ -57,7 +59,18 @@ export default function PlayerHand({
             return;
         }
 
-        const validation = CardService.validatePlay(selectedCards, lastPlayedCards, isFirstPlay);
+        console.log('🎯 DEBUG PlayerHand - Validando jugada:');
+        console.log(`   🃏 Cartas seleccionadas: ${selectedCards.length} cartas`);
+        console.log(`   🎮 Primera jugada: ${isFirstPlay}`);
+        console.log(`   🔄 Nueva ronda: ${isNewRound}`);
+        console.log(`   📋 Última jugada: ${lastPlayedCards?.length || 0} cartas`);
+
+        const validation = CardService.validatePlay(selectedCards, lastPlayedCards, isFirstPlay, isNewRound);
+
+        console.log(`   ✅ ¿Es válida? ${validation.isValid}`);
+        if (!validation.isValid) {
+            console.log(`   ❌ Razón: ${validation.reason}`);
+        }
 
         if (!validation.isValid) {
             setValidationMessage(validation.reason || 'Jugada inválida');
@@ -96,6 +109,9 @@ export default function PlayerHand({
                     {isMyTurn && (
                         <div className="turn-info">
                             <span className="turn-indicator active">¡Tu turno!</span>
+                            {isNewRound && (
+                                <span className="new-round-indicator">🔄 Nueva ronda - Juega libremente</span>
+                            )}
                             {selectedCards.length > 0 && (
                                 <span className="selected-count">
                                     Seleccionadas: {selectedCards.length}

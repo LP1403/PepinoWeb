@@ -23,6 +23,7 @@ interface UseGameConnectionReturn {
     showPepineado: boolean;
     pepineadoPlayer: string;
     isRoomCreator: boolean;
+    isNewRound: boolean;
     playCards: (cards: Card[]) => Promise<void>;
     startGame: () => Promise<void>;
     selectGameMode: (deckCount: number) => Promise<void>;
@@ -44,6 +45,7 @@ export function useGameConnection({ roomId, playerName }: UseGameConnectionProps
     const [showPepineado, setShowPepineado] = useState(false);
     const [pepineadoPlayer, setPepineadoPlayer] = useState('');
     const [isRoomCreator, setIsRoomCreator] = useState(false);
+    const [isNewRound, setIsNewRound] = useState(false);
 
     // Conectar al hub
     useEffect(() => {
@@ -118,6 +120,7 @@ export function useGameConnection({ roomId, playerName }: UseGameConnectionProps
             console.log(`   🎯 gameMode: ${state.gameMode ? JSON.stringify(state.gameMode) : 'null'}`);
             console.log(`   🎮 isGameStarted: ${state.isGameStarted}`);
             console.log(`   👥 players: ${state.players?.length || 0}`);
+            console.log(`   🔄 isNewRound: ${state.isNewRound} (tipo: ${typeof state.isNewRound})`);
             console.log(`   🔍 Estado completo recibido:`, JSON.stringify(state, null, 2));
 
             setGameState(state);
@@ -128,6 +131,7 @@ export function useGameConnection({ roomId, playerName }: UseGameConnectionProps
             setGameMode(state.gameMode);
             setWinners(state.winners ?? []);
             setIsRoomCreator(state.isRoomCreator);
+            setIsNewRound(state.isNewRound ?? false);
 
             // Usar la mano privada del jugador (YourHand) en lugar de buscar en el array
             if (state.yourHand) {
@@ -211,7 +215,7 @@ export function useGameConnection({ roomId, playerName }: UseGameConnectionProps
             connection.off("GameStarted");
             connection.off("Error");
         };
-    }, [connection, playerName]);
+    }, [connection, playerName, roomId]);
 
     // Función para jugar cartas
     const playCards = useCallback(async (cards: Card[]) => {
@@ -270,6 +274,7 @@ export function useGameConnection({ roomId, playerName }: UseGameConnectionProps
         showPepineado,
         pepineadoPlayer,
         isRoomCreator,
+        isNewRound,
         playCards,
         startGame,
         selectGameMode

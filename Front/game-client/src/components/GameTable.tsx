@@ -14,7 +14,6 @@ interface GameTableProps {
 export default function GameTable({ roomId, playerName }: GameTableProps) {
     const {
         players,
-        tableCards,
         hand,
         isConnected,
         isGameStarted,
@@ -26,6 +25,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
         showPepineado,
         pepineadoPlayer,
         isRoomCreator,
+        isNewRound,
         playCards,
         startGame,
         selectGameMode
@@ -36,7 +36,8 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
         isRoomCreator,
         gameMode,
         isGameStarted,
-        playersCount: players.length
+        playersCount: players.length,
+        isNewRound
     });
 
     // Log detallado para debugging
@@ -46,6 +47,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
         gameModeDeckCount: gameMode?.deckCount,
         isGameStarted: isGameStarted,
         playersCount: players.length,
+        isNewRound: isNewRound,
         shouldShowSelector: isRoomCreator && !gameMode,
         shouldShowStartButton: isRoomCreator && gameMode,
         shouldShowWaiting: !isRoomCreator
@@ -56,6 +58,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
         playerName,
         isRoomCreator,
         gameMode: gameMode?.deckCount,
+        isNewRound: isNewRound,
         shouldShowStartButton: isRoomCreator && gameMode && !isGameStarted
     });
 
@@ -159,56 +162,43 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
 
                     <div className="table-cards">
                         <AnimatePresence>
-                            {tableCards.map((card, index) => {
-                                // Calcular el efecto de desvanecimiento basado en la posición
-                                const totalCards = tableCards.length;
-                                const isRecent = index >= totalCards - 6; // Últimas 6 cartas son visibles
-                                const isVeryOld = index < totalCards - 20; // Cartas muy viejas se desvanecen más
-
-                                // Calcular escala y opacidad basado en la antigüedad
-                                const ageFactor = Math.max(0, (totalCards - index - 6) / 14); // 0 a 1
-                                const scale = isRecent ? 1 : Math.max(0.3, 1 - ageFactor * 0.7);
-                                const opacity = isRecent ? 1 : Math.max(0.1, 1 - ageFactor * 0.9);
-                                const zIndex = totalCards - index; // Cartas más nuevas encima
-
-                                return (
-                                    <motion.div
-                                        key={`${card.id}-${index}`}
-                                        style={{ zIndex }}
-                                        initial={{
-                                            opacity: 0,
-                                            scale: 0.5,
-                                            y: 50,
-                                            rotate: -180
-                                        }}
-                                        animate={{
-                                            opacity: opacity,
-                                            scale: scale,
-                                            y: 0,
-                                            rotate: 0
-                                        }}
-                                        exit={{
-                                            opacity: 0,
-                                            scale: 0.2,
-                                            y: -50
-                                        }}
-                                        transition={{
-                                            duration: 0.6,
-                                            type: "spring",
-                                            stiffness: 150
-                                        }}
-                                        className={`table-card-container ${isRecent ? 'recent' : 'old'} ${isVeryOld ? 'very-old' : ''}`}
-                                    >
-                                        <AnimatedCard
-                                            card={card}
-                                            isSelected={false}
-                                            isPlayable={false}
-                                            showValue={isRecent} // Solo mostrar valor en cartas recientes
-                                            className="table-card"
-                                        />
-                                    </motion.div>
-                                );
-                            })}
+                            {/* Mostrar solo la última jugada */}
+                            {lastPlayedCards && lastPlayedCards.length > 0 && lastPlayedCards.map((card, index) => (
+                                <motion.div
+                                    key={`${card.id}-${index}`}
+                                    initial={{
+                                        opacity: 0,
+                                        scale: 0.5,
+                                        y: 50,
+                                        rotate: -180
+                                    }}
+                                    animate={{
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0,
+                                        rotate: 0
+                                    }}
+                                    exit={{
+                                        opacity: 0,
+                                        scale: 0.2,
+                                        y: -50
+                                    }}
+                                    transition={{
+                                        duration: 0.6,
+                                        type: "spring",
+                                        stiffness: 150
+                                    }}
+                                    className="table-card-container"
+                                >
+                                    <AnimatedCard
+                                        card={card}
+                                        isSelected={false}
+                                        isPlayable={false}
+                                        showValue={true}
+                                        className="table-card"
+                                    />
+                                </motion.div>
+                            ))}
                         </AnimatePresence>
                     </div>
                 </div>
@@ -232,6 +222,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                         console.log("🎮 Renderizando controles:", {
                                             isRoomCreator,
                                             gameMode: gameMode?.deckCount,
+                                            isNewRound: isNewRound,
                                             shouldShowSelector: isRoomCreator && !gameMode,
                                             shouldShowStartButton: isRoomCreator && gameMode,
                                             shouldShowWaiting: !isRoomCreator
@@ -251,6 +242,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                         // Si es el creador y hay modo seleccionado, mostrar botón de iniciar
                                         if (isRoomCreator && gameMode) {
                                             console.log("🎮 Mostrando botón de iniciar juego (modo seleccionado)");
+                                            console.log(`   🔄 Nueva ronda: ${isNewRound}`);
                                             return (
                                                 <motion.div
                                                     className="game-ready"
@@ -261,6 +253,9 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                                     <div className="mode-selected">
                                                         <h3>✅ Modo seleccionado: {gameMode.deckCount} mazo{gameMode.deckCount > 1 ? 's' : ''}</h3>
                                                         <p>{gameMode.cardsPerPlayer} cartas por jugador • {gameMode.maxWinners} ganadores máximos</p>
+                                                        {isNewRound && (
+                                                            <p className="new-round-info">🔄 Nueva ronda detectada</p>
+                                                        )}
                                                     </div>
                                                     <motion.button
                                                         className="start-game-btn"
@@ -279,6 +274,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                                         }}
                                                     >
                                                         🎮 Iniciar Juego de Pepino
+                                                        {isNewRound && ' (Nueva Ronda)'}
                                                     </motion.button>
                                                 </motion.div>
                                             );
@@ -287,6 +283,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                         // Si no es el creador, mostrar mensaje de espera
                                         if (!isRoomCreator) {
                                             console.log("⏳ Mostrando mensaje de espera (no eres el creador)");
+                                            console.log(`   🔄 Nueva ronda: ${isNewRound}`);
                                             return (
                                                 <div className="waiting-creator">
                                                     <motion.div
@@ -296,6 +293,9 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                                         ⏳
                                                     </motion.div>
                                                     <p>Esperando que el creador de la sala inicie el juego...</p>
+                                                    {isNewRound && (
+                                                        <p className="new-round-info">🔄 Nueva ronda detectada - El creador puede jugar libremente</p>
+                                                    )}
                                                 </div>
                                             );
                                         }
@@ -314,6 +314,9 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                         👥
                                     </motion.div>
                                     <p>Esperando jugadores... ({players.length}/1 mínimo)</p>
+                                    {isNewRound && (
+                                        <p className="new-round-info">🔄 Nueva ronda detectada - Los jugadores pueden jugar libremente</p>
+                                    )}
                                 </div>
                             )}
 
@@ -336,6 +339,9 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                             );
                                         })}
                                     </div>
+                                    {isNewRound && (
+                                        <p className="new-round-info">🔄 Nueva ronda detectada</p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -351,6 +357,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                     isMyTurn={isMyTurn}
                     lastPlayedCards={lastPlayedCards}
                     isFirstPlay={isFirstPlay}
+                    isNewRound={isNewRound}
                 />
             </div>
         </div>

@@ -148,23 +148,47 @@ namespace GameServer.Services
             return card.Value; // 3-12 mantienen su valor
         }
 
-        public static bool ValidatePlay(List<Card> selectedCards, List<Card> lastPlayedCards, bool isFirstPlay)
+        public static bool ValidatePlay(List<Card> selectedCards, List<Card> lastPlayedCards, bool isFirstPlay, bool isNewRound)
         {
+            Console.WriteLine($"🔍 DEBUG CardService.ValidatePlay:");
+            Console.WriteLine($"   🃏 Cartas seleccionadas: {selectedCards.Count} cartas");
+            Console.WriteLine($"   🎮 Primera jugada: {isFirstPlay}");
+            Console.WriteLine($"   🔄 Nueva ronda: {isNewRound}");
+            Console.WriteLine($"   📋 Última jugada: {lastPlayedCards?.Count ?? 0} cartas");
+            
             if (selectedCards.Count == 0) return false;
 
             // Verificar que todas las cartas tengan el mismo valor
             var firstValue = selectedCards[0].Value;
             if (!selectedCards.All(c => c.Value == firstValue)) return false;
 
-            // Si es la primera jugada, cualquier carta es válida
-            if (isFirstPlay || lastPlayedCards == null || lastPlayedCards.Count == 0) return true;
+            // Si es la primera jugada de la partida, cualquier carta es válida
+            if (isFirstPlay || lastPlayedCards == null || lastPlayedCards.Count == 0) 
+            {
+                Console.WriteLine($"   ✅ Primera jugada - Válida");
+                return true;
+            }
+
+            // Si es una nueva ronda (vuelta completa), cualquier carta es válida
+            if (isNewRound) 
+            {
+                Console.WriteLine($"   ✅ Nueva ronda - Válida (juega libremente)");
+                return true;
+            }
 
             // Verificar que la cantidad de cartas sea la misma
-            if (selectedCards.Count != lastPlayedCards.Count) return false;
+            if (selectedCards.Count != lastPlayedCards.Count) 
+            {
+                Console.WriteLine($"   ❌ Cantidad incorrecta: {selectedCards.Count} vs {lastPlayedCards.Count}");
+                return false;
+            }
 
             // Verificar que el valor sea mayor O IGUAL (para PEPINEADO)
             var lastValue = GetCardValue(lastPlayedCards[0]);
             var currentValue = GetCardValue(selectedCards[0]);
+            
+            Console.WriteLine($"   🎯 Valor actual: {currentValue} vs Valor anterior: {lastValue}");
+            Console.WriteLine($"   ✅ ¿Es válida? {currentValue >= lastValue}");
 
             return currentValue >= lastValue;
         }

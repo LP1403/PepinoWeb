@@ -120,7 +120,7 @@ export class CardService {
     /**
      * Valida si una jugada es válida según las reglas del Pepino
      */
-    static validatePlay(selectedCards: Card[], lastPlayedCards: Card[] | null, isFirstPlay: boolean): CardPlay {
+    static validatePlay(selectedCards: Card[], lastPlayedCards: Card[] | null, isFirstPlay: boolean, isNewRound: boolean = false): CardPlay {
         // Verificar que todas las cartas tengan el mismo valor
         if (selectedCards.length === 0) {
             return { cards: selectedCards, playerId: '', isValid: false, reason: 'Debes seleccionar al menos una carta' };
@@ -133,8 +133,13 @@ export class CardService {
             return { cards: selectedCards, playerId: '', isValid: false, reason: 'Todas las cartas deben tener el mismo valor' };
         }
 
-        // Si es la primera jugada, cualquier carta es válida
+        // Si es la primera jugada de la partida, cualquier carta es válida
         if (isFirstPlay || !lastPlayedCards || lastPlayedCards.length === 0) {
+            return { cards: selectedCards, playerId: '', isValid: true };
+        }
+
+        // Si es una nueva ronda (vuelta completa), cualquier carta es válida
+        if (isNewRound) {
             return { cards: selectedCards, playerId: '', isValid: true };
         }
 
@@ -153,6 +158,8 @@ export class CardService {
         console.log(`   📋 Última jugada: ${lastPlayedCards.map(c => `${c.value}${c.suit}`).join(', ')}`);
         console.log(`   🎯 Valor actual: ${currentValue} (carta: ${selectedCards[0].value}${selectedCards[0].suit})`);
         console.log(`   🎯 Valor anterior: ${lastValue} (carta: ${lastPlayedCards[0].value}${lastPlayedCards[0].suit})`);
+        console.log(`   🎮 Primera jugada: ${isFirstPlay}`);
+        console.log(`   🔄 Nueva ronda: ${isNewRound}`);
         console.log(`   ✅ ¿Es válida? ${currentValue >= lastValue ? 'SÍ' : 'NO'}`);
 
         if (currentValue < lastValue) {

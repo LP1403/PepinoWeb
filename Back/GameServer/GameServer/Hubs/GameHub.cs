@@ -202,7 +202,20 @@ public class GameHub : Hub
         if (currentPlayer.ConnectionId != Context.ConnectionId) return;
 
         var isFirstPlay = room.LastPlayedCards.Count == 0;
-        var isValidPlay = CardService.ValidatePlay(cards, room.LastPlayedCards, isFirstPlay);
+        
+        // Verificar si es una nueva ronda (vuelta completa)
+        var isNewRound = room.LastPlayerId == currentPlayer.ConnectionId && room.LastPlayedCards.Count > 0;
+        
+        Console.WriteLine($"🎯 DEBUG Validación de Jugada:");
+        Console.WriteLine($"   👤 Jugador: {currentPlayer.Name}");
+        Console.WriteLine($"   🃏 Cartas seleccionadas: {cards.Count} cartas");
+        Console.WriteLine($"   🎮 Primera jugada: {isFirstPlay}");
+        Console.WriteLine($"   🔄 Nueva ronda: {isNewRound}");
+        Console.WriteLine($"   📋 Última jugada: {room.LastPlayedCards.Count} cartas");
+        
+        var isValidPlay = CardService.ValidatePlay(cards, room.LastPlayedCards, isFirstPlay, isNewRound);
+        
+        Console.WriteLine($"   ✅ ¿Es válida? {isValidPlay}");
 
         if (!isValidPlay)
         {
@@ -348,6 +361,15 @@ public class GameHub : Hub
         Console.WriteLine($"   🎯 Modo de juego: {room.GameMode?.DeckCount ?? 0} mazos");
         Console.WriteLine($"   🎮 Juego iniciado: {room.IsGameStarted}");
         
+        // Verificar si es una nueva ronda (vuelta completa)
+        var isNewRound = room.LastPlayerId == player.ConnectionId && room.LastPlayedCards.Count > 0;
+        
+        Console.WriteLine($"🔄 DEBUG Nueva Ronda:");
+        Console.WriteLine($"   👤 Jugador actual: {player.Name} (ConnectionId: {player.ConnectionId})");
+        Console.WriteLine($"   🎯 Último jugador: {room.LastPlayerId}");
+        Console.WriteLine($"   🃏 Última jugada: {room.LastPlayedCards.Count} cartas");
+        Console.WriteLine($"   🔄 ¿Es nueva ronda? {isNewRound}");
+        
         var gameState = new
         {
             roomId = room.Id,
@@ -370,7 +392,8 @@ public class GameHub : Hub
             winners = room.Winners,
             roundNumber = room.RoundNumber,
             isRoomCreator = isCreator,
-            yourHand = player.Hand // Solo la mano del jugador actual
+            yourHand = player.Hand, // Solo la mano del jugador actual
+            isNewRound = isNewRound
         };
 
         Console.WriteLine($"📤 Enviando estado a {player.Name} (ConnectionId: {player.ConnectionId})");

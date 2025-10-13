@@ -44,6 +44,7 @@ export interface GameState {
     roundNumber: number;
     yourHand: Card[]; // Mano privada del jugador actual
     isRoomCreator: boolean; // Si el jugador actual es el creador de la sala
+    isNewRound?: boolean; // Si es una nueva ronda (vuelta completa)
 }
 
 export interface GameMode {
