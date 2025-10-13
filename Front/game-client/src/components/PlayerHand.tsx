@@ -90,56 +90,57 @@ export default function PlayerHand({
 
     return (
         <div className="player-hand">
-            <div className="hand-info">
-                <h2>Tu Mano ({cards.length} cartas)</h2>
+            <div className="hand-header">
+                <div className="hand-title-section">
+                    <h2>Tu Mano ({cards.length} cartas)</h2>
+                    {isMyTurn && (
+                        <div className="turn-info">
+                            <span className="turn-indicator active">¡Tu turno!</span>
+                            {selectedCards.length > 0 && (
+                                <span className="selected-count">
+                                    Seleccionadas: {selectedCards.length}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {validationMessage && (
+                    <motion.div
+                        className="validation-message-inline"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                    >
+                        {validationMessage}
+                    </motion.div>
+                )}
+
                 {isMyTurn && (
-                    <div className="turn-info">
-                        <span className="turn-indicator active">¡Tu turno!</span>
-                        {selectedCards.length > 0 && (
-                            <span className="selected-count">
-                                Seleccionadas: {selectedCards.length}
-                            </span>
+                    <div className="hand-controls-top">
+                        <motion.button
+                            className="play-btn"
+                            onClick={handlePlayCards}
+                            disabled={selectedCards.length === 0}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                        >
+                            Jugar {selectedCards.length > 0 ? `(${selectedCards.length} carta${selectedCards.length > 1 ? 's' : ''})` : ''}
+                        </motion.button>
+
+                        {!isFirstPlay && lastPlayedCards && lastPlayedCards.length > 0 && (
+                            <motion.button
+                                className="pass-btn"
+                                onClick={handlePass}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                Pasar
+                            </motion.button>
                         )}
                     </div>
                 )}
             </div>
-
-            {validationMessage && (
-                <motion.div
-                    className="validation-message"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                >
-                    {validationMessage}
-                </motion.div>
-            )}
-
-            {/* Controles arriba */}
-            {isMyTurn && (
-                <div className="hand-controls-top">
-                    <motion.button
-                        className="play-btn"
-                        onClick={handlePlayCards}
-                        disabled={selectedCards.length === 0}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        Jugar {selectedCards.length > 0 ? `(${selectedCards.length} carta${selectedCards.length > 1 ? 's' : ''})` : ''}
-                    </motion.button>
-
-                    {!isFirstPlay && lastPlayedCards && lastPlayedCards.length > 0 && (
-                        <motion.button
-                            className="pass-btn"
-                            onClick={handlePass}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                        >
-                            Pasar
-                        </motion.button>
-                    )}
-                </div>
-            )}
 
             {/* Mensaje de espera - arriba de las cartas */}
             {!isMyTurn && cards.length > 0 && (

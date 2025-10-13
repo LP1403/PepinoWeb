@@ -75,67 +75,77 @@ button:focus-visible {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .game-header {
   text-align: center;
-  margin-bottom: 30px;
-  padding: 20px;
+  margin-bottom: 5px;
+  padding: 5px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .game-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 2.5em;
+  margin: 0 0 3px 0;
+  font-size: 1.5em;
   color: #fff;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .connection-status {
-  font-size: 1.2em;
+  font-size: 1em;
   font-weight: bold;
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 .game-content {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 30px;
-  margin-bottom: 30px;
+  gap: 8px;
+  margin-bottom: 5px;
+  flex: 0 0 auto;
 }
 
 .players-section {
   background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 15px;
+  padding: 4px;
+  border-radius: 8px;
+  overflow: visible;
+  width: 100%;
 }
 
 .players-section h2 {
-  margin: 0 0 20px 0;
+  margin: 0 0 2px 0;
   color: #fff;
   text-align: center;
+  font-size: 0.8em;
 }
 
 .players-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
 }
 
 .player-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 15px;
+  padding: 3px 4px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  border-left: 4px solid #4CAF50;
+  border-radius: 4px;
+  border-left: 2px solid #4CAF50;
+  font-size: 0.8em;
+  min-height: 22px;
 }
 
 .player-item.current-player {
@@ -160,47 +170,51 @@ button:focus-visible {
 
 .table-section {
   background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 15px;
+  padding: 6px;
+  border-radius: 8px;
   text-align: center;
+  overflow: visible;
+  width: 100%;
 }
 
 .table-section h2 {
-  margin: 0 0 20px 0;
+  margin: 0 0 2px 0;
   color: #fff;
+  font-size: 0.8em;
 }
 
 .table-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 2px;
   justify-content: center;
-  min-height: 120px;
+  min-height: 60px;
   align-items: center;
+  overflow: visible;
 }
 
 .table-card {
-  transform: scale(0.8);
-  margin: 4px;
+  transform: scale(0.5);
+  margin: 1px;
 }
 
 .table-card .animated-card {
-  width: 100px;
-  height: 150px;
-  padding: 8px;
+  width: 60px;
+  height: 90px;
+  padding: 4px;
 }
 
 /* Adjust existing card styles for better integration */
 .card {
   position: relative;
-  width: 120px;
-  height: 180px;
-  border-radius: 12px;
+  width: 80px;
+  height: 120px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px;
-  margin: 8px;
+  padding: 6px;
+  margin: 4px;
   font-family: 'Arial', sans-serif;
   font-weight: bold;
   background: linear-gradient(135deg, #ffffff, #f8f9fa);
@@ -232,7 +246,7 @@ button:focus-visible {
 }
 
 .card .card-value {
-  font-size: 1.2em;
+  font-size: 0.9em;
   font-weight: bold;
   text-align: center;
 }
@@ -302,36 +316,43 @@ button:focus-visible {
 
 .player-hand-section {
   background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
+  padding: 10px;
   border-radius: 15px;
   text-align: center;
+  flex: 1;
+  min-height: 250px;
+  margin-top: 10px;
 }
 
 .player-hand-section h2 {
-  margin: 0 0 20px 0;
+  margin: 0 0 8px 0;
   color: #fff;
+  font-size: 1.2em;
 }
 
 .player-hand {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
+  height: 100%;
 }
 
 .cards-container {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .turn-indicator {
-  padding: 10px 20px;
+  padding: 5px 10px;
   border-radius: 20px;
   font-weight: bold;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
+  font-size: 0.9em;
 }
 
 .turn-indicator.active {
@@ -362,19 +383,26 @@ button:focus-visible {
   }
   
   .game-header h1 {
-    font-size: 2em;
-  }
-  
-  .card {
-    width: 80px;
-    height: 112px;
     font-size: 1.5em;
   }
   
-  .table-card {
+  .card {
     width: 60px;
     height: 90px;
     font-size: 1.2em;
+  }
+  
+  .table-card {
+    width: 50px;
+    height: 75px;
+    font-size: 1em;
+  }
+  
+  .animated-card {
+    width: 60px;
+    height: 90px;
+    padding: 4px;
+    margin: 2px;
   }
 }
 
@@ -539,16 +567,16 @@ button:focus-visible {
 .game-mode-info {
   display: flex;
   justify-content: center;
-  gap: 15px;
-  margin-top: 10px;
-  font-size: 0.9em;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 0.8em;
   color: #ccc;
 }
 
 .game-mode-info span {
   background: rgba(255, 255, 255, 0.1);
-  padding: 5px 10px;
-  border-radius: 15px;
+  padding: 3px 6px;
+  border-radius: 10px;
 }
 
 /* Estados de jugadores */
@@ -675,11 +703,25 @@ button:focus-visible {
 .validation-message {
   background: rgba(255, 107, 107, 0.3);
   color: #FF6B6B;
-  padding: 10px 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  margin-bottom: 5px;
   text-align: center;
   font-weight: bold;
+  font-size: 0.8em;
+}
+
+.validation-message-inline {
+  background: #ef4444;
+  color: white;
+  padding: 5px 8px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.8em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .card-group {
@@ -846,14 +888,14 @@ button:focus-visible {
 /* Animated Cards with Profession Themes */
 .animated-card {
   position: relative;
-  width: 120px;
-  height: 180px;
-  border-radius: 12px;
+  width: 80px;
+  height: 120px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px;
-  margin: 8px;
+  padding: 6px;
+  margin: 4px;
   font-family: 'Arial', sans-serif;
   font-weight: bold;
   transform-style: preserve-3d;
@@ -903,7 +945,7 @@ button:focus-visible {
 }
 
 .card-value {
-  font-size: 1.2em;
+  font-size: 0.9em;
   font-weight: bold;
   text-align: center;
 }
@@ -927,15 +969,15 @@ button:focus-visible {
 }
 
 .profession-icon {
-  font-size: 2.5em;
-  margin-bottom: 4px;
+  font-size: 1.8em;
+  margin-bottom: 2px;
 }
 
 .profession-name {
-  font-size: 0.8em;
+  font-size: 0.6em;
   font-weight: bold;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .pepino-oro-glow {
@@ -1570,24 +1612,62 @@ button:focus-visible {
     margin-top: 2rem;
 }
 
+/* Header de la mano del jugador */
+.hand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  width: 100%;
+  gap: 10px;
+}
+
+.hand-header .validation-message-inline {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.hand-title-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+  position: relative;
+}
+
+.hand-title-section h2 {
+  margin: 0;
+  font-size: 1.2em;
+  color: #fff;
+}
+
+.hand-title-section .turn-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* Controles arriba */
 .hand-controls-top {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 /* Cartas en una sola línea */
 .cards-container-single-line {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    overflow-x: auto;
-    padding: 1rem 0;
-    max-width: 100%;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding: 10px 0;
+  max-width: 100%;
+  flex: 1;
+  align-items: center;
 }
 
 .cards-container-single-line::-webkit-scrollbar {

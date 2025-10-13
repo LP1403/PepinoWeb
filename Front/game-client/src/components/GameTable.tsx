@@ -95,20 +95,29 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
 
             <div className="game-header">
                 <h1>🥒 Pepino - Sala: {roomId}</h1>
-                <p>Jugador: {playerName}</p>
-                <div className="connection-status">
-                    {isConnected ? '🟢 Conectado' : '🔴 Desconectado'}
-                </div>
-
-                {gameMode && (
-                    <div className="game-mode-info">
-                        <span>Mazos: {gameMode.deckCount}</span>
-                        <span>•</span>
-                        <span>Ganadores máx: {gameMode.maxWinners}</span>
-                        <span>•</span>
-                        <span>Cartas por jugador: {gameMode.cardsPerPlayer}</span>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.8em',
+                    flexWrap: 'wrap',
+                    gap: '5px'
+                }}>
+                    <span>Jugador: {playerName}</span>
+                    {gameMode && (
+                        <>
+                            <span>Mazos: {gameMode.deckCount}</span>
+                            <span>•</span>
+                            <span>Ganadores máx: {gameMode.maxWinners}</span>
+                            <span>•</span>
+                            <span>Cartas x jugador: {gameMode.cardsPerPlayer}</span>
+                            <span>•</span>
+                        </>
+                    )}
+                    <div className="connection-status">
+                        {isConnected ? '🟢 Conectado' : '🔴 Desconectado'}
                     </div>
-                )}
+                </div>
             </div>
 
             <div className="game-content">

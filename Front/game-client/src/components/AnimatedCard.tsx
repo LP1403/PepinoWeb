@@ -153,7 +153,7 @@ export default function AnimatedCard({
                     </div>
                 )}
 
-                {/* Detalles de la profesión según el valor */}
+                {/* Detalles de la profesión según el valor 
                 <div className="profession-details">
                     {card.value === 1 && (
                         <div className="detail-icon">👑</div>
@@ -168,6 +168,7 @@ export default function AnimatedCard({
                         <div className="detail-icon">👸</div>
                     )}
                 </div>
+                */}
             </div>
 
             {/* Efecto de selección */}
