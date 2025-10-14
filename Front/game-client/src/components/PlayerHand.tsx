@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { Card } from '../types/Card';
 import { CardService } from '../services/CardService';
@@ -24,6 +23,100 @@ export default function PlayerHand({
 }: PlayerHandProps) {
     const [selectedCards, setSelectedCards] = useState<Card[]>([]);
     const [validationMessage, setValidationMessage] = useState<string>('');
+    const [carouselOffset, setCarouselOffset] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState(0);
+    const [dragCurrent, setDragCurrent] = useState(0);
+    const carouselRef = useRef<HTMLDivElement>(null);
+
+    // Funciones de navegación del carrusel semicircular
+    const scrollLeft = () => {
+        if (cards.length <= 5) return; // No navegar si hay 5 o menos cartas
+        const newOffset = Math.max(0, carouselOffset - 1);
+        console.log('⬅️ Scroll Left:', { from: carouselOffset, to: newOffset, totalCards: cards.length });
+        setCarouselOffset(newOffset);
+    };
+
+    const scrollRight = () => {
+        if (cards.length <= 5) return; // No navegar si hay 5 o menos cartas
+        const maxOffset = Math.max(0, cards.length - 5); // Mostrar máximo 5 cartas visibles
+        const newOffset = Math.min(maxOffset, carouselOffset + 1);
+        console.log('➡️ Scroll Right:', { from: carouselOffset, to: newOffset, maxOffset, totalCards: cards.length });
+        setCarouselOffset(newOffset);
+    };
+
+    // Funciones de drag
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (!isMyTurn) return;
+        setIsDragging(true);
+        setDragStart(e.clientX);
+        setDragCurrent(e.clientX);
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isDragging || !isMyTurn) return;
+        setDragCurrent(e.clientX);
+    };
+
+    const handleMouseUp = () => {
+        if (!isDragging) return;
+        setIsDragging(false);
+
+        const dragDistance = dragStart - dragCurrent;
+        if (Math.abs(dragDistance) > 50) {
+            if (dragDistance > 0) {
+                scrollRight();
+            } else {
+                scrollLeft();
+            }
+        }
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (!isMyTurn) return;
+        setIsDragging(true);
+        setDragStart(e.touches[0].clientX);
+        setDragCurrent(e.touches[0].clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging || !isMyTurn) return;
+        setDragCurrent(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (!isDragging) return;
+        setIsDragging(false);
+
+        const dragDistance = dragStart - dragCurrent;
+        if (Math.abs(dragDistance) > 50) {
+            if (dragDistance > 0) {
+                scrollRight();
+            } else {
+                scrollLeft();
+            }
+        }
+    };
+
+    // Calcular qué cartas mostrar en el carrusel
+    const getVisibleCards = () => {
+        const sortedCards = cards.sort((a, b) => a.value - b.value);
+        const visibleCount = 5; // Máximo 5 cartas visibles
+        const startIndex = carouselOffset;
+        const endIndex = Math.min(startIndex + visibleCount, sortedCards.length);
+        const visibleCards = sortedCards.slice(startIndex, endIndex);
+
+        console.log('🎠 Carrusel Debug:', {
+            totalCards: cards.length,
+            carouselOffset,
+            startIndex,
+            endIndex,
+            visibleCards: visibleCards.length,
+            cardValues: visibleCards.map(c => c.value)
+        });
+
+        return visibleCards;
+    };
 
     const handleCardClick = (card: Card) => {
         if (!isMyTurn) return;
@@ -88,16 +181,6 @@ export default function PlayerHand({
             onPlay([]); // Array vacío indica pasar
         }
     };
-
-    // Agrupar cartas por valor para mostrar mejor
-    const groupedCards = cards.reduce((groups, card) => {
-        const value = card.value;
-        if (!groups[value]) {
-            groups[value] = [];
-        }
-        groups[value].push(card);
-        return groups;
-    }, {} as Record<Card['value'], Card[]>);
 
     const isCardSelected = (card: Card) => selectedCards.some(c => c.id === card.id);
 
@@ -165,44 +248,76 @@ export default function PlayerHand({
                 </div>
             )}
 
-            {/* Cartas en una sola línea - ordenadas de menor a mayor valor */}
-            <div className="cards-container-single-line">
-                {cards
-                    .sort((a, b) => a.value - b.value)
-                    .map((card, index) => (
-                        <motion.div
-                            key={card.id}
-                            style={{
-                                zIndex: cards.length - index
-                            }}
-                            initial={{
-                                opacity: 0,
-                                y: 50,
-                                rotateY: -90,
-                                scale: 0.8
-                            }}
-                            animate={{
-                                opacity: 1,
-                                y: 0,
-                                rotateY: 0,
-                                scale: 1
-                            }}
-                            transition={{
-                                duration: 0.5,
-                                delay: index * 0.05,
-                                type: "spring",
-                                stiffness: 200
-                            }}
-                        >
-                            <AnimatedCard
-                                card={card}
-                                isSelected={isCardSelected(card)}
-                                isPlayable={isMyTurn}
-                                onClick={() => handleCardClick(card)}
-                                showValue={true}
-                            />
-                        </motion.div>
-                    ))}
+            {/* Carrusel de cartas */}
+            <div className="cards-carousel-container">
+                {/* Flecha izquierda */}
+                <button
+                    className="carousel-arrow carousel-arrow-left"
+                    onClick={scrollLeft}
+                    disabled={cards.length <= 5 || carouselOffset <= 0}
+                >
+                    ‹
+                </button>
+
+                {/* Contenedor del carrusel semicircular */}
+                <div
+                    ref={carouselRef}
+                    className="cards-carousel"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                >
+                    <div className="cards-carousel-content">
+                        {getVisibleCards().map((card, index) => (
+                            <motion.div
+                                key={card.id}
+                                className="carousel-card"
+                                style={{
+                                    zIndex: getVisibleCards().length - index,
+                                    '--card-transform': `translateX(${(index - 2) * 50}px) rotate(${(index - 2) * 10}deg)`
+                                } as React.CSSProperties}
+                                initial={{
+                                    opacity: 0,
+                                    y: 100,
+                                    rotate: 0
+                                }}
+                                animate={{
+                                    opacity: 1,
+                                    y: 0,
+                                    rotate: (index - 2) * 10
+                                }}
+                                transition={{
+                                    duration: 0.6,
+                                    delay: index * 0.1,
+                                    type: "spring",
+                                    stiffness: 200
+                                }}
+                            >
+                                <AnimatedCard
+                                    card={card}
+                                    isSelected={isCardSelected(card)}
+                                    isPlayable={isMyTurn}
+                                    onClick={() => handleCardClick(card)}
+                                    showValue={true}
+                                />
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Flecha derecha */}
+                <button
+                    className="carousel-arrow carousel-arrow-right"
+                    onClick={scrollRight}
+                    disabled={cards.length <= 5 || carouselOffset >= Math.max(0, cards.length - 5)}
+                >
+                    ›
+                </button>
             </div>
         </div>
     );
