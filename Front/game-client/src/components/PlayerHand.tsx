@@ -191,7 +191,6 @@ export default function PlayerHand({
                     <h2>Tu Mano ({cards.length} cartas)</h2>
                     {isMyTurn && (
                         <div className="turn-info">
-                            <span className="turn-indicator active">¡Tu turno!</span>
                             {isNewRound && (
                                 <span className="new-round-indicator">🔄 Nueva ronda - Juega libremente</span>
                             )}

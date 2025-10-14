@@ -170,22 +170,27 @@ button:focus-visible {
 }
 
 .table-section {
-  background: rgba(255, 255, 255, 0.1);
   background-image: url('./assets/mesaFondo.jpg');
-  background-size: cover;
-  background-position: center;
+  background-size: contain;
+  background-position: center center;
   background-repeat: no-repeat;
-  padding: 6px;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 0;
   text-align: center;
   overflow: visible;
   width: 100%;
-  position: relative;
-  min-height: 50vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  margin: 0;
+  z-index: 1;
 }
 
 .table-section h2 {
@@ -927,6 +932,218 @@ button:focus-visible {
   
   .cards-carousel {
     height: 120px;
+  }
+}
+
+/* Interfaz inmersiva - Solo mesa y cartas */
+.game-table {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ocultar elementos innecesarios en la interfaz inmersiva */
+.game-table .players-section {
+  display: none;
+}
+
+/* Header original restaurado */
+.game-table .game-header {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px 20px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.game-table .game-header h1 {
+  color: white;
+  margin: 0 0 5px 0;
+  font-size: 1.5em;
+}
+
+.game-table .game-header > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8em;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.game-table .game-header .connection-status {
+  color: white;
+}
+
+/* Centrar la mesa y aprovechar TODO el ancho */
+.game-table .game-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 5px 250px 5px;
+  position: relative;
+  min-height: 0;
+  width: 100vw;
+  max-width: none;
+  z-index: 10;
+}
+
+.game-table .table-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+}
+
+.game-table .table-section h2 {
+  display: none; /* Ocultar título "Mesa" */
+}
+
+.game-table .table-cards {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  min-height: 350px;
+  padding: 60px 20px;
+  width: 100%;
+  max-width: none;
+}
+
+/* Hacer las cartas de la mesa más grandes */
+.game-table .table-card {
+  transform: scale(1.2);
+  margin: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+}
+
+.game-table .table-card .animated-card {
+  width: 100px;
+  height: 150px;
+  padding: 8px;
+}
+
+/* Nombre del jugador centrado debajo de la mesa */
+.game-table .player-name-section {
+  position: absolute;
+  bottom: 250px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 20;
+  width: auto;
+  max-width: none;
+}
+
+.game-table .player-name-section h2 {
+  color: white;
+  font-size: 1.8em;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 16px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  display: inline-block;
+  width: auto;
+}
+
+.game-table .turn-indicator {
+  color: #10b981;
+  font-size: 1em;
+  font-weight: bold;
+  margin-top: 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Carrusel integrado en la sección de mano */
+.game-table .cards-carousel-container {
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 99%;
+  max-width: none;
+  z-index: 30;
+  margin: 0;
+}
+
+.game-table .cards-carousel {
+  height: 200px;
+  background: transparent;
+  border-radius: 15px;
+  border: none;
+  box-shadow: none;
+}
+
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .game-table .game-header {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 6px 12px;
+  }
+  
+  .game-table .game-header h1 {
+    font-size: 1.1em;
+  }
+  
+  .game-table .game-header .connection-status {
+    font-size: 0.7em;
+  }
+  
+  .game-table .game-content {
+    padding: 60px 10px 140px 10px;
+  }
+  
+  .game-table .table-cards {
+    min-height: 120px;
+    padding: 20px;
+    gap: 10px;
+  }
+  
+  .game-table .player-name-section {
+    bottom: 140px;
+  }
+  
+  .game-table .player-name-section h2 {
+    font-size: 1.4em;
+    padding: 6px 12px;
+  }
+  
+  .game-table .turn-indicator {
+    font-size: 0.9em;
+  }
+  
+  .game-table .cards-carousel-container {
+    width: 98%;
+    bottom: 8px;
+  }
+  
+  .game-table .cards-carousel {
+    height: 140px;
+  }
+  
+  .carousel-arrow {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
   }
 }
 

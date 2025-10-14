@@ -3,19 +3,21 @@ import { motion } from 'framer-motion';
 interface GameModeSelectorProps {
     onSelectMode: (deckCount: number) => void;
     currentMode?: number;
-    playerCount: number;
+    playerCount?: number;
 }
 
-export default function GameModeSelector({ onSelectMode, currentMode, playerCount }: GameModeSelectorProps) {
+export default function GameModeSelector({ onSelectMode, currentMode, playerCount = 1 }: GameModeSelectorProps) {
     const getRecommendedMode = () => {
-        if (playerCount <= 2) return 2;
-        if (playerCount <= 4) return 1;
-        if (playerCount <= 6) return 2;
+        const count = playerCount || 1;
+        if (count <= 2) return 2;
+        if (count <= 4) return 1;
+        if (count <= 6) return 2;
         return 3;
     };
 
     const getCardsPerPlayer = (deckCount: number) => {
-        return Math.floor((deckCount * 40) / playerCount);
+        const count = playerCount || 1;
+        return Math.floor((deckCount * 40) / count);
     };
 
     const recommendedMode = getRecommendedMode();

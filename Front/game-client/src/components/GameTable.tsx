@@ -234,7 +234,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                                             return (
                                                 <GameModeSelector
                                                     onSelectMode={handleSelectGameMode}
-                                                    playerCount={players.length}
+                                                    playerCount={Math.max(1, players.length)}
                                                 />
                                             );
                                         }
@@ -347,6 +347,14 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                         </div>
                     );
                 })()}
+            </div>
+
+            {/* Nombre del jugador */}
+            <div className="player-name-section">
+                <h2>{playerName}</h2>
+                {isMyTurn && (
+                    <div className="turn-indicator">¡Tu turno!</div>
+                )}
             </div>
 
             {/* Mano del jugador */}
