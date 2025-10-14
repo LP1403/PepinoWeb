@@ -18,7 +18,39 @@ export default function AnimatedCard({
     className = "",
     showValue = true
 }: AnimatedCardProps) {
-    const isPepinoOro = card.suit === '♦' && card.value === 3;
+    // Función para obtener la imagen de la carta
+    const getCardImage = (card: Card): string => {
+        // Comodín (valor 2) - siempre usa comodin.png
+        if (card.value === 2) {
+            return '/src/assets/cartas/comodin.png';
+        }
+
+        // 3 de Oro - usa pepinooro.png
+        if (card.suit === '♦' && card.value === 3) {
+            return '/src/assets/cartas/pepinooro.png';
+        }
+
+        // Mapeo de palos a profesiones y valores a imágenes
+        const suitProfessionMap = {
+            '♠': 'policia', // Policía
+            '♥': 'bombero', // Médico (usa bombero)
+            '♦': 'gaucho',  // Soldado (usa gaucho)
+            '♣': 'frances'  // Bufón (usa francés)
+        };
+
+        const profession = suitProfessionMap[card.suit];
+        const value = card.value;
+
+        // Solo usar imágenes para valores 1 y 3
+        if (value === 1 || value === 3) {
+            return `/src/assets/cartas/${profession}${value}.png`;
+        }
+
+        // Para otros valores, no usar imagen personalizada
+        return '';
+    };
+
+    const cardImage = getCardImage(card);
 
     // Mapeo de palos a profesiones
     const suitProfessions = {
@@ -64,7 +96,7 @@ export default function AnimatedCard({
 
     return (
         <motion.div
-            className={`animated-card ${className} ${isSelected ? 'selected' : ''} ${isPlayable ? 'playable' : ''} ${isPepinoOro ? 'pepino-oro' : ''}`}
+            className={`animated-card ${className} ${isSelected ? 'selected' : ''} ${isPlayable ? 'playable' : ''}`}
             variants={cardVariants}
             initial="initial"
             animate={isSelected ? "selected" : "animate"}
@@ -72,86 +104,63 @@ export default function AnimatedCard({
             onClick={onClick}
             style={{
                 cursor: isPlayable ? 'pointer' : 'default',
-                background: isPepinoOro
-                    ? 'linear-gradient(135deg, #FFD700, #FFA500, #FFD700)'
-                    : 'linear-gradient(135deg, #ffffff, #f8f9fa)',
-                border: isPepinoOro
-                    ? '3px solid #FFD700'
-                    : `2px solid ${profession.color}`,
-                boxShadow: isPepinoOro
-                    ? '0 8px 25px rgba(255, 215, 0, 0.6)'
-                    : '0 4px 15px rgba(0, 0, 0, 0.1)'
+                background: 'linear-gradient(135deg, #ffffff, #f8f9fa)',
+                border: `2px solid ${profession.color}`,
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)'
             }}
         >
-            {/* Efecto dorado para Pepino de Oro */}
-            {isPepinoOro && (
-                <div className="pepino-oro-glow">
-                    <motion.div
-                        className="golden-sparkle"
-                        animate={{
-                            rotate: 360,
-                            scale: [1, 1.2, 1]
-                        }}
-                        transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
-                    >
-                        ✨
-                    </motion.div>
-                </div>
-            )}
 
             <div className="card-content">
-                {/* Valor superior */}
-                {showValue && (
-                    <div className="card-value top" style={{ color: profession.color }}>
-                        {getValueDisplay(card.value)}
-                    </div>
-                )}
-
-                {/* Profesión central */}
-                <div className="card-profession">
-                    <div className="profession-icon" style={{ fontSize: '2.5em' }}>
-                        {profession.icon}
-                    </div>
-                    <div className="profession-name" style={{
-                        color: profession.color,
-                        fontSize: '0.8em',
-                        fontWeight: 'bold',
-                        textAlign: 'center'
-                    }}>
-                        {profession.name}
-                    </div>
-                </div>
-
-                {/* Valor inferior */}
-                {showValue && (
-                    <div className="card-value bottom" style={{ color: profession.color }}>
-                        {getValueDisplay(card.value)}
-                    </div>
-                )}
-
-                {/* Indicador de Pepino de Oro */}
-                {isPepinoOro && (
-                    <div className="pepino-oro-indicator">
-                        <motion.div
-                            animate={{
-                                scale: [1, 1.3, 1],
-                                rotate: [0, 10, -10, 0]
+                {/* Contenido de la carta */}
+                {cardImage ? (
+                    /* Imagen personalizada - no mostrar valores ni iconos */
+                    <div className="card-image-container">
+                        <img
+                            src={cardImage}
+                            alt={`${profession.name} ${card.value}`}
+                            className="card-image"
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                borderRadius: '4px'
                             }}
-                            transition={{
-                                duration: 1.5,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                            }}
-                        >
-                            🥒
-                        </motion.div>
-                        <div className="pepino-text">PEPINO DE ORO</div>
+                        />
                     </div>
+                ) : (
+                    /* Fallback con iconos y valores */
+                    <>
+                        {/* Valor superior */}
+                        {showValue && (
+                            <div className="card-value top" style={{ color: profession.color }}>
+                                {getValueDisplay(card.value)}
+                            </div>
+                        )}
+
+                        {/* Profesión central */}
+                        <div className="card-profession">
+                            <div className="profession-icon" style={{ fontSize: '2.5em' }}>
+                                {profession.icon}
+                            </div>
+                            <div className="profession-name" style={{
+                                color: profession.color,
+                                fontSize: '0.8em',
+                                fontWeight: 'bold',
+                                textAlign: 'center'
+                            }}>
+                                {profession.name}
+                            </div>
+                        </div>
+
+                        {/* Valor inferior */}
+                        {showValue && (
+                            <div className="card-value bottom" style={{ color: profession.color }}>
+                                {getValueDisplay(card.value)}
+                            </div>
+                        )}
+                    </>
                 )}
+
 
                 {/* Detalles de la profesión según el valor 
                 <div className="profession-details">
