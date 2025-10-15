@@ -188,7 +188,7 @@ export default function PlayerHand({
         <div className="player-hand">
             <div className="hand-header">
                 <div className="hand-title-section">
-                    <h2>Tu Mano ({cards.length} cartas)</h2>
+                    <h2>Tu Mano</h2>
                     {isMyTurn && (
                         <div className="turn-info">
                             <span className="turn-indicator active">¡Tu turno!</span>
@@ -318,6 +318,11 @@ export default function PlayerHand({
                 >
                     ›
                 </button>
+            </div>
+
+            {/* Contador de cartas */}
+            <div className="cards-count-display">
+                <span className="cards-count-text">{cards.length} cartas</span>
             </div>
         </div>
     );

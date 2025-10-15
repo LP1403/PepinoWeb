@@ -29,7 +29,11 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background-image: url('./assets/mesaFondo.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 h1 {
@@ -72,26 +76,32 @@ button:focus-visible {
 
 /* Estilos específicos del juego */
 .game-table {
-  width: 100%;
-  max-width: 80vw;
-  margin: 0 auto;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  backdrop-filter: none;
+  box-shadow: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .game-header {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
   text-align: center;
-  margin-bottom: 5px;
-  padding: 5px;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 15px;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 10px;
-  flex-shrink: 0;
+  z-index: 100;
 }
 
 .game-header h1 {
@@ -108,45 +118,128 @@ button:focus-visible {
 }
 
 .game-content {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 8px;
-  margin-bottom: 5px;
-  flex: 0 0 auto;
-  min-height: 40vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 .players-section {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 4px;
+  display: none;
+}
+
+/* Cartas de oponentes (vista superior) */
+.opponents-cards-section {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  pointer-events: none;
+}
+
+.opponent-cards-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.opponent-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px 15px;
+  border-radius: 20px;
+}
+
+.opponent-name {
+  color: #fff;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.turn-indicator-small {
+  font-size: 1.2em;
+}
+
+.opponent-cards {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  position: relative;
+  height: 120px;
+  padding: 10px;
+  perspective: 1000px;
+}
+
+.opponent-card-back {
+  position: absolute;
+  left: 50%;
+  transition: all 0.3s ease;
+}
+
+.card-back {
+  width: 70px;
+  height: 100px;
+  background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+  border: 3px solid #fff;
   border-radius: 8px;
-  overflow: visible;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5em;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.more-cards-indicator {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-left: 10px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .players-section h2 {
-  margin: 0 0 2px 0;
+  position: absolute;
+  top: -5px;
+  left: 10px;
+  margin: 0;
   color: #fff;
-  text-align: center;
+  text-align: left;
   font-size: 0.8em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .players-list {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
 }
 
 .player-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 3px 4px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  border-left: 2px solid #4CAF50;
+  border-radius: 6px;
+  border-left: 3px solid #4CAF50;
   font-size: 0.8em;
-  min-height: 22px;
+  min-height: 28px;
+  min-width: 120px;
+  flex: 0 0 auto;
 }
 
 .player-item.current-player {
@@ -157,6 +250,7 @@ button:focus-visible {
 .player-name {
   font-weight: bold;
   color: #fff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .cards-count {
@@ -170,28 +264,28 @@ button:focus-visible {
 }
 
 .table-section {
-  background: rgba(255, 255, 255, 0.1);
-  background-image: url('./assets/mesaFondo.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  padding: 6px;
+  background: transparent;
+  padding: 20px;
   border-radius: 8px;
   text-align: center;
   overflow: visible;
-  width: 100%;
-  position: relative;
-  min-height: 50vh;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .table-section h2 {
   margin: 0 0 2px 0;
   color: #fff;
   font-size: 0.8em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .table-cards {
@@ -325,9 +419,14 @@ button:focus-visible {
 }
 
 .game-controls {
-  grid-column: 1 / -1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
   padding: 20px;
+  z-index: 60;
+  pointer-events: auto;
 }
 
 .start-game-btn {
@@ -344,18 +443,24 @@ button:focus-visible {
   color: #fff;
   font-size: 1.1em;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
   border-radius: 10px;
 }
 
 .player-hand-section {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 10px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  padding: 10px 10px 20px 10px;
   border-radius: 15px;
   text-align: center;
-  flex: 1;
-  min-height: 250px;
-  margin-top: 10px;
+  height: auto;
+  max-height: 40vh;
+  z-index: 50;
+  pointer-events: auto;
+  overflow: visible;
 }
 
 .player-hand-section h2 {
@@ -370,6 +475,7 @@ button:focus-visible {
   align-items: center;
   gap: 8px;
   height: 100%;
+  overflow: visible;
 }
 
 .cards-container {
@@ -655,13 +761,14 @@ button:focus-visible {
 
 /* Información de última jugada */
 .last-play-info {
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
   padding: 10px 15px;
   border-radius: 10px;
   margin-bottom: 15px;
   text-align: center;
   color: #fff;
   font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* Efecto PEPINEADO */
@@ -817,10 +924,11 @@ button:focus-visible {
   gap: 10px;
   width: 100%;
   position: relative;
+  pointer-events: auto;
 }
 
 .carousel-arrow {
-  background: #3b82f6;
+  background: rgba(59, 130, 246, 0.5);
   color: white;
   border: none;
   border-radius: 50%;
@@ -829,23 +937,26 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 10;
   flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
 }
 
 .carousel-arrow:hover:not(:disabled) {
-  background: #2563eb;
+  background: rgba(37, 99, 235, 0.7);
   transform: scale(1.1);
 }
 
 .carousel-arrow:disabled {
-  background: #9ca3af;
+  background: rgba(156, 163, 175, 0.3);
   cursor: not-allowed;
   transform: none;
+  opacity: 0.5;
 }
 
 .carousel-arrow-left {
@@ -1555,7 +1666,7 @@ button:focus-visible {
 }
 
 .game-ready {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: rgba(16, 185, 129, 0.3);
     border-radius: 15px;
     padding: 2rem;
     text-align: center;
@@ -1574,7 +1685,7 @@ button:focus-visible {
 }
 
 .waiting-creator {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background: rgba(245, 158, 11, 0.3);
     border-radius: 15px;
     padding: 2rem;
     text-align: center;
@@ -1588,7 +1699,7 @@ button:focus-visible {
 }
 
 .waiting-players {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    background: rgba(107, 114, 128, 0.3);
     border-radius: 15px;
     padding: 2rem;
     text-align: center;
@@ -1745,12 +1856,24 @@ button:focus-visible {
 }
 
 .turn-indicator {
-    background: #fbbf24;
-    color: #1f2937;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: bold;
+  background: #fbbf24;
+  color: #1f2937;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Contador de cartas */
+.cards-count-display {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.cards-count-text {
+  color: #ccc;
+  font-size: 0.8em;
+  font-weight: 500;
 }
 
 .skipped-indicator {
@@ -1808,10 +1931,11 @@ button:focus-visible {
 
 /* Mejoras en la mano del jugador */
 .player-hand {
-    background: rgba(255, 255, 255, 0.05);
+    background: transparent;
     border-radius: 15px;
-    padding: 1.5rem;
-    margin-top: 2rem;
+    padding: 1rem;
+    margin-top: 0;
+    overflow: visible;
 }
 
 /* Header de la mano del jugador */
@@ -1959,6 +2083,7 @@ button:focus-visible {
     gap: 1rem;
     justify-content: center;
     margin-top: 1.5rem;
+    pointer-events: auto;
 }
 
 .play-btn, .pass-btn {
@@ -1968,33 +2093,38 @@ button:focus-visible {
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
+    pointer-events: auto;
 }
 
 .play-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: rgba(16, 185, 129, 0.7);
     color: white;
+    backdrop-filter: blur(5px);
 }
 
 .play-btn:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.9);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.5);
 }
 
 .play-btn:disabled {
-    background: #6b7280;
+    background: rgba(107, 114, 128, 0.5);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
 .pass-btn {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background: rgba(245, 158, 11, 0.7);
     color: white;
+    backdrop-filter: blur(5px);
 }
 
 .pass-btn:hover {
+    background: rgba(245, 158, 11, 0.9);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 5px 15px rgba(245, 158, 11, 0.5);
 }
 
 /* Responsive design */

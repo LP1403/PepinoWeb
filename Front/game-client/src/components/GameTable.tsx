@@ -123,32 +123,56 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                 </div>
             </div>
 
-            <div className="game-content">
-                {/* Lista de jugadores */}
-                <div className="players-section">
-                    <h2>Jugadores ({players.length}/8)</h2>
-                    <div className="players-list">
-                        {players.map((player, index) => (
-                            <motion.div
-                                key={player.connectionId}
-                                className={`player-item ${player.name === playerName ? 'current-player' : ''} ${player.isCurrentTurn ? 'current-turn' : ''} ${player.isSkipped ? 'skipped' : ''} ${player.hasWon ? 'winner' : ''}`}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                            >
-                                <div className="player-info">
-                                    <span className="player-name">{player.name}</span>
-                                    {player.name === playerName && <span className="you-indicator">(Tú)</span>}
-                                    {player.isCurrentTurn && <span className="turn-indicator">🎯</span>}
-                                    {player.isSkipped && <span className="skipped-indicator">⏭️</span>}
-                                    {player.hasWon && <span className="winner-indicator">🏆</span>}
+            {/* Cartas de oponentes (vista superior) */}
+            {isGameStarted && players.length > 1 && (
+                <div className="opponents-cards-section">
+                    {players
+                        .filter(player => player.name !== playerName)
+                        .slice(0, 1) // Mostrar solo el primer oponente
+                        .map(opponent => (
+                            <div key={opponent.connectionId} className="opponent-cards-container">
+                                <div className="opponent-info">
+                                    <span className="opponent-name">{opponent.name}</span>
+                                    {opponent.isCurrentTurn && <span className="turn-indicator-small">🎯</span>}
                                 </div>
-                                <span className="cards-count">({player.cardCount || 0} cartas)</span>
-                            </motion.div>
+                                <div className="opponent-cards">
+                                    {Array.from({ length: Math.min(opponent.cardCount || 0, 5) }).map((_, index) => {
+                                        const totalCards = Math.min(opponent.cardCount || 0, 5);
+                                        const angle = (index - (totalCards - 1) / 2) * 8; // Ángulo de rotación (más suave, invertido)
+                                        const radius = 100; // Radio del semicírculo
+                                        const x = Math.sin((angle * Math.PI) / 180) * radius;
+                                        const y = -Math.cos((angle * Math.PI) / 180) * radius + radius; // Invertido (hacia arriba)
+                                        
+                                        return (
+                                            <motion.div
+                                                key={index}
+                                                className="opponent-card-back"
+                                                initial={{ opacity: 0, y: -20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: index * 0.05 }}
+                                                style={{
+                                                    transform: `translate(${x}px, ${y}px) rotate(${angle}deg)`,
+                                                    zIndex: totalCards - Math.abs(index - (totalCards - 1) / 2)
+                                                }}
+                                            >
+                                                <div className="card-back">
+                                                    🥒
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                    {(opponent.cardCount || 0) > 5 && (
+                                        <span className="more-cards-indicator" style={{ position: 'absolute', bottom: '-30px' }}>
+                                            +{(opponent.cardCount || 0) - 5} cartas más
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         ))}
-                    </div>
                 </div>
+            )}
 
+            <div className="game-content">
                 {/* Mesa de juego */}
                 <div className="table-section">
                     <h2>Mesa</h2>
@@ -359,6 +383,31 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                     isFirstPlay={isFirstPlay}
                     isNewRound={isNewRound}
                 />
+            </div>
+
+            {/* Lista de jugadores */}
+            <div className="players-section">
+                <h2>Jugadores ({players.length}/8)</h2>
+                <div className="players-list">
+                    {players.map((player, index) => (
+                        <motion.div
+                            key={player.connectionId}
+                            className={`player-item ${player.name === playerName ? 'current-player' : ''} ${player.isCurrentTurn ? 'current-turn' : ''} ${player.isSkipped ? 'skipped' : ''} ${player.hasWon ? 'winner' : ''}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                        >
+                            <div className="player-info">
+                                <span className="player-name">{player.name}</span>
+                                {player.name === playerName && <span className="you-indicator">(Tú)</span>}
+                                {player.isCurrentTurn && <span className="turn-indicator">🎯</span>}
+                                {player.isSkipped && <span className="skipped-indicator">⏭️</span>}
+                                {player.hasWon && <span className="winner-indicator">🏆</span>}
+                            </div>
+                            <span className="cards-count">({player.cardCount || 0} cartas)</span>
+                        </motion.div>
+                    ))}
+                </div>
             </div>
         </div>
     );
