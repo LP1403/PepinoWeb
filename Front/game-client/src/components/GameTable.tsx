@@ -96,7 +96,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                 playerName={pepineadoPlayer}
             />
 
-            <div className="game-header">
+            {/*<div className="game-header">
                 <h1>🥒 Pepino - Sala: {roomId}</h1>
                 <div style={{
                     display: 'flex',
@@ -121,7 +121,7 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                         {isConnected ? '🟢 Conectado' : '🔴 Desconectado'}
                     </div>
                 </div>
-            </div>
+            </div>*/}
 
             {/* Cartas del oponente (vista superior - semicírculo invertido) */}
             {isGameStarted && players.length > 1 && (

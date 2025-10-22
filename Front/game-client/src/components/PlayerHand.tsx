@@ -263,14 +263,7 @@ export default function PlayerHand({
                 <div
                     ref={carouselRef}
                     className="cards-carousel"
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    style={{ cursor: 'default' }}
                 >
                     <div className="cards-carousel-content">
                         {getVisibleCards().map((card, index) => {
@@ -283,28 +276,14 @@ export default function PlayerHand({
                             const y = (1 - Math.cos((angle * Math.PI) / 180)) * radius * 0.3; // Arco suave hacia arriba
                             
                             return (
-                                <motion.div
+                                <div
                                     key={card.id}
                                     className="carousel-card"
                                     style={{
                                         zIndex: totalCards - Math.abs(offset),
-                                        '--card-transform': `translateX(${x}px) translateY(${-y}px) rotate(${angle}deg)`
-                                    } as React.CSSProperties}
-                                    initial={{
-                                        opacity: 0,
-                                        y: 100,
-                                        rotate: 0
-                                    }}
-                                    animate={{
-                                        opacity: 1,
-                                        y: -y,
-                                        rotate: angle
-                                    }}
-                                    transition={{
-                                        duration: 0.6,
-                                        delay: index * 0.1,
-                                        type: "spring",
-                                        stiffness: 200
+                                        transform: `translateX(${x}px) translateY(${-y}px) rotate(${angle}deg)`,
+                                        position: 'absolute',
+                                        bottom: 0
                                     }}
                                 >
                                     <AnimatedCard
@@ -314,7 +293,7 @@ export default function PlayerHand({
                                         onClick={() => handleCardClick(card)}
                                         showValue={true}
                                     />
-                                </motion.div>
+                                </div>
                             );
                         })}
                     </div>
