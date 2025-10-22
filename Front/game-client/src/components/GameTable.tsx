@@ -123,52 +123,47 @@ export default function GameTable({ roomId, playerName }: GameTableProps) {
                 </div>
             </div>
 
-            {/* Cartas de oponentes (vista superior) */}
+            {/* Cartas del oponente (vista superior - semicírculo invertido) */}
             {isGameStarted && players.length > 1 && (
-                <div className="opponents-cards-section">
+                <div className="opponent-hand">
                     {players
                         .filter(player => player.name !== playerName)
-                        .slice(0, 1) // Mostrar solo el primer oponente
-                        .map(opponent => (
-                            <div key={opponent.connectionId} className="opponent-cards-container">
-                                <div className="opponent-info">
-                                    <span className="opponent-name">{opponent.name}</span>
-                                    {opponent.isCurrentTurn && <span className="turn-indicator-small">🎯</span>}
-                                </div>
-                                <div className="opponent-cards">
-                                    {Array.from({ length: Math.min(opponent.cardCount || 0, 5) }).map((_, index) => {
-                                        const totalCards = Math.min(opponent.cardCount || 0, 5);
-                                        const angle = (index - (totalCards - 1) / 2) * 8; // Ángulo de rotación (más suave, invertido)
-                                        const radius = 100; // Radio del semicírculo
-                                        const x = Math.sin((angle * Math.PI) / 180) * radius;
-                                        const y = -Math.cos((angle * Math.PI) / 180) * radius + radius; // Invertido (hacia arriba)
-                                        
-                                        return (
-                                            <motion.div
-                                                key={index}
-                                                className="opponent-card-back"
-                                                initial={{ opacity: 0, y: -20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: index * 0.05 }}
-                                                style={{
-                                                    transform: `translate(${x}px, ${y}px) rotate(${angle}deg)`,
-                                                    zIndex: totalCards - Math.abs(index - (totalCards - 1) / 2)
-                                                }}
-                                            >
-                                                <div className="card-back">
+                        .slice(0, 1)
+                        .map(opponent => {
+                            const cardCount = Math.min(opponent.cardCount || 0, 5);
+                            return (
+                                <div key={opponent.connectionId} className="opponent-container">
+                                    <div className="opponent-label">
+                                        {opponent.name} {opponent.isCurrentTurn && '🎯'}
+                                    </div>
+                                    <div className="opponent-cards-stack">
+                                        {Array.from({ length: cardCount }).map((_, index) => {
+                                            // Desplazamiento para crear efecto de pila
+                                            const offsetX = index * 2; // Desplazamiento horizontal
+                                            const offsetY = -index * 2; // Desplazamiento vertical (hacia arriba)
+                                            
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className="opponent-card-back"
+                                                    style={{
+                                                        transform: `translate(${offsetX}px, ${offsetY}px)`,
+                                                        zIndex: index // Las cartas de arriba tienen mayor z-index
+                                                    }}
+                                                >
                                                     🥒
                                                 </div>
-                                            </motion.div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                     {(opponent.cardCount || 0) > 5 && (
-                                        <span className="more-cards-indicator" style={{ position: 'absolute', bottom: '-30px' }}>
+                                        <div className="extra-cards-label">
                                             +{(opponent.cardCount || 0) - 5} cartas más
-                                        </span>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                 </div>
             )}
 

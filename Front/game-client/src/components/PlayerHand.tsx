@@ -256,7 +256,7 @@ export default function PlayerHand({
                     onClick={scrollLeft}
                     disabled={cards.length <= 5 || carouselOffset <= 0}
                 >
-                    ‹
+                    ◄
                 </button>
 
                 {/* Contenedor del carrusel semicircular */}
@@ -273,40 +273,50 @@ export default function PlayerHand({
                     style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
                 >
                     <div className="cards-carousel-content">
-                        {getVisibleCards().map((card, index) => (
-                            <motion.div
-                                key={card.id}
-                                className="carousel-card"
-                                style={{
-                                    zIndex: getVisibleCards().length - index,
-                                    '--card-transform': `translateX(${(index - 2) * 50}px) rotate(${(index - 2) * 10}deg)`
-                                } as React.CSSProperties}
-                                initial={{
-                                    opacity: 0,
-                                    y: 100,
-                                    rotate: 0
-                                }}
-                                animate={{
-                                    opacity: 1,
-                                    y: 0,
-                                    rotate: (index - 2) * 10
-                                }}
-                                transition={{
-                                    duration: 0.6,
-                                    delay: index * 0.1,
-                                    type: "spring",
-                                    stiffness: 200
-                                }}
-                            >
-                                <AnimatedCard
-                                    card={card}
-                                    isSelected={isCardSelected(card)}
-                                    isPlayable={isMyTurn}
-                                    onClick={() => handleCardClick(card)}
-                                    showValue={true}
-                                />
-                            </motion.div>
-                        ))}
+                        {getVisibleCards().map((card, index) => {
+                            const totalCards = getVisibleCards().length;
+                            const centerIndex = (totalCards - 1) / 2;
+                            const offset = index - centerIndex;
+                            const angle = offset * 8; // Ángulo de rotación suave
+                            const radius = 180; // Radio del arco
+                            const x = Math.sin((angle * Math.PI) / 180) * radius;
+                            const y = (1 - Math.cos((angle * Math.PI) / 180)) * radius * 0.3; // Arco suave hacia arriba
+                            
+                            return (
+                                <motion.div
+                                    key={card.id}
+                                    className="carousel-card"
+                                    style={{
+                                        zIndex: totalCards - Math.abs(offset),
+                                        '--card-transform': `translateX(${x}px) translateY(${-y}px) rotate(${angle}deg)`
+                                    } as React.CSSProperties}
+                                    initial={{
+                                        opacity: 0,
+                                        y: 100,
+                                        rotate: 0
+                                    }}
+                                    animate={{
+                                        opacity: 1,
+                                        y: -y,
+                                        rotate: angle
+                                    }}
+                                    transition={{
+                                        duration: 0.6,
+                                        delay: index * 0.1,
+                                        type: "spring",
+                                        stiffness: 200
+                                    }}
+                                >
+                                    <AnimatedCard
+                                        card={card}
+                                        isSelected={isCardSelected(card)}
+                                        isPlayable={isMyTurn}
+                                        onClick={() => handleCardClick(card)}
+                                        showValue={true}
+                                    />
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -316,7 +326,7 @@ export default function PlayerHand({
                     onClick={scrollRight}
                     disabled={cards.length <= 5 || carouselOffset >= Math.max(0, cards.length - 5)}
                 >
-                    ›
+                    ►
                 </button>
             </div>
 
