@@ -1,0 +1,147 @@
+.pepino-arena-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #071033;
+  z-index: 0;
+}
+
+.mesa-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.05) saturate(0.95) brightness(0.95);
+}
+
+.arena-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.arena-center {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  height: 320px;
+  border-radius: 50% / 40%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pepino-token {
+  width: 120px;
+  height: 120px;
+  filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6));
+}
+
+/* Center played cards container */
+.center-play-cards {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.center-card-wrapper {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.center-played-card {
+  width: 120px;
+  height: 160px;
+}
+
+.arena-player {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform-origin: center center;
+}
+
+.player-avatar {
+  width: 74px;
+  height: 74px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+}
+
+.player-name {
+  background: rgba(0,0,0,0.5);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.player-id-short { font-size: 11px; opacity: 0.85; margin-top: 4px; }
+
+.player-stack {
+  position: relative;
+  height: 72px;
+  margin-top: 8px;
+  display: block;
+}
+
+.stack-card {
+  position: absolute;
+  width: 60px;
+  height: 86px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.08));
+  border: 2px solid rgba(255,255,255,0.06);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  transform-origin: center bottom;
+}
+
+.stack-more { position: absolute; bottom: -8px; background: rgba(0,0,0,0.6); padding: 4px 6px; border-radius: 6px; font-size: 12px; }
+
+.bottom-hand-area {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  width: 760px;
+  height: 200px;
+  pointer-events: none;
+}
+
+.bottom-card {
+  position: absolute;
+  bottom: 0;
+  width: 140px;
+  height: 200px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.08));
+  border: 2px solid rgba(255,255,255,0.06);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+  transform-origin: bottom center;
+}
+
+.hand-more-indicator { position: absolute; right: -64px; bottom: 36px; background: rgba(0,0,0,0.6); padding: 8px 10px; border-radius: 8px; }
+
+@media (max-width: 900px) {
+  .bottom-hand-area { width: 90%; }
+  .bottom-card { width: 90px; height: 130px; }
+  .player-avatar { width: 52px; height: 52px; }
+}

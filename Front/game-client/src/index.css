@@ -333,6 +333,8 @@ button:focus-visible {
   grid-column: 1 / -1;
   text-align: center;
   padding: 20px;
+  position: relative;
+  z-index: 200; /* Asegura que los controles (selector/botones) queden encima de la mesa */
 }
 
 .start-game-btn {
@@ -1995,7 +1997,15 @@ button:focus-visible {
 
 /* Mejoras en los controles del juego */
 .game-controls {
-    margin: 2rem 0;
+  /* Flota centrado por encima de la mesa para interfaces inmersivas */
+  position: absolute;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 220;
+  width: auto;
+  margin: 0;
+  padding: 12px 16px;
 }
 
 .start-game-btn {
@@ -2009,6 +2019,19 @@ button:focus-visible {
     cursor: pointer;
     box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
     transition: all 0.3s ease;
+}
+
+/* Selector de modo: caja centrada y con ancho máximo para evitar recortes */
+.game-mode-selector {
+  position: relative;
+  z-index: 230;
+  max-width: 640px;
+  width: calc(100% - 40px);
+  margin: 0 auto;
+  background: rgba(0,0,0,0.6);
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 }
 
 .start-game-btn:hover {

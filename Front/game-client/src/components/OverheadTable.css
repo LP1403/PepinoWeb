@@ -1,0 +1,143 @@
+.overhead-table-root {
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(180deg, #0f172a 0%, #071033 100%); /* neutral dark, not UNO colors */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  overflow: hidden;
+}
+
+.table-title {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-weight: 700;
+  background: rgba(0,0,0,0.5);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.table-arena {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  height: 80vh;
+}
+
+.table-surface {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -52%);
+  width: 520px;
+  height: 320px;
+  background: radial-gradient(circle at 40% 30%, rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+  border-radius: 50% / 40%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), inset 0 -10px 30px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-center-label {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #e6f7e6; /* subtle pepino hint */
+  text-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.table-player {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.player-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.player-name {
+  font-size: 14px;
+  background: rgba(0,0,0,0.5);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.player-cards {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.card-back {
+  width: 44px;
+  height: 64px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 2px solid rgba(255,255,255,0.06);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.cards-more {
+  font-size: 12px;
+  padding: 4px 6px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 6px;
+}
+
+.bottom-hand {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  height: 140px;
+  width: 720px;
+  pointer-events: none;
+}
+
+.hand-card {
+  position: absolute;
+  bottom: 0;
+  width: 120px;
+  height: 180px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 2px solid rgba(255,255,255,0.06);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  transform-origin: bottom center;
+}
+
+.hand-more {
+  position: absolute;
+  right: -60px;
+  bottom: 20px;
+  font-size: 14px;
+  background: rgba(0,0,0,0.6);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+@media (max-width: 900px) {
+  .table-surface { width: 360px; height: 220px; }
+  .bottom-hand { width: 90%; }
+  .hand-card { width: 80px; height: 120px; }
+  .card-back { width: 32px; height: 48px; }
+}
