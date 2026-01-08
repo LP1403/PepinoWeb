@@ -28,8 +28,51 @@ namespace PepinoGame.UI
         private int selectedDeckCount = 0;
         private bool isRoomCreator = false;
 
+        private void Awake()
+        {
+            Debug.LogError("========================================");
+            Debug.LogError("GAMEMODESELECTOR AWAKE - SI VES ESTO, EL SCRIPT FUNCIONA");
+            Debug.LogError("========================================");
+            Debug.Log("[GameModeSelector] ========== AWAKE EJECUTÁNDOSE ==========");
+            Debug.Log($"[GameModeSelector] GameObject activo: {gameObject.activeSelf}");
+            Debug.Log($"[GameModeSelector] GameObject nombre: {gameObject.name}");
+            Debug.Log($"[GameModeSelector] Enabled: {enabled}");
+        }
+
+        private void OnEnable()
+        {
+            Debug.Log("[GameModeSelector] ========== OnEnable EJECUTÁNDOSE ==========");
+            
+            // FORZAR suscripción cada vez que se activa
+            if (GameManager.Instance != null)
+            {
+                // Desuscribirse primero para evitar duplicados
+                GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
+                // Suscribirse de nuevo
+                GameManager.Instance.OnGameStateChanged += OnGameStateChanged;
+                Debug.Log("[GameModeSelector] FORZADO: Suscrito a OnGameStateChanged en OnEnable");
+                
+                // Actualizar UI con el estado actual
+                if (GameManager.Instance.CurrentGameState != null)
+                {
+                    OnGameStateChanged(GameManager.Instance.CurrentGameState);
+                }
+            }
+            else
+            {
+                Debug.LogError("[GameModeSelector] GameManager.Instance es NULL en OnEnable!");
+            }
+        }
+
+        private void OnDisable()
+        {
+            Debug.Log("[GameModeSelector] ========== OnDisable EJECUTÁNDOSE ==========");
+        }
+
         private void Start()
         {
+            Debug.Log("[GameModeSelector] ========== Start() EJECUTÁNDOSE ==========");
+            
             // Configurar botones
             if (deck1Button != null)
                 deck1Button.onClick.AddListener(() => SelectDeckCount(1));
@@ -50,19 +93,60 @@ namespace PepinoGame.UI
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnGameStateChanged += OnGameStateChanged;
+                Debug.Log("[GameModeSelector] Suscrito a OnGameStateChanged");
+            }
+            else
+            {
+                Debug.LogError("[GameModeSelector] GameManager.Instance es NULL!");
             }
 
             // Estado inicial
             UpdateUI(null);
+            Debug.Log("[GameModeSelector] Start() completado");
         }
 
         private async void SelectDeckCount(int deckCount)
         {
+            // VERSIÓN NUEVA - SI NO VES ESTO EN ROJO, UNITY USA CÓDIGO VIEJO
+            Debug.LogError("╔══════════════════════════════════════════════════════════════╗");
+            Debug.LogError("║  CÓDIGO NUEVO EJECUTÁNDOSE - SI VES ESTO, FUNCIONÓ          ║");
+            Debug.LogError($"║  SELECCIONASTE: {deckCount} MAZO(S)                         ║");
+            Debug.LogError("╚══════════════════════════════════════════════════════════════╝");
+            
+            Debug.LogWarning($"[GameModeSelector] isRoomCreator actual: {isRoomCreator}");
+            Debug.LogWarning($"[GameModeSelector] GameManager.Instance: {GameManager.Instance != null}");
+            
+            if (GameManager.Instance != null)
+            {
+                Debug.LogWarning($"[GameModeSelector] GameState.isRoomCreator: {GameManager.Instance.CurrentGameState?.isRoomCreator}");
+            }
+            
             if (!isRoomCreator)
             {
-                Debug.Log("[GameModeSelector] Solo el creador puede seleccionar el modo");
-                return;
+                Debug.LogError("[GameModeSelector] ❌ NO SOY CREADOR - Intentando suscribirse ahora...");
+                
+                // FORZAR suscripción ahora
+                if (GameManager.Instance != null && GameManager.Instance.CurrentGameState != null)
+                {
+                    Debug.LogWarning("[GameModeSelector] Actualizando isRoomCreator manualmente...");
+                    isRoomCreator = GameManager.Instance.CurrentGameState.isRoomCreator;
+                    Debug.LogWarning($"[GameModeSelector] Nuevo valor isRoomCreator: {isRoomCreator}");
+                    
+                    if (!isRoomCreator)
+                    {
+                        Debug.LogError("[GameModeSelector] El backend dice que NO eres creador");
+                        return;
+                    }
+                }
+                else
+                {
+                    Debug.LogError("[GameModeSelector] No hay GameState disponible");
+                    return;
+                }
             }
+            
+            Debug.LogWarning($"[GameModeSelector] ✅ SOY CREADOR - Seleccionando {deckCount} mazo(s)");
+
 
             selectedDeckCount = deckCount;
             UpdateDeckButtonsVisuals();
@@ -119,20 +203,32 @@ namespace PepinoGame.UI
         {
             if (gameState == null)
             {
-                if (selectorPanel != null)
-                    selectorPanel.SetActive(false);
+                // TEMPORAL: Comentado para debugging
+                // if (selectorPanel != null)
+                //     selectorPanel.SetActive(false);
+                Debug.Log("[GameModeSelector DEBUG] UpdateUI llamado con gameState NULL");
                 return;
             }
+            
+            Debug.Log("[GameModeSelector DEBUG] UpdateUI llamado con gameState válido");
 
             isRoomCreator = gameState.isRoomCreator;
+
+            // DEBUG: Ver qué valores llegan
+            Debug.Log($"[GameModeSelector DEBUG] isRoomCreator: {isRoomCreator}, isGameStarted: {gameState.isGameStarted}");
+            Debug.Log($"[GameModeSelector DEBUG] Jugadores: {gameState.players?.Count ?? 0}");
 
             // Solo mostrar el selector si:
             // 1. Soy el creador
             // 2. El juego NO ha iniciado
-            bool shouldShow = isRoomCreator && !gameState.isGameStarted;
+            // TEMPORAL: Forzar mostrar para testing
+            bool shouldShow = true; // isRoomCreator && !gameState.isGameStarted;
             
-            if (selectorPanel != null)
-                selectorPanel.SetActive(shouldShow);
+            Debug.Log($"[GameModeSelector DEBUG] shouldShow: {shouldShow} (FORZADO A TRUE PARA TESTING)");
+            
+            // TEMPORAL: Comentado para debugging
+            // if (selectorPanel != null)
+            //     selectorPanel.SetActive(shouldShow);
 
             if (!shouldShow) return;
 
