@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Newtonsoft.Json;
 
 namespace PepinoGame.Models
 {
@@ -9,9 +10,16 @@ namespace PepinoGame.Models
     [System.Serializable]
     public class Card
     {
+        [JsonProperty("suit")]
         public string suit;          // "♠", "♥", "♦", "♣"
+        
+        [JsonProperty("value")]
         public int value;            // 1-12 (A=1, J=11, Q=12, K=13)
+        
+        [JsonProperty("id")]
         public string id;            // Identificador único
+        
+        [JsonProperty("isPepinoOro")]
         public bool isPepinoOro;     // true si es 3♦
 
         public Card() { }

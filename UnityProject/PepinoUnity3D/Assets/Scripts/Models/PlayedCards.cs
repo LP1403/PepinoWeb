@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace PepinoGame.Models
 {
@@ -8,9 +9,16 @@ namespace PepinoGame.Models
     [System.Serializable]
     public class PlayedCards
     {
+        [JsonProperty("cards")]
         public List<Card> cards;
+        
+        [JsonProperty("playerId")]
         public string playerId;
+        
+        [JsonProperty("playerName")]
         public string playerName;
+        
+        [JsonProperty("isPepineado")]
         public bool isPepineado;       // Si es la misma jugada que la anterior
 
         public PlayedCards()

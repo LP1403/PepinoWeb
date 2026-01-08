@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace PepinoGame.Models
 {
@@ -8,12 +9,25 @@ namespace PepinoGame.Models
     [System.Serializable]
     public class Player
     {
+        [JsonProperty("connectionId")]
         public string connectionId;
+        
+        [JsonProperty("name")]
         public string name;
+        
+        [JsonProperty("cardCount")]
         public int cardCount;          // Solo la cantidad de cartas (para otros jugadores)
+        
+        [JsonProperty("isConnected")]
         public bool isConnected;
+        
+        [JsonProperty("isCurrentTurn")]
         public bool isCurrentTurn;
+        
+        [JsonProperty("isSkipped")]
         public bool isSkipped;         // Para el efecto "PEPINEADO"
+        
+        [JsonProperty("hasWon")]
         public bool hasWon;
 
         public Player()

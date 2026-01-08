@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace PepinoGame.Models
 {
     /// <summary>
@@ -6,8 +8,13 @@ namespace PepinoGame.Models
     [System.Serializable]
     public class GameMode
     {
+        [JsonProperty("deckCount")]
         public int deckCount;          // 1, 2 o 3 mazos
+        
+        [JsonProperty("maxWinners")]
         public int maxWinners;         // 2 para ≤4 jugadores, 3 para >4 jugadores
+        
+        [JsonProperty("cardsPerPlayer")]
         public int cardsPerPlayer;     // Calculado automáticamente
 
         public GameMode()
