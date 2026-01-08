@@ -99,6 +99,17 @@ namespace PepinoGame.Managers
             connection.On<GameState>("GameStateUpdated", (gameState) =>
             {
                 Log($"🔄 Estado del juego actualizado");
+                Log($"DEBUG RAW - RoomId: {gameState.roomId}");
+                Log($"DEBUG RAW - isRoomCreator: {gameState.isRoomCreator}");
+                Log($"DEBUG RAW - isGameStarted: {gameState.isGameStarted}");
+                Log($"DEBUG RAW - players NULL? {gameState.players == null}");
+                Log($"DEBUG RAW - players COUNT: {gameState.players?.Count ?? -1}");
+                
+                if (gameState.players != null && gameState.players.Count > 0)
+                {
+                    Log($"DEBUG RAW - Primer jugador: {gameState.players[0].name}");
+                }
+                
                 OnGameStateUpdated?.Invoke(gameState);
             });
 

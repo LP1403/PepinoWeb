@@ -1,4 +1,6 @@
-# Logs
+# ===============================
+# NODE.JS / FRONTEND (deprecado)
+# ===============================
 logs
 *.log
 npm-debug.log*
@@ -6,23 +8,59 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# ===============================
+# .NET BACKEND
+# ===============================
+.vs/
+obj/
+bin/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+*.exe
+appsettings.Development.json
+
+# ===============================
+# UNITY PROJECT (UnityProject/PepinoUnity3D/)
+# ===============================
+# Unity Generated
+UnityProject/PepinoUnity3D/[Ll]ibrary/
+UnityProject/PepinoUnity3D/[Tt]emp/
+UnityProject/PepinoUnity3D/[Oo]bj/
+UnityProject/PepinoUnity3D/[Bb]uild/
+UnityProject/PepinoUnity3D/[Bb]uilds/
+UnityProject/PepinoUnity3D/[Ll]ogs/
+UnityProject/PepinoUnity3D/[Uu]ser[Ss]ettings/
+UnityProject/PepinoUnity3D/[Mm]emoryCaptures/
+
+# Unity Auto-generated
+UnityProject/PepinoUnity3D/*.csproj
+UnityProject/PepinoUnity3D/*.unityproj
+UnityProject/PepinoUnity3D/*.sln
+UnityProject/PepinoUnity3D/*.suo
+UnityProject/PepinoUnity3D/*.user
+UnityProject/PepinoUnity3D/*.userprefs
+UnityProject/PepinoUnity3D/*.pidb
+UnityProject/PepinoUnity3D/*.booproj
+
+# Unity Crash Reports
+UnityProject/PepinoUnity3D/sysinfo.txt
+UnityProject/PepinoUnity3D/*.stackdump
+
+# ===============================
+# IDEs
+# ===============================
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
-
-.vs
-obj
-bin

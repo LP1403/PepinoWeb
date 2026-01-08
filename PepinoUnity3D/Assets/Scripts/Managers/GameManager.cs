@@ -259,6 +259,16 @@ namespace PepinoGame.Managers
         {
             currentGameState = newState;
             Log($"Estado actualizado - Jugadores: {newState.players?.Count ?? 0}, Iniciado: {newState.isGameStarted}");
+            Log($"DEBUG Estado: isRoomCreator={newState.isRoomCreator}, RoomId={newState.roomId}");
+            
+            if (newState.players != null && newState.players.Count > 0)
+            {
+                Log($"DEBUG Primer jugador: {newState.players[0].name}");
+            }
+            else
+            {
+                LogError("DEBUG: Lista de jugadores está VACÍA o NULL!");
+            }
             
             OnGameStateChanged?.Invoke(newState);
             OnHandUpdated?.Invoke(newState.yourHand);
