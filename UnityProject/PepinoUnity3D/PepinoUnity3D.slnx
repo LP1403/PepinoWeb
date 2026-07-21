@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="Unity.Serialization.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Unity.Serialization.Editor.csproj" />
+</Solution>

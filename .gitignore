@@ -1,5 +1,5 @@
 # ===============================
-# NODE.JS / FRONTEND (deprecado)
+# NODE.JS / FRONTEND (Front/game-client)
 # ===============================
 logs
 *.log
@@ -12,25 +12,33 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.local
 
 # ===============================
-# .NET BACKEND
+# .NET BACKEND (Back/GameServer)
 # ===============================
 .vs/
-obj/
-bin/
+[Bb]in/
+[Oo]bj/
 *.user
 *.suo
 *.cache
-*.dll
-*.pdb
-*.exe
+*.userosscache
+*.sln.docstates
 appsettings.Development.json
+appsettings.*.local.json
+*.nupkg
+project.lock.json
+publish/
 
 # ===============================
 # UNITY PROJECT (UnityProject/PepinoUnity3D/)
+# Nota: NO ignoramos *.dll a nivel global porque los paquetes
+# SignalR vendorizados por NuGetForUnity viven bajo
+# UnityProject/PepinoUnity3D/Assets/Packages/**/*.dll y SÍ se commitean.
 # ===============================
-# Unity Generated
+# Unity Generated (carpetas regenerables por el Editor)
 UnityProject/PepinoUnity3D/[Ll]ibrary/
 UnityProject/PepinoUnity3D/[Tt]emp/
 UnityProject/PepinoUnity3D/[Oo]bj/
@@ -38,9 +46,18 @@ UnityProject/PepinoUnity3D/[Bb]uild/
 UnityProject/PepinoUnity3D/[Bb]uilds/
 UnityProject/PepinoUnity3D/[Ll]ogs/
 UnityProject/PepinoUnity3D/[Uu]ser[Ss]ettings/
+UnityProject/PepinoUnity3D/[Uu]ser[Pp]rojectSettings/
 UnityProject/PepinoUnity3D/[Mm]emoryCaptures/
+UnityProject/PepinoUnity3D/[Rr]ecordings/
+UnityProject/PepinoUnity3D/[Aa]uto[Bb]uild/
+UnityProject/PepinoUnity3D/AssetStoreTools*/
+UnityProject/PepinoUnity3D/exportedObj/
 
-# Unity Auto-generated
+# Nota: UnityProject/PepinoUnity3D/Packages/ contiene paquetes NuGet
+# vendorizados por NuGetForUnity (.nupkg, dlls, etc.) - se commitean a propósito.
+# Los paquetes UPM (com.unity.*) se resuelven en Library/PackageCache (ya ignorado).
+
+# Unity Auto-generated (proyectos IDE regenerados por Unity)
 UnityProject/PepinoUnity3D/*.csproj
 UnityProject/PepinoUnity3D/*.unityproj
 UnityProject/PepinoUnity3D/*.sln
@@ -48,19 +65,28 @@ UnityProject/PepinoUnity3D/*.suo
 UnityProject/PepinoUnity3D/*.user
 UnityProject/PepinoUnity3D/*.userprefs
 UnityProject/PepinoUnity3D/*.pidb
+UnityProject/PepinoUnity3D/*.pidb.meta
 UnityProject/PepinoUnity3D/*.booproj
+UnityProject/PepinoUnity3D/*.svd
+UnityProject/PepinoUnity3D/*.apk
+UnityProject/PepinoUnity3D/*.aab
+UnityProject/PepinoUnity3D/*.ipa
+UnityProject/PepinoUnity3D/*.unitypackage
+UnityProject/PepinoUnity3D/crashlytics-build.properties
 
 # Unity Crash Reports
 UnityProject/PepinoUnity3D/sysinfo.txt
 UnityProject/PepinoUnity3D/*.stackdump
 
 # ===============================
-# IDEs
+# IDEs / OS
 # ===============================
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.ntvs*
 *.njsproj
 *.sw?
