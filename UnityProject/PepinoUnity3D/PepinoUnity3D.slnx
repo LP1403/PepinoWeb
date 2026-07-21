@@ -1,6 +1,8 @@
 ﻿<Solution>
+  <Project Path="Unity.Serialization.Tests.csproj" />
   <Project Path="Unity.Serialization.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Unity.Serialization.Editor.csproj" />
+  <Project Path="MockTests.csproj" />
 </Solution>
