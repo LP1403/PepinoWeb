@@ -363,7 +363,7 @@ namespace PepinoGame.Managers
 
             OnGameStateChanged?.Invoke(currentGameState);
             OnNewRound?.Invoke();
-            Notify("¡El juego ha comenzado!");
+            // Turn banner already communicates start — skip floating spam text
         }
 
         private void HandleError(string errorMessage)

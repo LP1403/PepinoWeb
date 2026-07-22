@@ -17,7 +17,7 @@ namespace PepinoGame.Controllers
         [Header("Settings")]
         [SerializeField] private float cardStackSpacing = 0.02f;
         [SerializeField] private Vector3 tableCenter = Vector3.zero;
-        [SerializeField] private Vector3 cardLocalScale = new Vector3(1.2f, 1.2f, 1.2f);
+        [SerializeField] private Vector3 cardLocalScale = new Vector3(2.8f, 2.8f, 2.8f);
 
         private readonly List<GameObject> tableCards = new List<GameObject>();
 
@@ -73,7 +73,7 @@ namespace PepinoGame.Controllers
             Vector3 position = tableCenter + Vector3.up * (tableCards.Count * cardStackSpacing);
             cardObj.transform.localPosition = position;
             cardObj.transform.localRotation = CardOrientation.FaceUpOnTable(Random.Range(-14f, 14f));
-            cardObj.transform.localScale = cardLocalScale * 1.15f;
+            cardObj.transform.localScale = cardLocalScale;
 
             var controller = cardObj.GetComponent<Card3DController>();
             if (controller == null)

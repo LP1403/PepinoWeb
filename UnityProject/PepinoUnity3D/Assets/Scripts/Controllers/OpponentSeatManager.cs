@@ -8,36 +8,34 @@ using PepinoGame.Utils;
 namespace PepinoGame.Controllers
 {
     /// <summary>
-    /// Spawns face-down card fans + name labels for opponents around the table (UNO-style seats).
-    /// Local player sits at the south edge; others are distributed around.
+    /// Face-down card fans + name labels for opponents around the table rim.
     /// </summary>
     public class OpponentSeatManager : MonoBehaviour
     {
-        [SerializeField] private float tableRadius = 1.85f;
-        [SerializeField] private float seatHeight = 0.9f;
-        [SerializeField] private float cardScale = 0.85f;
-        [SerializeField] private int maxVisibleCards = 8;
+        [SerializeField] private float tableRadius = 4.0f;
+        [SerializeField] private float seatHeight = 0.85f;
+        [SerializeField] private float cardScale = 2.4f;
+        [SerializeField] private int maxVisibleCards = 10;
 
         private Transform seatsRoot;
         private readonly List<GameObject> spawned = new List<GameObject>();
-
         private bool bound;
 
-        private void Awake()
+        public void Configure(float tableRadius, float seatHeight, float cardScale)
         {
-            EnsureRoot();
+            this.tableRadius = tableRadius;
+            this.seatHeight = seatHeight;
+            this.cardScale = cardScale;
         }
+
+        private void Awake() => EnsureRoot();
 
         private void Update()
         {
-            if (!bound)
-                TryBind();
+            if (!bound) TryBind();
         }
 
-        private void OnEnable()
-        {
-            TryBind();
-        }
+        private void OnEnable() => TryBind();
 
         private void TryBind()
         {
@@ -58,10 +56,7 @@ namespace PepinoGame.Controllers
             bound = false;
         }
 
-        private void OnGameStateChanged(GameState state)
-        {
-            Refresh(state);
-        }
+        private void OnGameStateChanged(GameState state) => Refresh(state);
 
         public void Refresh(GameState state)
         {
@@ -81,10 +76,10 @@ namespace PepinoGame.Controllers
             int n = state.players.Count;
             for (int i = 0; i < n; i++)
             {
-                if (i == myIndex) continue; // local hand is HandManager
+                if (i == myIndex) continue;
 
                 int seatOffset = (i - myIndex + n) % n;
-                // Local at south (180°). Spread others evenly excluding local slot.
+                // Local player = south (angle 180°). Others spaced around the rim.
                 float angleDeg = 180f + (360f * seatOffset / n);
                 SpawnSeat(state.players[i], angleDeg);
             }
@@ -101,30 +96,38 @@ namespace PepinoGame.Controllers
             var seat = new GameObject($"Seat_{player.name}");
             seat.transform.SetParent(seatsRoot, false);
             seat.transform.position = seatPos;
-            // Face toward table center
-            seat.transform.rotation = Quaternion.LookRotation(
-                (Vector3.zero - seatPos).normalized + Vector3.up * 0.15f,
-                Vector3.up);
+            seat.transform.rotation = Quaternion.identity;
             spawned.Add(seat);
 
-            int cardsToShow = Mathf.Clamp(player.cardCount, 0, maxVisibleCards);
+            int cardsToShow = Mathf.Clamp(Mathf.Max(player.cardCount, 1), 1, maxVisibleCards);
+            // Always show at least a small fan so the seat is visible
+            if (player.cardCount <= 0) cardsToShow = 0;
+
             for (int c = 0; c < cardsToShow; c++)
             {
                 GameObject cardObj = SpawnBackCard(seat.transform);
                 if (cardObj == null) break;
 
-                float fan = (c - (cardsToShow - 1) * 0.5f) * 8f;
-                cardObj.transform.localPosition = new Vector3(fan * 0.04f, 0.01f * c, -0.05f * c);
-                cardObj.transform.localRotation = CardOrientation.FaceDownOnTable(fan);
+                float fan = (c - (cardsToShow - 1) * 0.5f) * 10f;
+                // Fan along the rim tangent, backs facing roughly toward camera/up
+                float tangentX = Mathf.Cos(rad);
+                float tangentZ = -Mathf.Sin(rad);
+                cardObj.transform.position = seatPos
+                    + new Vector3(tangentX, 0f, tangentZ) * (fan * 0.035f)
+                    + Vector3.up * (0.012f * c);
+                // Tip toward table center so backs are readable from the south seat
+                cardObj.transform.rotation =
+                    Quaternion.AngleAxis(angleDeg, Vector3.up)
+                    * CardOrientation.FaceDownOnTable(fan * 0.4f)
+                    * Quaternion.Euler(-25f, 0f, 0f);
                 cardObj.transform.localScale = Vector3.one * cardScale;
             }
 
-            CreateNameLabel(seat.transform, player);
+            CreateNameLabel(seat.transform, player, angleDeg);
         }
 
         private static GameObject SpawnBackCard(Transform parent)
         {
-            // Any pack card works — we show the back via FaceDownOnTable
             if (CardVisualResolver.Instance == null) return null;
 
             var dummy = new Card("♠", 1);
@@ -147,27 +150,22 @@ namespace PepinoGame.Controllers
             return cardObj;
         }
 
-        private static void CreateNameLabel(Transform seat, Player player)
+        private static void CreateNameLabel(Transform seat, Player player, float angleDeg)
         {
             var labelGo = new GameObject("NameLabel");
             labelGo.transform.SetParent(seat, false);
-            labelGo.transform.localPosition = new Vector3(0f, 0.35f, 0f);
+            labelGo.transform.localPosition = new Vector3(0f, 0.55f, 0f);
 
             var tmp = labelGo.AddComponent<TextMeshPro>();
             tmp.text = BuildLabel(player);
-            tmp.fontSize = 3.2f;
+            tmp.fontSize = 5.5f;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = player.isCurrentTurn
                 ? new Color(1f, 0.92f, 0.35f)
                 : Color.white;
-            tmp.outlineWidth = 0.2f;
+            tmp.outlineWidth = 0.25f;
             tmp.outlineColor = Color.black;
 
-            var rect = labelGo.GetComponent<RectTransform>();
-            if (rect != null)
-                rect.sizeDelta = new Vector2(2.5f, 0.6f);
-
-            // Billboard toward main camera each frame via simple look
             labelGo.AddComponent<SeatLabelBillboard>();
         }
 
@@ -175,21 +173,14 @@ namespace PepinoGame.Controllers
         {
             string mark = player.isCurrentTurn ? "▶ " : "";
             if (player.hasWon) return $"{mark}{player.name} ★";
-            return $"{mark}{player.name}\n{player.cardCount} cartas";
+            return $"{mark}{player.name}\n{player.cardCount}";
         }
 
         private void EnsureRoot()
         {
             if (seatsRoot != null) return;
             var existing = GameObject.Find("OpponentSeats");
-            if (existing != null)
-            {
-                seatsRoot = existing.transform;
-                return;
-            }
-
-            var go = new GameObject("OpponentSeats");
-            seatsRoot = go.transform;
+            seatsRoot = existing != null ? existing.transform : new GameObject("OpponentSeats").transform;
         }
 
         private void Clear()
@@ -215,7 +206,6 @@ namespace PepinoGame.Controllers
         }
     }
 
-    /// <summary>Keeps seat name labels readable from the player camera.</summary>
     public class SeatLabelBillboard : MonoBehaviour
     {
         private void LateUpdate()

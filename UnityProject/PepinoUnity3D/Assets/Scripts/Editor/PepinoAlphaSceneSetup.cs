@@ -49,10 +49,11 @@ namespace PepinoGame.EditorTools
         public static void SetupScene()
         {
             var handGo = FindOrCreate("HandContainer");
-            handGo.transform.position = new Vector3(0f, 0.55f, -2.55f);
+            // World pose is overwritten at runtime (parented to camera)
+            handGo.transform.position = Vector3.zero;
 
             var tableGo = FindOrCreate("TableContainer");
-            tableGo.transform.position = new Vector3(0f, 0.92f, 0.05f);
+            tableGo.transform.position = new Vector3(0f, 0.9f, 0.05f);
 
             var tablePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(TablePrefabPath);
             var cardTable = GameObject.Find("CardTable");
@@ -67,7 +68,7 @@ namespace PepinoGame.EditorTools
             {
                 cardTable.transform.position = Vector3.zero;
                 cardTable.transform.rotation = Quaternion.identity;
-                cardTable.transform.localScale = Vector3.one;
+                cardTable.transform.localScale = Vector3.one * 2.6f;
             }
 
             var resolverGo = FindOrCreate("CardVisualResolver");
@@ -91,8 +92,8 @@ namespace PepinoGame.EditorTools
                     so.FindProperty("cardPrefab").objectReferenceValue = fallback;
                     so.FindProperty("gameConfig").objectReferenceValue = cfg;
                     so.FindProperty("cardSpacing").floatValue = 0.28f;
-                    so.FindProperty("arcRadius").floatValue = 3.4f;
-                    so.FindProperty("arcAngle").floatValue = 58f;
+                    so.FindProperty("arcRadius").floatValue = 0.85f;
+                    so.FindProperty("arcAngle").floatValue = 62f;
                     so.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
@@ -117,11 +118,11 @@ namespace PepinoGame.EditorTools
             {
                 Undo.RecordObject(cam.transform, "Camera alpha");
                 Undo.RecordObject(cam, "Camera alpha props");
-                cam.transform.position = new Vector3(0f, 5.2f, -5.4f);
-                cam.transform.rotation = Quaternion.Euler(52f, 0f, 0f);
-                cam.fieldOfView = 42f;
+                cam.transform.position = new Vector3(0f, 3.15f, -3.35f);
+                cam.transform.LookAt(new Vector3(0f, 1.0f, 0.15f));
+                cam.fieldOfView = 48f;
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.35f, 0.62f, 0.85f, 1f);
+                cam.backgroundColor = new Color(0.18f, 0.22f, 0.28f, 1f);
             }
 
             if (Object.FindFirstObjectByType<OpponentSeatManager>() == null)

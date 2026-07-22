@@ -5,16 +5,14 @@ using TMPro;
 namespace PepinoGame.UI
 {
     /// <summary>
-    /// Runtime polish so the default Unity HUD feels more like a card game (UNO-ish).
-    /// Does not require rewiring the scene — restyles existing refs.
+    /// Lightweight HUD polish — no heavy colored boxes, outline text + solid action buttons.
     /// </summary>
     public static class GameHudPresenter
     {
-        private static readonly Color FeltGreen = new Color(0.12f, 0.45f, 0.28f, 0.92f);
-        private static readonly Color PlayGreen = new Color(0.18f, 0.72f, 0.32f, 1f);
-        private static readonly Color PassDark = new Color(0.22f, 0.25f, 0.3f, 1f);
+        private static readonly Color PlayGreen = new Color(0.16f, 0.7f, 0.34f, 1f);
+        private static readonly Color PassDark = new Color(0.2f, 0.22f, 0.26f, 1f);
         private static readonly Color Cream = new Color(0.98f, 0.96f, 0.9f, 1f);
-        private static readonly Color TurnGold = new Color(1f, 0.85f, 0.2f, 1f);
+        private static readonly Color TurnGold = new Color(1f, 0.88f, 0.25f, 1f);
 
         public static void Apply(
             TextMeshProUGUI roomInfoText,
@@ -35,41 +33,43 @@ namespace PepinoGame.UI
         {
             if (text == null) return;
 
+            RemoveBackdrop(text.gameObject);
+
             var rect = text.rectTransform;
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(24f, -20f);
-            rect.sizeDelta = new Vector2(320f, 56f);
+            rect.anchoredPosition = new Vector2(18f, -14f);
+            rect.sizeDelta = new Vector2(360f, 40f);
 
-            text.fontSize = 22;
+            text.fontSize = 18;
             text.fontStyle = FontStyles.Bold;
-            text.color = Cream;
+            text.color = new Color(1f, 1f, 1f, 0.9f);
             text.alignment = TextAlignmentOptions.Left;
             text.enableWordWrapping = false;
-
-            EnsureBackdrop(text.gameObject, FeltGreen, new Vector2(16f, 10f));
+            text.outlineWidth = 0.2f;
+            text.outlineColor = new Color(0f, 0f, 0f, 0.75f);
         }
 
         private static void StyleTurnBanner(TextMeshProUGUI text)
         {
             if (text == null) return;
 
+            RemoveBackdrop(text.gameObject);
+
             var rect = text.rectTransform;
             rect.anchorMin = new Vector2(0.5f, 1f);
             rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -28f);
-            rect.sizeDelta = new Vector2(420f, 64f);
+            rect.anchoredPosition = new Vector2(0f, -18f);
+            rect.sizeDelta = new Vector2(480f, 56f);
 
-            text.fontSize = 36;
+            text.fontSize = 34;
             text.fontStyle = FontStyles.Bold;
             text.color = TurnGold;
             text.alignment = TextAlignmentOptions.Center;
-            text.outlineWidth = 0.25f;
-            text.outlineColor = new Color(0f, 0f, 0f, 0.85f);
-
-            EnsureBackdrop(text.gameObject, new Color(0f, 0f, 0f, 0.45f), new Vector2(24f, 12f));
+            text.outlineWidth = 0.28f;
+            text.outlineColor = new Color(0f, 0f, 0f, 0.9f);
         }
 
         private static void StyleNotification(TextMeshProUGUI text)
@@ -77,16 +77,18 @@ namespace PepinoGame.UI
             if (text == null) return;
 
             var rect = text.rectTransform;
-            rect.anchorMin = new Vector2(0.5f, 0.55f);
-            rect.anchorMax = new Vector2(0.5f, 0.55f);
+            rect.anchorMin = new Vector2(0.5f, 0.62f);
+            rect.anchorMax = new Vector2(0.5f, 0.62f);
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = Vector2.zero;
-            rect.sizeDelta = new Vector2(520f, 80f);
+            rect.sizeDelta = new Vector2(520f, 64f);
 
-            text.fontSize = 28;
+            text.fontSize = 24;
             text.fontStyle = FontStyles.Bold;
             text.color = Cream;
             text.alignment = TextAlignmentOptions.Center;
+            text.outlineWidth = 0.22f;
+            text.outlineColor = Color.black;
         }
 
         private static void StyleActionButton(Button button, string label, Color bg, Color fg)
@@ -95,23 +97,19 @@ namespace PepinoGame.UI
 
             var img = button.GetComponent<Image>();
             if (img != null)
-            {
                 img.color = bg;
-                img.raycastTarget = true;
-            }
 
             var colors = button.colors;
             colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1.1f, 1.1f, 1.1f, 1f);
+            colors.highlightedColor = new Color(1.08f, 1.08f, 1.08f, 1f);
             colors.pressedColor = new Color(0.85f, 0.85f, 0.85f, 1f);
-            colors.disabledColor = new Color(0.55f, 0.55f, 0.55f, 0.55f);
+            colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.45f);
             button.colors = colors;
 
             var tmp = button.GetComponentInChildren<TextMeshProUGUI>();
             if (tmp != null)
             {
-                if (!string.IsNullOrEmpty(label))
-                    tmp.text = label;
+                tmp.text = label;
                 tmp.fontSize = 26;
                 tmp.fontStyle = FontStyles.Bold;
                 tmp.color = fg;
@@ -121,9 +119,8 @@ namespace PepinoGame.UI
 
         private static void LayoutActionButtons(Button play, Button pass)
         {
-            // Thumb-friendly cluster bottom-right (UNO "CALL UNO" zone)
-            PlaceButton(pass, new Vector2(-200f, 120f), new Vector2(160f, 64f));
-            PlaceButton(play, new Vector2(-28f, 120f), new Vector2(180f, 72f));
+            PlaceButton(pass, new Vector2(-196f, 110f), new Vector2(150f, 58f));
+            PlaceButton(play, new Vector2(-24f, 110f), new Vector2(170f, 66f));
         }
 
         private static void PlaceButton(Button button, Vector2 anchoredPos, Vector2 size)
@@ -139,31 +136,11 @@ namespace PepinoGame.UI
             rect.sizeDelta = size;
         }
 
-        private static void EnsureBackdrop(GameObject target, Color color, Vector2 padding)
+        private static void RemoveBackdrop(GameObject target)
         {
-            const string childName = "HudBackdrop";
-            var existing = target.transform.Find(childName);
-            Image img;
-            if (existing == null)
-            {
-                var go = new GameObject(childName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                go.transform.SetParent(target.transform, false);
-                go.transform.SetAsFirstSibling();
-                img = go.GetComponent<Image>();
-            }
-            else
-            {
-                img = existing.GetComponent<Image>();
-            }
-
-            img.color = color;
-            img.raycastTarget = false;
-
-            var rect = img.rectTransform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = new Vector2(-padding.x, -padding.y);
-            rect.offsetMax = new Vector2(padding.x, padding.y);
+            var existing = target.transform.Find("HudBackdrop");
+            if (existing != null)
+                Object.Destroy(existing.gameObject);
         }
     }
 }

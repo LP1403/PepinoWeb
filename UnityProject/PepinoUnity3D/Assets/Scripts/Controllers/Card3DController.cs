@@ -95,13 +95,13 @@ namespace PepinoGame.Controllers
 
         private void AnimateSelect()
         {
-            // Lift toward the player camera, not world +Y (cards are tilted)
-            Vector3 lift = Camera.main != null
-                ? (Camera.main.transform.position - originalPosition).normalized * 0.22f
-                : Vector3.up * 0.2f;
+            var cam = Camera.main;
+            Vector3 lift = cam != null
+                ? (-cam.transform.forward * 0.1f + cam.transform.up * 0.06f)
+                : Vector3.up * 0.12f;
             Vector3 targetPos = originalPosition + lift;
             LeanTween.move(gameObject, targetPos, 0.2f).setEaseOutBack();
-            LeanTween.scale(gameObject, originalScale * 1.1f, 0.2f).setEaseOutBack();
+            LeanTween.scale(gameObject, originalScale * 1.12f, 0.2f).setEaseOutBack();
         }
 
         private void AnimateDeselect()

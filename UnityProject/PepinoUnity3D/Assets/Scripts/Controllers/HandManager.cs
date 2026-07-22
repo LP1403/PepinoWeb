@@ -7,7 +7,7 @@ using PepinoGame.Utils;
 namespace PepinoGame.Controllers
 {
     /// <summary>
-    /// Local player hand — UNO-style fan at the bottom of the view, faces toward the player.
+    /// Local hand fan in camera space — feels held in front of you (UNO-style).
     /// </summary>
     public class HandManager : MonoBehaviour
     {
@@ -17,10 +17,9 @@ namespace PepinoGame.Controllers
 
         [Header("Settings")]
         [SerializeField] private GameConfig gameConfig;
-        [SerializeField] private float cardSpacing = 0.28f;
-        [SerializeField] private float arcRadius = 3.4f;
-        [SerializeField] private float arcAngle = 58f;
-        [SerializeField] private Vector3 cardLocalScale = new Vector3(1.35f, 1.35f, 1.35f);
+        [SerializeField] private float arcRadius = 0.85f;
+        [SerializeField] private float arcAngle = 62f;
+        [SerializeField] private Vector3 cardLocalScale = new Vector3(3.4f, 3.4f, 3.4f);
 
         private readonly List<Card3DController> cardControllers = new List<Card3DController>();
 
@@ -107,12 +106,13 @@ namespace PepinoGame.Controllers
             int cardCount = cardControllers.Count;
             if (cardCount == 0) return;
 
-            float radius = gameConfig != null ? gameConfig.handArcRadius : arcRadius;
-            if (radius < 2f || radius > 6f) radius = arcRadius;
+            // Wider fan for big multi-deck hands
+            float angleSpan = Mathf.Lerp(42f, 78f, Mathf.Clamp01((cardCount - 1) / 28f));
+            angleSpan = Mathf.Max(angleSpan, arcAngle * 0.9f);
 
-            // Wider fan when many cards (multi-deck hands)
-            float angleSpan = Mathf.Lerp(36f, 72f, Mathf.Clamp01((cardCount - 1) / 24f));
-            if (arcAngle > 0f) angleSpan = Mathf.Max(angleSpan, arcAngle * 0.85f);
+            float radius = arcRadius;
+            if (cardCount > 16)
+                radius = arcRadius * 1.15f;
 
             float angleStep = cardCount == 1 ? 0f : angleSpan / (cardCount - 1);
             float startAngle = -angleSpan / 2f;
@@ -122,10 +122,10 @@ namespace PepinoGame.Controllers
                 float angle = startAngle + (angleStep * i);
                 float angleRad = angle * Mathf.Deg2Rad;
 
-                // Pull cards toward camera (south / -Z) so they sit in the bottom of the Game view
+                // Camera-local fan: X left/right, Y slight rise in the middle, Z toward camera plane
                 float x = Mathf.Sin(angleRad) * radius;
-                float y = 0.012f * i;
-                float z = -Mathf.Cos(angleRad) * radius * 0.22f;
+                float y = (1f - Mathf.Cos(angleRad)) * -0.08f + i * 0.004f;
+                float z = -Mathf.Abs(Mathf.Sin(angleRad)) * 0.06f;
 
                 cardControllers[i].transform.localPosition = new Vector3(x, y, z);
                 cardControllers[i].transform.localRotation = CardOrientation.FacePlayerHand(angle);
