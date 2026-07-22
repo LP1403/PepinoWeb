@@ -17,7 +17,7 @@ namespace PepinoGame.Controllers
         [Header("Settings")]
         [SerializeField] private float cardStackSpacing = 0.02f;
         [SerializeField] private Vector3 tableCenter = Vector3.zero;
-        [SerializeField] private Vector3 cardLocalScale = new Vector3(2.8f, 2.8f, 2.8f);
+        [SerializeField] private Vector3 cardLocalScale = new Vector3(3.6f, 3.6f, 3.6f);
 
         private readonly List<GameObject> tableCards = new List<GameObject>();
 

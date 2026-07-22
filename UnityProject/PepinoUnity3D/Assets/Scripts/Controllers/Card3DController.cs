@@ -97,11 +97,11 @@ namespace PepinoGame.Controllers
         {
             var cam = Camera.main;
             Vector3 lift = cam != null
-                ? (-cam.transform.forward * 0.1f + cam.transform.up * 0.06f)
-                : Vector3.up * 0.12f;
+                ? (-cam.transform.forward * 0.06f + cam.transform.up * 0.04f)
+                : Vector3.up * 0.08f;
             Vector3 targetPos = originalPosition + lift;
-            LeanTween.move(gameObject, targetPos, 0.2f).setEaseOutBack();
-            LeanTween.scale(gameObject, originalScale * 1.12f, 0.2f).setEaseOutBack();
+            LeanTween.move(gameObject, targetPos, 0.18f).setEaseOutBack();
+            LeanTween.scale(gameObject, originalScale * 1.1f, 0.18f).setEaseOutBack();
         }
 
         private void AnimateDeselect()

@@ -5,8 +5,8 @@ using PepinoGame.Config;
 namespace PepinoGame.Utils
 {
     /// <summary>
-    /// Frames the 3D table like a seated card game:
-    /// camera over the south seat, hand parented to camera, opponents around the rim.
+    /// UNO-like framing: close on the table, hand locked to the camera (bottom of view),
+    /// opponents show a short fan of backs on the far rim.
     /// </summary>
     public class PepinoAlphaBootstrap : MonoBehaviour
     {
@@ -15,13 +15,10 @@ namespace PepinoGame.Utils
         private const string FallbackCardPath = "Assets/CardPrefab.prefab";
         private const string ConfigPath = "Assets/GameConfig.asset";
 
-        // Pack cards are ~0.13m wide — scale the whole play surface up for readability
-        private const float TableScale = 2.6f;
-
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AfterSceneLoad()
         {
-            if (Object.FindFirstObjectByType<PepinoAlphaBootstrap>() != null)
+            if (Object.FindAnyObjectByType<PepinoAlphaBootstrap>() != null)
                 return;
 
             var go = new GameObject("PepinoAlphaBootstrap");
@@ -43,25 +40,21 @@ namespace PepinoGame.Utils
             EnsureResolver(fallback);
             EnsureCardTable(tablePrefab);
 
-            var table = EnsureEmpty("TableContainer", new Vector3(0f, 0.95f * TableScale * 0.35f, 0.05f));
-            // Hand starts in world; AttachHandToCamera reparents it
+            var table = EnsureEmpty("TableContainer", new Vector3(0f, 0.88f, 0.05f));
             var hand = EnsureEmpty("HandContainer", Vector3.zero);
 
-            var handManager = Object.FindFirstObjectByType<HandManager>();
-            handManager?.Configure(hand.transform, fallback, config);
-
-            var tableManager = Object.FindFirstObjectByType<TableManager>();
-            tableManager?.Configure(table.transform, fallback);
+            Object.FindAnyObjectByType<HandManager>()?.Configure(hand.transform, fallback, config);
+            Object.FindAnyObjectByType<TableManager>()?.Configure(table.transform, fallback);
 
             EnsureOpponentSeats();
-            FrameSeatedView(hand.transform);
+            FrameUnoView(hand.transform);
             StyleEnvironment();
             HideConnectButton();
         }
 
         private static void EnsureResolver(GameObject fallback)
         {
-            var existing = Object.FindFirstObjectByType<CardVisualResolver>();
+            var existing = Object.FindAnyObjectByType<CardVisualResolver>();
             if (existing != null)
             {
                 if (fallback != null) existing.SetFallbackPrefab(fallback);
@@ -75,14 +68,14 @@ namespace PepinoGame.Utils
 
         private static void EnsureOpponentSeats()
         {
-            var manager = Object.FindFirstObjectByType<OpponentSeatManager>();
+            var manager = Object.FindAnyObjectByType<OpponentSeatManager>();
             if (manager == null)
             {
                 var go = new GameObject("OpponentSeatManager");
                 manager = go.AddComponent<OpponentSeatManager>();
             }
 
-            manager.Configure(tableRadius: 1.55f * TableScale, seatHeight: 0.55f * TableScale, cardScale: 2.2f);
+            manager.Configure(tableRadius: 1.35f, seatHeight: 0.95f, cardScale: 2.6f);
         }
 
         private static GameObject EnsureEmpty(string name, Vector3 position)
@@ -91,7 +84,7 @@ namespace PepinoGame.Utils
             if (go == null)
                 go = new GameObject(name);
 
-            go.transform.SetParent(null);
+            go.transform.SetParent(null, true);
             go.transform.position = position;
             go.transform.rotation = Quaternion.identity;
             go.transform.localScale = Vector3.one;
@@ -109,35 +102,31 @@ namespace PepinoGame.Utils
 
             if (table == null) return;
 
+            table.transform.SetParent(null);
             table.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-            table.transform.localScale = Vector3.one * TableScale;
+            table.transform.localScale = Vector3.one;
         }
 
-        /// <summary>
-        /// Camera sits at the south edge looking at the table center;
-        /// the local hand is locked to the bottom of the view (child of camera).
-        /// </summary>
-        private static void FrameSeatedView(Transform hand)
+        private static void FrameUnoView(Transform hand)
         {
             var cam = Camera.main;
             if (cam == null) return;
 
-            // Close enough that the felt fills most of the Game view
-            Vector3 lookTarget = new Vector3(0f, 1.0f, 0.2f);
-            cam.transform.position = new Vector3(0f, 3.15f, -3.35f);
-            cam.transform.LookAt(lookTarget);
-            cam.fieldOfView = 48f;
-            cam.nearClipPlane = 0.05f;
-            cam.farClipPlane = 50f;
+            cam.transform.SetParent(null);
+            // Close seated angle — table fills most of the Game view
+            cam.transform.position = new Vector3(0f, 2.45f, -2.15f);
+            cam.transform.rotation = Quaternion.Euler(52f, 0f, 0f);
+            cam.fieldOfView = 52f;
+            cam.nearClipPlane = 0.08f;
+            cam.farClipPlane = 30f;
 
-            if (hand != null)
-            {
-                hand.SetParent(cam.transform, false);
-                // Lower third of the screen, in front of the lens
-                hand.localPosition = new Vector3(0f, -0.62f, 1.05f);
-                hand.localRotation = Quaternion.identity;
-                hand.localScale = Vector3.one;
-            }
+            if (hand == null) return;
+
+            // Hand glued to the lens: always large and readable at the bottom (UNO)
+            hand.SetParent(cam.transform, false);
+            hand.localPosition = new Vector3(0f, -0.78f, 1.05f);
+            hand.localRotation = Quaternion.identity;
+            hand.localScale = Vector3.one;
         }
 
         private static void StyleEnvironment()
@@ -146,18 +135,17 @@ namespace PepinoGame.Utils
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.18f, 0.22f, 0.28f, 1f); // dark neutral, not toy-blue
+                cam.backgroundColor = new Color(0.14f, 0.18f, 0.24f, 1f);
             }
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.55f, 0.58f, 0.62f);
 
-            var light = Object.FindFirstObjectByType<Light>();
+            var light = Object.FindAnyObjectByType<Light>();
             if (light != null && light.type == LightType.Directional)
             {
-                light.transform.rotation = Quaternion.Euler(42f, -20f, 0f);
+                light.transform.rotation = Quaternion.Euler(48f, -20f, 0f);
                 light.intensity = 1.2f;
-                light.color = new Color(1f, 0.98f, 0.94f);
             }
         }
 

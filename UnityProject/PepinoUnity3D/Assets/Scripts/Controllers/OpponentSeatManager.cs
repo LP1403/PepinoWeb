@@ -8,14 +8,14 @@ using PepinoGame.Utils;
 namespace PepinoGame.Controllers
 {
     /// <summary>
-    /// Face-down card fans + name labels for opponents around the table rim.
+    /// Opponents: short fan of 3–4 card backs on the table rim + tiny name label (UNO-like).
     /// </summary>
     public class OpponentSeatManager : MonoBehaviour
     {
-        [SerializeField] private float tableRadius = 4.0f;
-        [SerializeField] private float seatHeight = 0.85f;
-        [SerializeField] private float cardScale = 2.4f;
-        [SerializeField] private int maxVisibleCards = 10;
+        [SerializeField] private float tableRadius = 1.35f;
+        [SerializeField] private float seatHeight = 0.95f;
+        [SerializeField] private float cardScale = 2.6f;
+        [SerializeField] private int maxVisibleCards = 4;
 
         private Transform seatsRoot;
         private readonly List<GameObject> spawned = new List<GameObject>();
@@ -79,7 +79,6 @@ namespace PepinoGame.Controllers
                 if (i == myIndex) continue;
 
                 int seatOffset = (i - myIndex + n) % n;
-                // Local player = south (angle 180°). Others spaced around the rim.
                 float angleDeg = 180f + (360f * seatOffset / n);
                 SpawnSeat(state.players[i], angleDeg);
             }
@@ -99,31 +98,30 @@ namespace PepinoGame.Controllers
             seat.transform.rotation = Quaternion.identity;
             spawned.Add(seat);
 
-            int cardsToShow = Mathf.Clamp(Mathf.Max(player.cardCount, 1), 1, maxVisibleCards);
-            // Always show at least a small fan so the seat is visible
-            if (player.cardCount <= 0) cardsToShow = 0;
+            // UNO-like: always show at most 3–4 backs (enough to read “has cards”)
+            int cardsToShow = 0;
+            if (player.cardCount > 0)
+                cardsToShow = Mathf.Clamp(player.cardCount, 3, maxVisibleCards);
+
+            float tangentX = Mathf.Cos(rad);
+            float tangentZ = -Mathf.Sin(rad);
 
             for (int c = 0; c < cardsToShow; c++)
             {
                 GameObject cardObj = SpawnBackCard(seat.transform);
                 if (cardObj == null) break;
 
-                float fan = (c - (cardsToShow - 1) * 0.5f) * 10f;
-                // Fan along the rim tangent, backs facing roughly toward camera/up
-                float tangentX = Mathf.Cos(rad);
-                float tangentZ = -Mathf.Sin(rad);
+                float fan = (c - (cardsToShow - 1) * 0.5f) * 7f;
                 cardObj.transform.position = seatPos
-                    + new Vector3(tangentX, 0f, tangentZ) * (fan * 0.035f)
-                    + Vector3.up * (0.012f * c);
-                // Tip toward table center so backs are readable from the south seat
-                cardObj.transform.rotation =
-                    Quaternion.AngleAxis(angleDeg, Vector3.up)
-                    * CardOrientation.FaceDownOnTable(fan * 0.4f)
-                    * Quaternion.Euler(-25f, 0f, 0f);
+                    + new Vector3(tangentX, 0f, tangentZ) * (fan * 0.028f)
+                    + Vector3.up * (0.01f * c);
+                // Face toward table center so we see the backs from the south seat
+                float yaw = angleDeg + 180f;
+                cardObj.transform.rotation = CardOrientation.OpponentBack(yaw);
                 cardObj.transform.localScale = Vector3.one * cardScale;
             }
 
-            CreateNameLabel(seat.transform, player, angleDeg);
+            CreateNameLabel(seat.transform, player);
         }
 
         private static GameObject SpawnBackCard(Transform parent)
@@ -150,30 +148,25 @@ namespace PepinoGame.Controllers
             return cardObj;
         }
 
-        private static void CreateNameLabel(Transform seat, Player player, float angleDeg)
+        private static void CreateNameLabel(Transform seat, Player player)
         {
             var labelGo = new GameObject("NameLabel");
             labelGo.transform.SetParent(seat, false);
-            labelGo.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+            // Slightly outside the rim, above the backs — keep small so it never covers the HUD
+            labelGo.transform.localPosition = new Vector3(0f, 0.28f, 0f);
 
             var tmp = labelGo.AddComponent<TextMeshPro>();
-            tmp.text = BuildLabel(player);
-            tmp.fontSize = 5.5f;
+            string mark = player.isCurrentTurn ? "▶ " : "";
+            tmp.text = $"{mark}{player.name} · {player.cardCount}";
+            tmp.fontSize = 1.35f;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = player.isCurrentTurn
                 ? new Color(1f, 0.92f, 0.35f)
                 : Color.white;
-            tmp.outlineWidth = 0.25f;
+            tmp.outlineWidth = 0.15f;
             tmp.outlineColor = Color.black;
 
             labelGo.AddComponent<SeatLabelBillboard>();
-        }
-
-        private static string BuildLabel(Player player)
-        {
-            string mark = player.isCurrentTurn ? "▶ " : "";
-            if (player.hasWon) return $"{mark}{player.name} ★";
-            return $"{mark}{player.name}\n{player.cardCount}";
         }
 
         private void EnsureRoot()
