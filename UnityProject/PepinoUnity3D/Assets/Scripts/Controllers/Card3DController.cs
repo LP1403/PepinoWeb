@@ -95,19 +95,13 @@ namespace PepinoGame.Controllers
 
         private void AnimateSelect()
         {
-            var cam = Camera.main;
-            Vector3 lift = cam != null
-                ? (-cam.transform.forward * 0.06f + cam.transform.up * 0.04f)
-                : Vector3.up * 0.08f;
-            Vector3 targetPos = originalPosition + lift;
-            LeanTween.move(gameObject, targetPos, 0.18f).setEaseOutBack();
-            LeanTween.scale(gameObject, originalScale * 1.1f, 0.18f).setEaseOutBack();
+            // HandManager.LateUpdate applies the selected lift in viewport space
+            LeanTween.scale(gameObject, originalScale * 1.12f, 0.15f).setEaseOutBack();
         }
 
         private void AnimateDeselect()
         {
-            LeanTween.move(gameObject, originalPosition, 0.2f).setEaseInBack();
-            LeanTween.scale(gameObject, originalScale, 0.2f).setEaseInBack();
+            LeanTween.scale(gameObject, originalScale, 0.15f).setEaseInBack();
         }
 
         public void AnimatePlay(Vector3 targetPosition, System.Action onComplete = null)
@@ -124,10 +118,10 @@ namespace PepinoGame.Controllers
             if (!(GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false))
                 return;
 
+            // Viewport layout owns positions each frame — skip LeanTween hover move
             isHovered = true;
             UpdateMaterial();
-            if (!isSelected)
-                LeanTween.moveY(gameObject, originalPosition.y + 0.08f, 0.15f).setEaseOutQuad();
+            return;
         }
 
         private void OnMouseExit()
@@ -136,8 +130,6 @@ namespace PepinoGame.Controllers
 
             isHovered = false;
             UpdateMaterial();
-            if (!isSelected)
-                LeanTween.moveY(gameObject, originalPosition.y, 0.15f).setEaseInQuad();
         }
 
         private void OnMouseDown()
@@ -164,8 +156,6 @@ namespace PepinoGame.Controllers
         public void UpdateOriginalPosition(Vector3 newPosition)
         {
             originalPosition = newPosition;
-            if (!isSelected && !isHovered)
-                transform.position = originalPosition;
         }
 
         public void DestroyWithAnimation()

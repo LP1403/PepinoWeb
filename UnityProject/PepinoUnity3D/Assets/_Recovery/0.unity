@@ -2319,13 +2319,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.3746066, y: 0, z: 0, w: 0.9271839}
-  m_LocalPosition: {x: 0, y: 2.55, z: -2.55}
+  m_LocalRotation: {x: 0.35836795, y: 0, z: 0, w: 0.9335804}
+  m_LocalPosition: {x: 0, y: 3.6, z: -3.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 44, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 42, y: 0, z: 0}
 --- !u!1 &974201438
 GameObject:
   m_ObjectHideFlags: 0
@@ -2495,7 +2495,6 @@ MonoBehaviour:
   cardPrefab: {fileID: 5521927078064037696, guid: 91ebca921da88f24887cb0ff8599ec63, type: 3}
   handContainer: {fileID: 574870861}
   gameConfig: {fileID: 11400000, guid: 1c3a31dbccdf72c498d75d1b3a8ca5cb, type: 2}
-  cardSpacing: 0.35
   arcRadius: 2.5
   arcAngle: 40
   cardLocalScale: {x: 1.2, y: 1.2, z: 1.2}
@@ -3538,6 +3537,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -3576,18 +3587,6 @@ PrefabInstance:
     - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 594186936958880221, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
       propertyPath: m_Name

@@ -5,8 +5,7 @@ using PepinoGame.Config;
 namespace PepinoGame.Utils
 {
     /// <summary>
-    /// UNO-like framing: close on the table, hand locked to the camera (bottom of view),
-    /// opponents show a short fan of backs on the far rim.
+    /// UNO-like POV: table in the upper area, hand always closest to camera at the bottom.
     /// </summary>
     public class PepinoAlphaBootstrap : MonoBehaviour
     {
@@ -14,6 +13,8 @@ namespace PepinoGame.Utils
             "Assets/SubstanceAssets/LittleGamesPack/Prefabs/Individual Pieces/Cards/CardTable.prefab";
         private const string FallbackCardPath = "Assets/CardPrefab.prefab";
         private const string ConfigPath = "Assets/GameConfig.asset";
+
+        private bool framed;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AfterSceneLoad()
@@ -40,16 +41,23 @@ namespace PepinoGame.Utils
             EnsureResolver(fallback);
             EnsureCardTable(tablePrefab);
 
-            var table = EnsureEmpty("TableContainer", new Vector3(0f, 0.88f, 0.05f));
+            var table = EnsureEmpty("TableContainer", new Vector3(0f, 0.88f, 0.15f));
             var hand = EnsureEmpty("HandContainer", Vector3.zero);
 
             Object.FindAnyObjectByType<HandManager>()?.Configure(hand.transform, fallback, config);
             Object.FindAnyObjectByType<TableManager>()?.Configure(table.transform, fallback);
 
             EnsureOpponentSeats();
-            FrameUnoView(hand.transform);
+            ApplyCameraFrame();
             StyleEnvironment();
             HideConnectButton();
+            framed = true;
+        }
+
+        private void LateUpdate()
+        {
+            if (!framed) return;
+            ApplyCameraFrame();
         }
 
         private static void EnsureResolver(GameObject fallback)
@@ -75,7 +83,7 @@ namespace PepinoGame.Utils
                 manager = go.AddComponent<OpponentSeatManager>();
             }
 
-            manager.Configure(tableRadius: 1.35f, seatHeight: 0.95f, cardScale: 2.6f);
+            manager.Configure(tableRadius: 1.05f, seatHeight: 0.92f, cardScale: 2.0f);
         }
 
         private static GameObject EnsureEmpty(string name, Vector3 position)
@@ -103,30 +111,22 @@ namespace PepinoGame.Utils
             if (table == null) return;
 
             table.transform.SetParent(null);
-            table.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            // Mesa cerca de la cámara: ocupa el centro-arriba (POV sentado estilo UNO)
+            table.transform.SetPositionAndRotation(new Vector3(0f, 0f, 0.2f), Quaternion.identity);
             table.transform.localScale = Vector3.one;
         }
 
-        private static void FrameUnoView(Transform hand)
+        private static void ApplyCameraFrame()
         {
             var cam = Camera.main;
             if (cam == null) return;
 
             cam.transform.SetParent(null);
-            // Close seated angle — table fills most of the Game view
-            cam.transform.position = new Vector3(0f, 2.45f, -2.15f);
-            cam.transform.rotation = Quaternion.Euler(52f, 0f, 0f);
+            cam.transform.position = new Vector3(0f, 1.95f, -1.65f);
+            cam.transform.rotation = Quaternion.Euler(50f, 0f, 0f);
             cam.fieldOfView = 52f;
-            cam.nearClipPlane = 0.08f;
+            cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 30f;
-
-            if (hand == null) return;
-
-            // Hand glued to the lens: always large and readable at the bottom (UNO)
-            hand.SetParent(cam.transform, false);
-            hand.localPosition = new Vector3(0f, -0.78f, 1.05f);
-            hand.localRotation = Quaternion.identity;
-            hand.localScale = Vector3.one;
         }
 
         private static void StyleEnvironment()
@@ -135,7 +135,7 @@ namespace PepinoGame.Utils
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.14f, 0.18f, 0.24f, 1f);
+                cam.backgroundColor = new Color(0.12f, 0.16f, 0.22f, 1f);
             }
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
@@ -144,7 +144,7 @@ namespace PepinoGame.Utils
             var light = Object.FindAnyObjectByType<Light>();
             if (light != null && light.type == LightType.Directional)
             {
-                light.transform.rotation = Quaternion.Euler(48f, -20f, 0f);
+                light.transform.rotation = Quaternion.Euler(50f, -20f, 0f);
                 light.intensity = 1.2f;
             }
         }

@@ -119,8 +119,8 @@ namespace PepinoGame.UI
 
         private static void LayoutActionButtons(Button play, Button pass)
         {
-            PlaceButton(pass, new Vector2(-196f, 110f), new Vector2(150f, 58f));
-            PlaceButton(play, new Vector2(-24f, 110f), new Vector2(170f, 66f));
+            PlaceButton(pass, new Vector2(-24f, 24f), new Vector2(140f, 54f));
+            PlaceButton(play, new Vector2(-24f, 88f), new Vector2(160f, 60f));
         }
 
         private static void PlaceButton(Button button, Vector2 anchoredPos, Vector2 size)

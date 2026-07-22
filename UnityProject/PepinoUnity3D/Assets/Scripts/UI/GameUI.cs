@@ -55,10 +55,25 @@ namespace PepinoGame.UI
             if (pepineadoEffectPanel != null)
                 pepineadoEffectPanel.SetActive(false);
 
-            // GamePanel often has a full-screen grey Image that washes out the 3D table
+            // GamePanel often has a full-screen Image that blocks 3D clicks
             var panelImage = GetComponent<Image>();
             if (panelImage != null)
+            {
                 panelImage.color = new Color(1f, 1f, 1f, 0f);
+                panelImage.raycastTarget = false;
+            }
+
+            // Cualquier Image full-screen hija también
+            foreach (var img in GetComponentsInChildren<Image>(true))
+            {
+                if (img == null) continue;
+                var rt = img.rectTransform;
+                if (rt == null) continue;
+                bool fullBleed = rt.anchorMin == Vector2.zero && rt.anchorMax == Vector2.one
+                                 && img.GetComponent<Button>() == null;
+                if (fullBleed && img.color.a < 0.05f)
+                    img.raycastTarget = false;
+            }
 
             EnsurePlayersInfoText();
             GameHudPresenter.Apply(
@@ -204,7 +219,8 @@ namespace PepinoGame.UI
 
             if (!gameState.isGameStarted)
             {
-                turnInfoText.text = "Esperando inicio...";
+                // El lobby (GameModeSelector) ya muestra el estado; no duplicar banner
+                turnInfoText.text = "";
                 return;
             }
 
@@ -261,8 +277,17 @@ namespace PepinoGame.UI
 
         private void UpdateButtonsState(GameState gameState)
         {
-            bool isMyTurn = gameState.isGameStarted &&
-                            gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
+            bool started = gameState != null && gameState.isGameStarted;
+
+            // En lobby no se muestran JUGAR / PASAR
+            if (playCardsButton != null)
+                playCardsButton.gameObject.SetActive(started);
+            if (passTurnButton != null)
+                passTurnButton.gameObject.SetActive(started);
+
+            if (!started) return;
+
+            bool isMyTurn = gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
             bool hasSelectedCards = GameManager.Instance.SelectedCards.Count > 0;
             bool isFirstPlay = gameState.IsFirstPlay() || gameState.isNewRound;
 

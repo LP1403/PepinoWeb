@@ -117,11 +117,11 @@ namespace PepinoGame.EditorTools
             {
                 Undo.RecordObject(cam.transform, "Camera alpha");
                 Undo.RecordObject(cam, "Camera alpha props");
-                cam.transform.position = new Vector3(0f, 2.45f, -2.15f);
-                cam.transform.rotation = Quaternion.Euler(52f, 0f, 0f);
-                cam.fieldOfView = 52f;
+                cam.transform.position = new Vector3(0f, 2.55f, -2.55f);
+                cam.transform.rotation = Quaternion.Euler(44f, 0f, 0f);
+                cam.fieldOfView = 50f;
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.14f, 0.18f, 0.24f, 1f);
+                cam.backgroundColor = new Color(0.12f, 0.16f, 0.22f, 1f);
             }
 
             if (Object.FindFirstObjectByType<OpponentSeatManager>() == null)
