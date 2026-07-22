@@ -95,6 +95,7 @@ public class GameHub : Hub
         if (room == null) 
         {
             Console.WriteLine($"❌ No se puede iniciar el juego: Sala {roomId} no encontrada");
+            await Clients.Caller.SendAsync("Error", $"Sala '{roomId}' no encontrada");
             return;
         }
         // Para testing local, permitir 1 jugador. Para producción, cambiar a < 2

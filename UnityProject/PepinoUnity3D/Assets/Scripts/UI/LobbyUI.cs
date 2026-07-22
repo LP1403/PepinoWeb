@@ -6,7 +6,7 @@ using PepinoGame.Managers;
 namespace PepinoGame.UI
 {
     /// <summary>
-    /// Maneja la UI del lobby (unirse a sala)
+    /// Lobby UI: auto-connects via NetworkManager; player only enters name + room and joins.
     /// </summary>
     public class LobbyUI : MonoBehaviour
     {
@@ -22,48 +22,35 @@ namespace PepinoGame.UI
         [Header("Settings")]
         [SerializeField] private string defaultRoomId = "SALA1";
 
-        private bool isConnecting = false;
-
         private void Start()
         {
-            // Configurar botones
             if (joinButton != null)
                 joinButton.onClick.AddListener(OnJoinButtonClicked);
-            
-            if (connectButton != null)
-                connectButton.onClick.AddListener(OnConnectButtonClicked);
 
-            // Suscribirse a eventos del NetworkManager
+            // Connect is automatic — hide legacy button if present
+            if (connectButton != null)
+            {
+                connectButton.gameObject.SetActive(false);
+            }
+
             if (NetworkManager.Instance != null)
             {
                 NetworkManager.Instance.OnConnectionChanged += OnConnectionChanged;
             }
 
-            // Valores por defecto
             if (roomIdInput != null)
                 roomIdInput.text = defaultRoomId;
 
-            // Estado inicial
-            UpdateUI();
-        }
+            if (NetworkManager.Instance != null && NetworkManager.Instance.IsConnected)
+            {
+                UpdateStatusText("Conectado al servidor");
+            }
+            else
+            {
+                UpdateStatusText("Conectando al servidor...");
+            }
 
-        private async void OnConnectButtonClicked()
-        {
-            if (isConnecting) return;
-            
-            isConnecting = true;
-            UpdateStatusText("🔄 Conectando al servidor...");
-            
-            try
-            {
-                await NetworkManager.Instance.ConnectToServer();
-                UpdateStatusText("✅ Conectado al servidor");
-            }
-            catch (System.Exception ex)
-            {
-                UpdateStatusText($"❌ Error: {ex.Message}");
-                isConnecting = false;
-            }
+            UpdateUI();
         }
 
         private async void OnJoinButtonClicked()
@@ -71,90 +58,90 @@ namespace PepinoGame.UI
             string roomId = roomIdInput?.text?.Trim() ?? "";
             string playerName = playerNameInput?.text?.Trim() ?? "";
 
-            // Validaciones
             if (string.IsNullOrEmpty(roomId))
             {
-                UpdateStatusText("⚠️ Ingresa un ID de sala");
+                UpdateStatusText("Ingresa un ID de sala");
                 return;
             }
 
             if (string.IsNullOrEmpty(playerName))
             {
-                UpdateStatusText("⚠️ Ingresa tu nombre");
+                UpdateStatusText("Ingresa tu nombre");
                 return;
             }
 
             if (playerName.Length < 3)
             {
-                UpdateStatusText("⚠️ El nombre debe tener al menos 3 caracteres");
+                UpdateStatusText("El nombre debe tener al menos 3 caracteres");
                 return;
             }
 
-            if (!NetworkManager.Instance.IsConnected)
+            if (NetworkManager.Instance == null || !NetworkManager.Instance.IsConnected)
             {
-                UpdateStatusText("⚠️ No estás conectado al servidor");
-                return;
+                UpdateStatusText("Aun conectando al servidor...");
+                if (NetworkManager.Instance == null)
+                {
+                    UpdateStatusText("NetworkManager no encontrado en la escena");
+                    return;
+                }
+
+                try
+                {
+                    await NetworkManager.Instance.ConnectToServer();
+                }
+                catch (System.Exception ex)
+                {
+                    UpdateStatusText($"No se pudo conectar: {ex.Message}");
+                    return;
+                }
             }
 
             try
             {
-                UpdateStatusText($"🚪 Uniéndose a sala {roomId}...");
-                
-                // Unirse a la sala
+                UpdateStatusText($"Uniendose a sala {roomId}...");
                 await NetworkManager.Instance.JoinRoom(roomId, playerName);
-                
-                // Inicializar el juego
                 GameManager.Instance.InitializeGame(roomId, playerName);
-                
-                UpdateStatusText($"✅ Unido a sala {roomId}");
-                
-                // Cambiar a la escena del juego
+                UpdateStatusText($"Unido a sala {roomId}");
                 ShowGamePanel();
             }
             catch (System.Exception ex)
             {
-                UpdateStatusText($"❌ Error: {ex.Message}");
+                UpdateStatusText($"Error: {ex.Message}");
             }
         }
 
         private void OnConnectionChanged(bool connected)
         {
-            isConnecting = false;
             UpdateUI();
-            
-            if (connected)
-            {
-                UpdateStatusText("✅ Conectado al servidor");
-            }
-            else
-            {
-                UpdateStatusText("❌ Desconectado del servidor");
-            }
+            UpdateStatusText(connected
+                ? "Conectado al servidor — elige nombre y sala"
+                : "Desconectado — reintentando...");
         }
 
         private void UpdateUI()
         {
             bool isConnected = NetworkManager.Instance?.IsConnected ?? false;
-            
-            if (connectButton != null)
-                connectButton.interactable = !isConnected && !isConnecting;
-            
+
             if (joinButton != null)
-                joinButton.interactable = isConnected;
-            
+                joinButton.interactable = true;
+
             if (roomIdInput != null)
-                roomIdInput.interactable = isConnected;
-            
+                roomIdInput.interactable = true;
+
             if (playerNameInput != null)
-                playerNameInput.interactable = isConnected;
+                playerNameInput.interactable = true;
+
+            if (!isConnected && statusText != null &&
+                (statusText.text == null || !statusText.text.Contains("reintentando")))
+            {
+                // Keep connecting message unless already set by OnConnectionChanged
+            }
         }
 
         private void UpdateStatusText(string message)
         {
             if (statusText != null)
-            {
                 statusText.text = message;
-            }
             Debug.Log($"[LobbyUI] {message}");
         }
 
@@ -162,7 +149,7 @@ namespace PepinoGame.UI
         {
             if (lobbyPanel != null)
                 lobbyPanel.SetActive(false);
-            
+
             if (gamePanel != null)
                 gamePanel.SetActive(true);
         }
@@ -171,15 +158,9 @@ namespace PepinoGame.UI
         {
             if (joinButton != null)
                 joinButton.onClick.RemoveListener(OnJoinButtonClicked);
-            
-            if (connectButton != null)
-                connectButton.onClick.RemoveListener(OnConnectButtonClicked);
-            
+
             if (NetworkManager.Instance != null)
-            {
                 NetworkManager.Instance.OnConnectionChanged -= OnConnectionChanged;
-            }
         }
     }
 }
-

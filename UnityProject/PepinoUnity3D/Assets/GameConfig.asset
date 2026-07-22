@@ -23,7 +23,7 @@ MonoBehaviour:
   cardAnimationDuration: 0.3
   pepineadoEffectDuration: 3
   selectedCardScale: 1.2
-  cardSpacing: 1.5
-  handArcRadius: 8
+  cardSpacing: 0.28
+  handArcRadius: 3.4
   selectedCardHeight: 0.5
   enableDebugLogs: 1

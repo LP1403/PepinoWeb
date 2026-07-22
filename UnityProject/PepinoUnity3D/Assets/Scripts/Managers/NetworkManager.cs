@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using UnityEngine;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -34,9 +35,19 @@ namespace PepinoGame.Managers
         public event Action<string> OnGameStarted;
         public event Action<string> OnError;
 
+        private bool isConnecting;
+        private bool autoConnectStarted;
+
+        private readonly Queue<Action> mainThreadQueue = new Queue<Action>();
+        private readonly object mainThreadLock = new object();
+
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         private void Awake()
         {
-            // Singleton pattern
             if (Instance == null)
             {
                 Instance = this;
@@ -49,6 +60,47 @@ namespace PepinoGame.Managers
             }
         }
 
+        private void Start()
+        {
+            if (!autoConnectStarted)
+            {
+                autoConnectStarted = true;
+                _ = AutoConnectLoop();
+            }
+        }
+
+        private void Update()
+        {
+            FlushMainThreadQueue();
+        }
+
+        /// <summary>
+        /// Keeps trying to connect until the hub is reachable (alpha UX: no Connect button).
+        /// </summary>
+        private async Task AutoConnectLoop()
+        {
+            while (this != null && Application.isPlaying)
+            {
+                if (isConnected)
+                {
+                    await Task.Delay(2000);
+                    continue;
+                }
+
+                try
+                {
+                    await ConnectToServer();
+                }
+                catch
+                {
+                    // Retry below
+                }
+
+                if (!isConnected)
+                    await Task.Delay(3000);
+            }
+        }
+
         /// <summary>
         /// Conecta al servidor SignalR
         /// </summary>
@@ -57,124 +109,191 @@ namespace PepinoGame.Managers
             if (connection != null && connection.State == HubConnectionState.Connected)
             {
                 Log("Ya estoy conectado al servidor");
+                isConnected = true;
+                RunOnMainThread(() => OnConnectionChanged?.Invoke(true));
                 return;
             }
 
+            if (isConnecting) return;
+            isConnecting = true;
+
             try
             {
+                if (gameConfig == null)
+                {
+                    throw new Exception("GameConfig no asignado en NetworkManager");
+                }
+
                 Log($"🔄 Conectando a SignalR: {gameConfig.serverUrl}");
+
+                if (connection != null)
+                {
+                    try
+                    {
+                        await connection.DisposeAsync();
+                    }
+                    catch { }
+                    connection = null;
+                }
 
                 connection = new HubConnectionBuilder()
                     .WithUrl(gameConfig.serverUrl)
                     .WithAutomaticReconnect(GetReconnectDelays())
                     .Build();
 
-                // Configurar eventos del hub
                 SetupHubEvents();
 
-                // Conectar
                 await connection.StartAsync();
-                
+
                 myConnectionId = connection.ConnectionId;
                 isConnected = true;
 
                 Log($"✅ Conectado exitosamente! ConnectionId: {myConnectionId}");
-                OnConnectionChanged?.Invoke(true);
+                RunOnMainThread(() => OnConnectionChanged?.Invoke(true));
             }
             catch (Exception ex)
             {
                 LogError($"❌ Error al conectar: {ex.Message}");
                 isConnected = false;
-                OnConnectionChanged?.Invoke(false);
+                RunOnMainThread(() => OnConnectionChanged?.Invoke(false));
                 throw;
+            }
+            finally
+            {
+                isConnecting = false;
             }
         }
 
         /// <summary>
-        /// Configura todos los eventos que vienen del servidor
+        /// Configura todos los eventos que vienen del servidor.
+        /// Deserializa via JsonElement + case-insensitive para no perder estado cuando llegan cartas.
+        /// Encola al hilo principal: SignalR corre en thread pool y Unity UI/API no es thread-safe.
         /// </summary>
         private void SetupHubEvents()
         {
-            // Evento: Estado del juego actualizado
-            connection.On<GameState>("GameStateUpdated", (gameState) =>
+            connection.On<JsonElement>("GameStateUpdated", (element) =>
             {
-                Log($"🔄 Estado del juego actualizado");
-                Log($"DEBUG RAW - RoomId: {gameState.roomId}");
-                Log($"DEBUG RAW - isRoomCreator: {gameState.isRoomCreator}");
-                Log($"DEBUG RAW - isGameStarted: {gameState.isGameStarted}");
-                Log($"DEBUG RAW - players NULL? {gameState.players == null}");
-                Log($"DEBUG RAW - players COUNT: {gameState.players?.Count ?? -1}");
-                
-                if (gameState.players != null && gameState.players.Count > 0)
+                RunOnMainThread(() =>
                 {
-                    Log($"DEBUG RAW - Primer jugador: {gameState.players[0].name}");
-                }
-                
-                OnGameStateUpdated?.Invoke(gameState);
+                    try
+                    {
+                        var gameState = DeserializePayload<GameState>(element);
+                        if (gameState == null)
+                        {
+                            LogError("GameStateUpdated llegó null / no deserializable");
+                            return;
+                        }
+
+                        Log($"🔄 Estado del juego actualizado");
+                        Log($"DEBUG RAW - RoomId: {gameState.roomId}");
+                        Log($"DEBUG RAW - isRoomCreator: {gameState.isRoomCreator}");
+                        Log($"DEBUG RAW - isGameStarted: {gameState.isGameStarted}");
+                        Log($"DEBUG RAW - players COUNT: {gameState.players?.Count ?? -1}");
+                        Log($"DEBUG RAW - yourHand COUNT: {gameState.yourHand?.Count ?? -1}");
+
+                        OnGameStateUpdated?.Invoke(gameState);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Error procesando GameStateUpdated: {ex.Message}");
+                    }
+                });
             });
 
-            // Evento: Cartas repartidas
-            connection.On<List<Card>>("CardsDealt", (hand) =>
+            connection.On<JsonElement>("CardsDealt", (element) =>
             {
-                Log($"🎴 Cartas recibidas: {hand.Count}");
-                OnCardsDealt?.Invoke(hand);
+                RunOnMainThread(() =>
+                {
+                    try
+                    {
+                        var hand = DeserializePayload<List<Card>>(element) ?? new List<Card>();
+                        Log($"🎴 Cartas recibidas: {hand.Count}");
+                        OnCardsDealt?.Invoke(hand);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Error procesando CardsDealt: {ex.Message}");
+                    }
+                });
             });
 
-            // Evento: Cartas jugadas
-            connection.On<PlayedCards>("CardsPlayed", (playedCards) =>
+            connection.On<JsonElement>("CardsPlayed", (element) =>
             {
-                Log($"🃏 {playedCards.playerName} jugó {playedCards.cards.Count} carta(s)");
-                OnCardsPlayed?.Invoke(playedCards);
+                RunOnMainThread(() =>
+                {
+                    try
+                    {
+                        var playedCards = DeserializePayload<PlayedCards>(element);
+                        if (playedCards == null) return;
+                        Log($"🃏 {playedCards.playerName} jugó {playedCards.cards?.Count ?? 0} carta(s)");
+                        OnCardsPlayed?.Invoke(playedCards);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogError($"Error procesando CardsPlayed: {ex.Message}");
+                    }
+                });
             });
 
-            // Evento: Jugador se unió
             connection.On<string, int>("PlayerJoined", (playerName, playerCount) =>
             {
-                Log($"👤 {playerName} se unió. Total: {playerCount}");
-                OnPlayerJoined?.Invoke(playerName);
+                RunOnMainThread(() =>
+                {
+                    Log($"👤 {playerName} se unió. Total: {playerCount}");
+                    OnPlayerJoined?.Invoke(playerName);
+                });
             });
 
-            // Evento: Jugador se fue
             connection.On<string, int>("PlayerLeft", (playerName, playerCount) =>
             {
-                Log($"👋 {playerName} se fue. Quedan: {playerCount}");
-                OnPlayerLeft?.Invoke(playerName);
+                RunOnMainThread(() =>
+                {
+                    Log($"👋 {playerName} se fue. Quedan: {playerCount}");
+                    OnPlayerLeft?.Invoke(playerName);
+                });
             });
 
-            // Evento: Jugador ganó
             connection.On<string>("PlayerWon", (playerName) =>
             {
-                Log($"🏆 {playerName} ganó!");
-                OnPlayerWon?.Invoke(playerName);
+                RunOnMainThread(() =>
+                {
+                    Log($"🏆 {playerName} ganó!");
+                    OnPlayerWon?.Invoke(playerName);
+                });
             });
 
-            // Evento: Jugador saltado (PEPINEADO)
             connection.On<string>("PlayerSkipped", (playerName) =>
             {
-                Log($"⏭️ {playerName} fue saltado!");
-                OnPlayerSkipped?.Invoke(playerName);
+                RunOnMainThread(() =>
+                {
+                    Log($"⏭️ {playerName} fue saltado!");
+                    OnPlayerSkipped?.Invoke(playerName);
+                });
             });
 
-            // Evento: Juego iniciado
             connection.On<string>("GameStarted", (roomId) =>
             {
-                Log($"🎮 Juego iniciado en sala {roomId}");
-                OnGameStarted?.Invoke(roomId);
+                RunOnMainThread(() =>
+                {
+                    Log($"🎮 Juego iniciado en sala {roomId}");
+                    OnGameStarted?.Invoke(roomId);
+                });
             });
 
-            // Evento: Error
             connection.On<string>("Error", (message) =>
             {
-                LogError($"❌ Error del servidor: {message}");
-                OnError?.Invoke(message);
+                RunOnMainThread(() =>
+                {
+                    LogError($"❌ Error del servidor: {message}");
+                    OnError?.Invoke(message);
+                });
             });
 
-            // Manejar reconexión
             connection.Reconnecting += (error) =>
             {
-                Log($"🔄 Reconectando...");
+                Log("🔄 Reconectando...");
                 isConnected = false;
-                OnConnectionChanged?.Invoke(false);
+                RunOnMainThread(() => OnConnectionChanged?.Invoke(false));
                 return Task.CompletedTask;
             };
 
@@ -183,34 +302,21 @@ namespace PepinoGame.Managers
                 Log($"✅ Reconectado! ConnectionId: {connectionId}");
                 myConnectionId = connectionId;
                 isConnected = true;
-                OnConnectionChanged?.Invoke(true);
+                RunOnMainThread(() => OnConnectionChanged?.Invoke(true));
                 return Task.CompletedTask;
             };
 
-            connection.Closed += async (error) =>
+            connection.Closed += (error) =>
             {
-                Log($"🔌 Conexión cerrada");
+                Log("🔌 Conexión cerrada");
                 isConnected = false;
-                OnConnectionChanged?.Invoke(false);
-                
-                // Intentar reconectar después de 5 segundos
-                await Task.Delay(5000);
-                try
-                {
-                    await ConnectToServer();
-                }
-                catch
-                {
-                    LogError("No se pudo reconectar automáticamente");
-                }
+                RunOnMainThread(() => OnConnectionChanged?.Invoke(false));
+                return Task.CompletedTask;
             };
         }
 
         #region Server Invocations (Llamadas al servidor)
 
-        /// <summary>
-        /// Unirse a una sala
-        /// </summary>
         public async Task JoinRoom(string roomId, string playerName)
         {
             if (!isConnected)
@@ -231,16 +337,16 @@ namespace PepinoGame.Managers
             }
         }
 
-        /// <summary>
-        /// Seleccionar modo de juego (solo creador)
-        /// </summary>
         public async Task SelectGameMode(string roomId, int deckCount)
         {
             if (!isConnected) return;
 
+            if (string.IsNullOrWhiteSpace(roomId))
+                throw new Exception("roomId vacío al seleccionar modo");
+
             try
             {
-                Log($"🎯 Seleccionando modo: {deckCount} mazos");
+                Log($"🎯 Seleccionando modo: {deckCount} mazos (sala {roomId})");
                 await connection.InvokeAsync("SelectGameMode", roomId, deckCount);
             }
             catch (Exception ex)
@@ -250,12 +356,12 @@ namespace PepinoGame.Managers
             }
         }
 
-        /// <summary>
-        /// Iniciar el juego (solo creador)
-        /// </summary>
         public async Task StartGame(string roomId)
         {
             if (!isConnected) return;
+
+            if (string.IsNullOrWhiteSpace(roomId))
+                throw new Exception("roomId vacío al iniciar partida");
 
             try
             {
@@ -269,9 +375,6 @@ namespace PepinoGame.Managers
             }
         }
 
-        /// <summary>
-        /// Jugar cartas
-        /// </summary>
         public async Task PlayCards(string roomId, List<Card> cards)
         {
             if (!isConnected) return;
@@ -288,9 +391,6 @@ namespace PepinoGame.Managers
             }
         }
 
-        /// <summary>
-        /// Pasar turno
-        /// </summary>
         public async Task PassTurn(string roomId)
         {
             if (!isConnected) return;
@@ -307,9 +407,6 @@ namespace PepinoGame.Managers
             }
         }
 
-        /// <summary>
-        /// Obtener estado actual del juego
-        /// </summary>
         public async Task GetGameState(string roomId)
         {
             if (!isConnected) return;
@@ -324,9 +421,6 @@ namespace PepinoGame.Managers
             }
         }
 
-        /// <summary>
-        /// Salir de la sala
-        /// </summary>
         public async Task LeaveRoom(string roomId, string playerName)
         {
             if (!isConnected) return;
@@ -349,6 +443,42 @@ namespace PepinoGame.Managers
         public bool IsConnected => isConnected;
         public string MyConnectionId => myConnectionId;
 
+        private void RunOnMainThread(Action action)
+        {
+            if (action == null) return;
+            lock (mainThreadLock)
+            {
+                mainThreadQueue.Enqueue(action);
+            }
+        }
+
+        private void FlushMainThreadQueue()
+        {
+            while (true)
+            {
+                Action action = null;
+                lock (mainThreadLock)
+                {
+                    if (mainThreadQueue.Count == 0) break;
+                    action = mainThreadQueue.Dequeue();
+                }
+
+                try
+                {
+                    action?.Invoke();
+                }
+                catch (Exception ex)
+                {
+                    LogError($"Error en callback main-thread: {ex.Message}");
+                }
+            }
+        }
+
+        private static T DeserializePayload<T>(JsonElement element)
+        {
+            return JsonSerializer.Deserialize<T>(element.GetRawText(), JsonOptions);
+        }
+
         private TimeSpan[] GetReconnectDelays()
         {
             var delays = new TimeSpan[gameConfig.reconnectionDelays.Length];
@@ -361,7 +491,7 @@ namespace PepinoGame.Managers
 
         private void Log(string message)
         {
-            if (gameConfig.enableDebugLogs)
+            if (gameConfig != null && gameConfig.enableDebugLogs)
             {
                 Debug.Log($"[NetworkManager] {message}");
             }
@@ -376,6 +506,9 @@ namespace PepinoGame.Managers
 
         private async void OnDestroy()
         {
+            if (Instance == this)
+                Instance = null;
+
             if (connection != null)
             {
                 try
@@ -403,4 +536,3 @@ namespace PepinoGame.Managers
         }
     }
 }
-

@@ -22,6 +22,8 @@ namespace PepinoGame.Managers
         
         private GameState currentGameState;
         private List<Card> selectedCards = new List<Card>();
+        private int lastKnownRoundNumber = -1;
+        private bool lastWasNewRound;
 
         // Propiedades públicas
         public GameState CurrentGameState => currentGameState;
@@ -33,6 +35,9 @@ namespace PepinoGame.Managers
         public event System.Action<GameState> OnGameStateChanged;
         public event System.Action<List<Card>> OnHandUpdated;
         public event System.Action<string> OnNotification;
+        public event System.Action OnNewRound;
+
+        private bool networkEventsBound;
 
         private void Awake()
         {
@@ -50,21 +55,39 @@ namespace PepinoGame.Managers
             currentGameState = new GameState();
         }
 
+        private void OnEnable()
+        {
+            TryBindNetworkEvents();
+        }
+
         private void Start()
         {
-            // Suscribirse a eventos del NetworkManager
-            if (NetworkManager.Instance != null)
-            {
-                NetworkManager.Instance.OnGameStateUpdated += HandleGameStateUpdated;
-                NetworkManager.Instance.OnCardsDealt += HandleCardsDealt;
-                NetworkManager.Instance.OnCardsPlayed += HandleCardsPlayed;
-                NetworkManager.Instance.OnPlayerJoined += HandlePlayerJoined;
-                NetworkManager.Instance.OnPlayerLeft += HandlePlayerLeft;
-                NetworkManager.Instance.OnPlayerWon += HandlePlayerWon;
-                NetworkManager.Instance.OnPlayerSkipped += HandlePlayerSkipped;
-                NetworkManager.Instance.OnGameStarted += HandleGameStarted;
-                NetworkManager.Instance.OnError += HandleError;
-            }
+            TryBindNetworkEvents();
+        }
+
+        private void Update()
+        {
+            // NetworkManager may Awake after us on first frames
+            if (!networkEventsBound)
+                TryBindNetworkEvents();
+        }
+
+        private void TryBindNetworkEvents()
+        {
+            if (networkEventsBound || NetworkManager.Instance == null)
+                return;
+
+            NetworkManager.Instance.OnGameStateUpdated += HandleGameStateUpdated;
+            NetworkManager.Instance.OnCardsDealt += HandleCardsDealt;
+            NetworkManager.Instance.OnCardsPlayed += HandleCardsPlayed;
+            NetworkManager.Instance.OnPlayerJoined += HandlePlayerJoined;
+            NetworkManager.Instance.OnPlayerLeft += HandlePlayerLeft;
+            NetworkManager.Instance.OnPlayerWon += HandlePlayerWon;
+            NetworkManager.Instance.OnPlayerSkipped += HandlePlayerSkipped;
+            NetworkManager.Instance.OnGameStarted += HandleGameStarted;
+            NetworkManager.Instance.OnError += HandleError;
+            networkEventsBound = true;
+            Log("Suscripto a eventos de NetworkManager");
         }
 
         #region Public Methods
@@ -257,19 +280,26 @@ namespace PepinoGame.Managers
 
         private void HandleGameStateUpdated(GameState newState)
         {
+            if (newState == null) return;
+
+            // Backend sometimes omits roomId in client view; keep the one from Join
+            if (string.IsNullOrEmpty(newState.roomId) && !string.IsNullOrEmpty(currentRoomId))
+                newState.roomId = currentRoomId;
+            else if (!string.IsNullOrEmpty(newState.roomId))
+                currentRoomId = newState.roomId;
+
+            bool roundChanged = lastKnownRoundNumber >= 0 && newState.roundNumber != lastKnownRoundNumber;
+            bool becameNewRound = newState.isNewRound && !lastWasNewRound;
+
+            if (newState.isGameStarted && (roundChanged || becameNewRound))
+                OnNewRound?.Invoke();
+
+            lastKnownRoundNumber = newState.roundNumber;
+            lastWasNewRound = newState.isNewRound;
             currentGameState = newState;
-            Log($"Estado actualizado - Jugadores: {newState.players?.Count ?? 0}, Iniciado: {newState.isGameStarted}");
-            Log($"DEBUG Estado: isRoomCreator={newState.isRoomCreator}, RoomId={newState.roomId}");
-            
-            if (newState.players != null && newState.players.Count > 0)
-            {
-                Log($"DEBUG Primer jugador: {newState.players[0].name}");
-            }
-            else
-            {
-                LogError("DEBUG: Lista de jugadores está VACÍA o NULL!");
-            }
-            
+
+            Log($"Estado actualizado - Sala: {newState.roomId}, Jugadores: {newState.players?.Count ?? 0}, Iniciado: {newState.isGameStarted}");
+
             OnGameStateChanged?.Invoke(newState);
             OnHandUpdated?.Invoke(newState.yourHand);
         }
@@ -317,7 +347,23 @@ namespace PepinoGame.Managers
 
         private void HandleGameStarted(string roomId)
         {
-            Notify($"🎮 ¡El juego ha comenzado!");
+            lastKnownRoundNumber = -1;
+            lastWasNewRound = false;
+
+            if (!string.IsNullOrEmpty(roomId))
+                currentRoomId = roomId;
+
+            // Hide mode selector even if a later GameStateUpdated fails to deserialize
+            if (currentGameState == null)
+                currentGameState = new GameState();
+
+            currentGameState.isGameStarted = true;
+            if (string.IsNullOrEmpty(currentGameState.roomId))
+                currentGameState.roomId = currentRoomId;
+
+            OnGameStateChanged?.Invoke(currentGameState);
+            OnNewRound?.Invoke();
+            Notify("¡El juego ha comenzado!");
         }
 
         private void HandleError(string errorMessage)
@@ -352,7 +398,10 @@ namespace PepinoGame.Managers
 
         private void OnDestroy()
         {
-            if (NetworkManager.Instance != null)
+            if (Instance == this)
+                Instance = null;
+
+            if (networkEventsBound && NetworkManager.Instance != null)
             {
                 NetworkManager.Instance.OnGameStateUpdated -= HandleGameStateUpdated;
                 NetworkManager.Instance.OnCardsDealt -= HandleCardsDealt;
@@ -363,6 +412,7 @@ namespace PepinoGame.Managers
                 NetworkManager.Instance.OnPlayerSkipped -= HandlePlayerSkipped;
                 NetworkManager.Instance.OnGameStarted -= HandleGameStarted;
                 NetworkManager.Instance.OnError -= HandleError;
+                networkEventsBound = false;
             }
         }
     }

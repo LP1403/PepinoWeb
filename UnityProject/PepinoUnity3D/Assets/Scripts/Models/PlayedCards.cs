@@ -1,25 +1,14 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace PepinoGame.Models
 {
-    /// <summary>
-    /// Representa las cartas jugadas por un jugador
-    /// </summary>
     [System.Serializable]
     public class PlayedCards
     {
-        [JsonProperty("cards")]
-        public List<Card> cards;
-        
-        [JsonProperty("playerId")]
-        public string playerId;
-        
-        [JsonProperty("playerName")]
-        public string playerName;
-        
-        [JsonProperty("isPepineado")]
-        public bool isPepineado;       // Si es la misma jugada que la anterior
+        public List<Card> cards { get; set; }
+        public string playerId { get; set; }
+        public string playerName { get; set; }
+        public bool isPepineado { get; set; }
 
         public PlayedCards()
         {
@@ -39,9 +28,7 @@ namespace PepinoGame.Models
 
         public override string ToString()
         {
-            string cardsStr = cards != null ? string.Join(", ", cards) : "0";
             return $"{playerName} jugó {cards?.Count ?? 0} carta(s){(isPepineado ? " [PEPINEADO!]" : "")}";
         }
     }
 }
-

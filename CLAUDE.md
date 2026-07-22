@@ -24,21 +24,22 @@ es casi siempre `UnityProject/PepinoUnity3D/`.
 
 ## Reglas del juego "Pepino"
 
-- Naipes españoles, 4 palos con temática: ♠ Policías, ♥ Médicos, ♦ Soldados, ♣ Bufones.
-- Valores 1-12 (sin el 8 tradicional del mazo español; usa 1-12 tal cual, ver `CardService`).
-- Jerarquía de juego: `3 < 4 < ... < 12 < 1` (el As es la carta más alta).
-- El **2 es comodín**: permite jugada libre en cualquier momento.
-- El **3♦ ("Pepino de Oro")** define quién empieza la partida.
-- Se juegan grupos de 1 a N cartas del mismo valor; el siguiente jugador debe igualar cantidad y
-  jugar valor igual o mayor.
-- **PEPINEADO**: si un jugador juega exactamente la misma combinación (mismo valor + misma
-  cantidad) que la jugada anterior, se salta el turno del siguiente jugador.
-- Gana quien se queda primero sin cartas (2 ganadores si ≤4 jugadores, 3 si son más).
-- 2-8 jugadores por sala, 1-3 mazos según cantidad de jugadores (ver `GameMode`).
+Documento canónico (humano): [`REGLAS_PEPINO.md`](REGLAS_PEPINO.md).  
+Resumen UI: Lobby web (`Front/game-client/src/components/Lobby.tsx`).
 
-Fuente canónica de las reglas: `Back/GameServer/GameServer/Services/CardService.cs` y
-`GameLogicService.cs` — si hay dudas de comportamiento exacto, el código del backend manda sobre
-cualquier doc.
+- Naipes españoles, 4 palos con temática: ♠ Policías, ♥ Médicos, ♦ Soldados, ♣ Bufones.
+- Valores 1-12 (48 cartas/mazo en `CardService`; docs viejas que digan 40 están desactualizadas).
+- Jerarquía de juego: `3 < 4 < ... < 12 < 1` (el As es la carta más alta).
+- El **2** en docs se describe como comodín libre; **en código hoy solo vale 0 en comparación** — ver `REGLAS_PEPINO.md` §5.
+- El **3♦ ("Pepino de Oro")** define quién empieza. Con N mazos hay N Pepinos; inicia el **primer jugador (por orden de asiento) que tenga al menos un 3♦** (`FindPepinoOroPlayer`) — regla confirmada.
+- Se juegan grupos de 1 a N cartas del mismo valor; el siguiente debe igualar cantidad y
+  jugar valor igual o mayor.
+- **PEPINEADO**: misma combinación (valor + cantidad) → se salta al siguiente.
+- Gana quien se queda primero sin cartas (2 ganadores si ≤4 jugadores, 3 si son más).
+- 2-8 jugadores por sala, 1-3 mazos (creador elige modo).
+
+Fuente canónica de comportamiento exacto en runtime: `CardService.cs` + `GameHub.cs`.  
+Si hay duda, actualizar **ambos**: `REGLAS_PEPINO.md` y el backend.
 
 ## Arquitectura general
 

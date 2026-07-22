@@ -1,52 +1,23 @@
 using System.Collections.Generic;
-using Newtonsoft.Json;
 
 namespace PepinoGame.Models
 {
-    /// <summary>
-    /// Representa el estado completo del juego
-    /// </summary>
     [System.Serializable]
     public class GameState
     {
-        [JsonProperty("roomId")]
-        public string roomId;
-        
-        [JsonProperty("players")]
-        public List<Player> players;
-        
-        [JsonProperty("tableCards")]
-        public List<Card> tableCards;
-        
-        [JsonProperty("currentTurnIndex")]
-        public int currentTurnIndex;
-        
-        [JsonProperty("lastPlayedCards")]
-        public List<Card> lastPlayedCards;
-        
-        [JsonProperty("lastPlayerId")]
-        public string lastPlayerId;
-        
-        [JsonProperty("isGameStarted")]
-        public bool isGameStarted;
-        
-        [JsonProperty("gameMode")]
-        public GameMode gameMode;
-        
-        [JsonProperty("winners")]
-        public List<string> winners;
-        
-        [JsonProperty("roundNumber")]
-        public int roundNumber;
-        
-        [JsonProperty("yourHand")]
-        public List<Card> yourHand;        // Mano privada del jugador actual
-        
-        [JsonProperty("isRoomCreator")]
-        public bool isRoomCreator;         // Si el jugador actual es el creador de la sala
-        
-        [JsonProperty("isNewRound")]
-        public bool isNewRound;            // Si es una nueva ronda (vuelta completa)
+        public string roomId { get; set; }
+        public List<Player> players { get; set; }
+        public List<Card> tableCards { get; set; }
+        public int currentTurnIndex { get; set; }
+        public List<Card> lastPlayedCards { get; set; }
+        public string lastPlayerId { get; set; }
+        public bool isGameStarted { get; set; }
+        public GameMode gameMode { get; set; }
+        public List<string> winners { get; set; }
+        public int roundNumber { get; set; }
+        public List<Card> yourHand { get; set; }
+        public bool isRoomCreator { get; set; }
+        public bool isNewRound { get; set; }
 
         public GameState()
         {
@@ -69,7 +40,7 @@ namespace PepinoGame.Models
         {
             if (players == null || players.Count == 0 || currentTurnIndex < 0 || currentTurnIndex >= players.Count)
                 return null;
-            
+
             return players[currentTurnIndex];
         }
 
@@ -90,4 +61,3 @@ namespace PepinoGame.Models
         }
     }
 }
-

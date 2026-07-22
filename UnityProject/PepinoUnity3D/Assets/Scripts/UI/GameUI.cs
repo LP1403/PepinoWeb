@@ -9,7 +9,7 @@ using PepinoGame.Controllers;
 namespace PepinoGame.UI
 {
     /// <summary>
-    /// UI principal del juego (durante la partida)
+    /// Main in-game HUD.
     /// </summary>
     public class GameUI : MonoBehaviour
     {
@@ -17,6 +17,7 @@ namespace PepinoGame.UI
         [SerializeField] private TextMeshProUGUI roomInfoText;
         [SerializeField] private TextMeshProUGUI turnInfoText;
         [SerializeField] private TextMeshProUGUI notificationText;
+        [SerializeField] private TextMeshProUGUI playersInfoText;
         [SerializeField] private Button playCardsButton;
         [SerializeField] private Button passTurnButton;
         [SerializeField] private GameObject pepineadoEffectPanel;
@@ -27,40 +28,127 @@ namespace PepinoGame.UI
         [SerializeField] private HandManager handManager;
         [SerializeField] private TableManager tableManager;
 
-        private Dictionary<string, GameObject> playerInfoObjects = new Dictionary<string, GameObject>();
+        private readonly Dictionary<string, GameObject> playerInfoObjects = new Dictionary<string, GameObject>();
+        private bool gameManagerBound;
+        private bool networkBound;
+
+        private void OnEnable()
+        {
+            BindEvents();
+            ApplyCurrentState();
+        }
 
         private void Start()
         {
-            // Configurar botones
             if (playCardsButton != null)
             {
                 playCardsButton.onClick.AddListener(OnPlayCardsClicked);
                 playCardsButton.interactable = false;
             }
-            
+
             if (passTurnButton != null)
             {
                 passTurnButton.onClick.AddListener(OnPassTurnClicked);
                 passTurnButton.interactable = false;
             }
 
-            // Ocultar efecto PEPINEADO
             if (pepineadoEffectPanel != null)
                 pepineadoEffectPanel.SetActive(false);
 
-            // Suscribirse a eventos
-            if (GameManager.Instance != null)
+            // GamePanel often has a full-screen grey Image that washes out the 3D table
+            var panelImage = GetComponent<Image>();
+            if (panelImage != null)
+                panelImage.color = new Color(1f, 1f, 1f, 0f);
+
+            EnsurePlayersInfoText();
+            GameHudPresenter.Apply(
+                roomInfoText,
+                turnInfoText,
+                notificationText,
+                playCardsButton,
+                passTurnButton);
+
+            // Hide legacy left-side player dump — seats are 3D around the table now
+            if (playersInfoText != null && gameObject.activeInHierarchy)
+                playersInfoText.gameObject.SetActive(false);
+
+            BindEvents();
+            ApplyCurrentState();
+        }
+
+        private void BindEvents()
+        {
+            if (!gameManagerBound && GameManager.Instance != null)
             {
+                GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
+                GameManager.Instance.OnHandUpdated -= OnHandUpdated;
+                GameManager.Instance.OnNotification -= OnNotification;
+                GameManager.Instance.OnNewRound -= OnNewRound;
+
                 GameManager.Instance.OnGameStateChanged += OnGameStateChanged;
                 GameManager.Instance.OnHandUpdated += OnHandUpdated;
                 GameManager.Instance.OnNotification += OnNotification;
+                GameManager.Instance.OnNewRound += OnNewRound;
+                gameManagerBound = true;
             }
 
-            if (NetworkManager.Instance != null)
+            if (!networkBound && NetworkManager.Instance != null)
             {
+                NetworkManager.Instance.OnCardsPlayed -= OnCardsPlayed;
+                NetworkManager.Instance.OnPlayerWon -= OnPlayerWon;
+
                 NetworkManager.Instance.OnCardsPlayed += OnCardsPlayed;
                 NetworkManager.Instance.OnPlayerWon += OnPlayerWon;
+                networkBound = true;
             }
+        }
+
+        private void ApplyCurrentState()
+        {
+            var state = GameManager.Instance?.CurrentGameState;
+            if (state == null) return;
+
+            OnGameStateChanged(state);
+
+            if (state.yourHand != null && state.yourHand.Count > 0)
+                OnHandUpdated(state.yourHand);
+        }
+
+        private void EnsurePlayersInfoText()
+        {
+            if (playersInfoText != null) return;
+
+            // Reuse existing PlayersInfoText in scene if present
+            var existing = GameObject.Find("PlayersInfoText");
+            if (existing != null)
+            {
+                playersInfoText = existing.GetComponent<TextMeshProUGUI>();
+                if (playersInfoText != null) return;
+            }
+
+            var canvas = Object.FindFirstObjectByType<Canvas>();
+            if (canvas == null) return;
+
+            var go = new GameObject("PlayersInfoText", typeof(RectTransform));
+            go.transform.SetParent(canvas.transform, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0.5f);
+            rect.anchorMax = new Vector2(0f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = new Vector2(24f, 40f);
+            rect.sizeDelta = new Vector2(280f, 220f);
+
+            playersInfoText = go.AddComponent<TextMeshProUGUI>();
+            playersInfoText.fontSize = 18;
+            playersInfoText.color = Color.white;
+            playersInfoText.alignment = TextAlignmentOptions.TopLeft;
+            playersInfoText.text = "Jugadores:";
+        }
+
+        private void OnNewRound()
+        {
+            if (tableManager != null)
+                tableManager.ClearTable();
         }
 
         private void OnGameStateChanged(GameState gameState)
@@ -74,29 +162,21 @@ namespace PepinoGame.UI
         private void OnHandUpdated(List<Card> hand)
         {
             if (handManager != null)
-            {
                 handManager.UpdateHand(hand);
-            }
         }
 
         private void OnCardsPlayed(PlayedCards playedCards)
         {
-            // Agregar cartas a la mesa
             if (tableManager != null)
-            {
                 tableManager.AddCardsToTable(playedCards.cards, playedCards.playerName);
-            }
 
-            // Mostrar efecto PEPINEADO si aplica
             if (playedCards.isPepineado)
-            {
                 ShowPepineadoEffect(playedCards.playerName);
-            }
         }
 
         private void OnPlayerWon(string playerName)
         {
-            ShowNotification($"🏆 ¡{playerName} ha ganado!", 5f);
+            ShowNotification($"¡{playerName} ha ganado!", 5f);
         }
 
         private void OnNotification(string message)
@@ -108,82 +188,89 @@ namespace PepinoGame.UI
         {
             if (roomInfoText == null) return;
 
-            string roomId = gameState.roomId ?? "???";
+            string roomId = gameState.roomId;
+            if (string.IsNullOrEmpty(roomId))
+                roomId = GameManager.Instance?.CurrentRoomId;
+            if (string.IsNullOrEmpty(roomId))
+                roomId = "???";
+
             int playerCount = gameState.players?.Count ?? 0;
-            
-            roomInfoText.text = $"🎮 Sala: {roomId} | 👥 Jugadores: {playerCount}";
+            roomInfoText.text = $"Sala: {roomId} | Jugadores: {playerCount}";
         }
 
         private void UpdateTurnInfo(GameState gameState)
         {
             if (turnInfoText == null) return;
 
+            if (!gameState.isGameStarted)
+            {
+                turnInfoText.text = "Esperando inicio...";
+                return;
+            }
+
             var currentPlayer = gameState.GetCurrentPlayer();
             bool isMyTurn = gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
 
             if (currentPlayer != null)
             {
-                string turnText = isMyTurn 
-                    ? "🎯 ¡TU TURNO!" 
-                    : $"⏳ Turno de: {currentPlayer.name}";
-                
-                turnInfoText.text = turnText;
+                turnInfoText.text = isMyTurn
+                    ? "¡TU TURNO!"
+                    : $"Turno: {currentPlayer.name}";
+                turnInfoText.color = isMyTurn
+                    ? new Color(1f, 0.85f, 0.2f)
+                    : new Color(0.95f, 0.95f, 0.95f);
             }
             else
             {
-                turnInfoText.text = "⏳ Esperando...";
+                turnInfoText.text = "Esperando...";
             }
         }
 
         private void UpdatePlayersList(GameState gameState)
         {
+            // Opponent visuals live in OpponentSeatManager (3D seats). Keep prefab list path if wired.
             if (playersListContainer == null || playerInfoPrefab == null) return;
 
-            // Limpiar lista existente
             foreach (var obj in playerInfoObjects.Values)
             {
                 if (obj != null) Destroy(obj);
             }
+
             playerInfoObjects.Clear();
 
-            // Crear info para cada jugador
-            if (gameState.players != null)
+            if (gameState.players == null) return;
+
+            foreach (var player in gameState.players)
             {
-                foreach (var player in gameState.players)
+                GameObject infoObj = Instantiate(playerInfoPrefab, playersListContainer);
+                TextMeshProUGUI infoText = infoObj.GetComponentInChildren<TextMeshProUGUI>();
+
+                if (infoText != null)
                 {
-                    GameObject infoObj = Instantiate(playerInfoPrefab, playersListContainer);
-                    TextMeshProUGUI infoText = infoObj.GetComponentInChildren<TextMeshProUGUI>();
-                    
-                    if (infoText != null)
-                    {
-                        string status = "";
-                        if (player.hasWon) status = "🏆";
-                        else if (player.isCurrentTurn) status = "🎯";
-                        else if (player.isSkipped) status = "⏭️";
+                    string status = "";
+                    if (player.hasWon) status = "[GANO] ";
+                    else if (player.isCurrentTurn) status = "> ";
+                    else if (player.isSkipped) status = "[SKIP] ";
 
-                        infoText.text = $"{status} {player.name} ({player.cardCount})";
-                    }
-
-                    playerInfoObjects[player.connectionId] = infoObj;
+                    infoText.text = $"{status}{player.name} ({player.cardCount})";
                 }
+
+                playerInfoObjects[player.connectionId] = infoObj;
             }
         }
 
         private void UpdateButtonsState(GameState gameState)
         {
-            bool isMyTurn = gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
+            bool isMyTurn = gameState.isGameStarted &&
+                            gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
             bool hasSelectedCards = GameManager.Instance.SelectedCards.Count > 0;
-            bool isFirstPlay = gameState.IsFirstPlay();
+            bool isFirstPlay = gameState.IsFirstPlay() || gameState.isNewRound;
 
             if (playCardsButton != null)
-            {
                 playCardsButton.interactable = isMyTurn && hasSelectedCards;
-            }
 
             if (passTurnButton != null)
-            {
                 passTurnButton.interactable = isMyTurn && !isFirstPlay;
-            }
         }
 
         private void OnPlayCardsClicked()
@@ -200,32 +287,23 @@ namespace PepinoGame.UI
         {
             if (pepineadoEffectPanel == null) return;
 
-            // Mostrar efecto
             pepineadoEffectPanel.SetActive(true);
 
-            // Actualizar texto si hay
             var effectText = pepineadoEffectPanel.GetComponentInChildren<TextMeshProUGUI>();
             if (effectText != null)
-            {
-                effectText.text = $"🥒 ¡PEPINEADO!\n{playerName}";
-            }
+                effectText.text = $"¡PEPINEADO!\n{playerName}";
 
-            // Animar el efecto en la mesa
             if (tableManager != null)
-            {
                 tableManager.ShowPepineadoEffect();
-            }
 
-            // Ocultar después de 3 segundos
+            CancelInvoke(nameof(HidePepineadoEffect));
             Invoke(nameof(HidePepineadoEffect), 3f);
         }
 
         private void HidePepineadoEffect()
         {
             if (pepineadoEffectPanel != null)
-            {
                 pepineadoEffectPanel.SetActive(false);
-            }
         }
 
         private void ShowNotification(string message, float duration)
@@ -234,52 +312,50 @@ namespace PepinoGame.UI
 
             notificationText.text = message;
             notificationText.gameObject.SetActive(true);
-
-            // Cancelar invocaciones previas
             CancelInvoke(nameof(HideNotification));
-            
-            // Ocultar después de duration segundos
             Invoke(nameof(HideNotification), duration);
         }
 
         private void HideNotification()
         {
             if (notificationText != null)
-            {
                 notificationText.gameObject.SetActive(false);
-            }
         }
 
         private void Update()
         {
-            // Actualizar botones cada frame (por si el jugador selecciona/deselecciona cartas)
             if (GameManager.Instance?.CurrentGameState != null)
-            {
                 UpdateButtonsState(GameManager.Instance.CurrentGameState);
-            }
         }
 
         private void OnDestroy()
         {
             if (playCardsButton != null)
                 playCardsButton.onClick.RemoveListener(OnPlayCardsClicked);
-            
+
             if (passTurnButton != null)
                 passTurnButton.onClick.RemoveListener(OnPassTurnClicked);
-            
-            if (GameManager.Instance != null)
+
+            if (gameManagerBound && GameManager.Instance != null)
             {
                 GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
                 GameManager.Instance.OnHandUpdated -= OnHandUpdated;
                 GameManager.Instance.OnNotification -= OnNotification;
+                GameManager.Instance.OnNewRound -= OnNewRound;
+                gameManagerBound = false;
             }
 
-            if (NetworkManager.Instance != null)
+            if (networkBound && NetworkManager.Instance != null)
             {
                 NetworkManager.Instance.OnCardsPlayed -= OnCardsPlayed;
                 NetworkManager.Instance.OnPlayerWon -= OnPlayerWon;
+                networkBound = false;
             }
+        }
+
+        private void OnDisable()
+        {
+            // Keep subscriptions while GamePanel toggles; OnDestroy cleans up
         }
     }
 }
-

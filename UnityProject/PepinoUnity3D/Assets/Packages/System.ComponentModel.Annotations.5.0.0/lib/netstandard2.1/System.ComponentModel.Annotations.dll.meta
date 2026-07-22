@@ -14,12 +14,15 @@ PluginImporter:
   validateReferences: 1
   platformData:
     Any:
-      enabled: 1
+      enabled: 0
       settings: {}
     Editor:
-      enabled: 0
+      enabled: 1
       settings:
         DefaultValueInitialized: true
+    Win64:
+      enabled: 1
+      settings: {}
     WindowsStoreApps:
       enabled: 0
       settings:

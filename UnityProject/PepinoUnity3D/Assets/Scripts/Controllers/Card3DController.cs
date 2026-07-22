@@ -5,7 +5,7 @@ using PepinoGame.Managers;
 namespace PepinoGame.Controllers
 {
     /// <summary>
-    /// Controla una carta individual en 3D
+    /// Controls a single 3D card (pack mesh or fallback cube).
     /// </summary>
     public class Card3DController : MonoBehaviour
     {
@@ -21,196 +21,158 @@ namespace PepinoGame.Controllers
         private Card cardData;
         private Vector3 originalPosition;
         private Vector3 originalScale;
-        private bool isSelected = false;
-        private bool isHovered = false;
+        private bool isSelected;
+        private bool isHovered;
+        private bool preservePackMaterials;
+        private bool interactable = true;
 
         public Card CardData => cardData;
         public bool IsSelected => isSelected;
+
+        private void Awake()
+        {
+            if (cardRenderer == null)
+                cardRenderer = GetComponentInChildren<MeshRenderer>();
+            if (cardCollider == null)
+                cardCollider = GetComponentInChildren<Collider>();
+        }
 
         private void Start()
         {
             originalScale = transform.localScale;
         }
 
-        /// <summary>
-        /// Inicializa la carta con sus datos
-        /// </summary>
-        public void Initialize(Card card)
+        public void Initialize(Card card, bool preservePackMaterials = false)
         {
             cardData = card;
+            this.preservePackMaterials = preservePackMaterials;
             originalPosition = transform.position;
+            if (originalScale == Vector3.zero)
+                originalScale = transform.localScale;
             UpdateVisuals();
         }
 
-        /// <summary>
-        /// Actualiza los visuales de la carta
-        /// </summary>
+        public void SetInteractable(bool value)
+        {
+            interactable = value;
+            if (cardCollider == null)
+                cardCollider = GetComponentInChildren<Collider>();
+            if (cardCollider != null)
+                cardCollider.enabled = value;
+        }
+
         private void UpdateVisuals()
         {
             if (cardData == null) return;
-
-            // Aquí cargarías el sprite/textura de la carta
-            // Por ahora solo cambiamos el material según el estado
-            UpdateMaterial();
-
-            // TODO: Cargar sprite de la carta según suit y value
-            // Ejemplo: Resources.Load<Sprite>($"Cards/{cardData.suit}_{cardData.value}");
+            if (!preservePackMaterials)
+                UpdateMaterial();
         }
 
-        /// <summary>
-        /// Actualiza el material según el estado
-        /// </summary>
         private void UpdateMaterial()
         {
-            if (cardRenderer == null) return;
+            if (preservePackMaterials || cardRenderer == null) return;
 
             if (isSelected && selectedMaterial != null)
-            {
                 cardRenderer.material = selectedMaterial;
-            }
             else if (isHovered && highlightMaterial != null)
-            {
                 cardRenderer.material = highlightMaterial;
-            }
             else if (defaultMaterial != null)
-            {
                 cardRenderer.material = defaultMaterial;
-            }
         }
 
-        /// <summary>
-        /// Selecciona o deselecciona la carta
-        /// </summary>
         public void SetSelected(bool selected, bool animate = true)
         {
             isSelected = selected;
             UpdateMaterial();
 
-            if (animate)
-            {
-                if (selected)
-                {
-                    AnimateSelect();
-                }
-                else
-                {
-                    AnimateDeselect();
-                }
-            }
+            if (!animate) return;
+
+            if (selected)
+                AnimateSelect();
+            else
+                AnimateDeselect();
         }
 
-        /// <summary>
-        /// Anima la selección de la carta
-        /// </summary>
         private void AnimateSelect()
         {
-            // Elevar la carta
-            Vector3 targetPos = originalPosition + Vector3.up * 0.5f;
+            // Lift toward the player camera, not world +Y (cards are tilted)
+            Vector3 lift = Camera.main != null
+                ? (Camera.main.transform.position - originalPosition).normalized * 0.22f
+                : Vector3.up * 0.2f;
+            Vector3 targetPos = originalPosition + lift;
             LeanTween.move(gameObject, targetPos, 0.2f).setEaseOutBack();
-            
-            // Escalar ligeramente
             LeanTween.scale(gameObject, originalScale * 1.1f, 0.2f).setEaseOutBack();
         }
 
-        /// <summary>
-        /// Anima la deselección de la carta
-        /// </summary>
         private void AnimateDeselect()
         {
             LeanTween.move(gameObject, originalPosition, 0.2f).setEaseInBack();
             LeanTween.scale(gameObject, originalScale, 0.2f).setEaseInBack();
         }
 
-        /// <summary>
-        /// Anima la carta siendo jugada
-        /// </summary>
         public void AnimatePlay(Vector3 targetPosition, System.Action onComplete = null)
         {
             LeanTween.move(gameObject, targetPosition, 0.5f)
                 .setEaseInQuad()
-                .setOnComplete(() =>
-                {
-                    onComplete?.Invoke();
-                });
-
-            // Rotar mientras vuela
+                .setOnComplete(() => onComplete?.Invoke());
             LeanTween.rotateY(gameObject, 360f, 0.5f).setEaseInOutQuad();
         }
 
-        #region Mouse Interactions
-
         private void OnMouseEnter()
         {
-            // Solo permitir hover si es mi turno y la carta está en mi mano
-            if (GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false)
-            {
-                isHovered = true;
-                UpdateMaterial();
-                
-                // Pequeña elevación en hover
-                if (!isSelected)
-                {
-                    LeanTween.moveY(gameObject, originalPosition.y + 0.2f, 0.15f).setEaseOutQuad();
-                }
-            }
+            if (!interactable) return;
+            if (!(GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false))
+                return;
+
+            isHovered = true;
+            UpdateMaterial();
+            if (!isSelected)
+                LeanTween.moveY(gameObject, originalPosition.y + 0.08f, 0.15f).setEaseOutQuad();
         }
 
         private void OnMouseExit()
         {
+            if (!interactable) return;
+
             isHovered = false;
             UpdateMaterial();
-
-            // Volver a posición original si no está seleccionada
             if (!isSelected)
-            {
                 LeanTween.moveY(gameObject, originalPosition.y, 0.15f).setEaseInQuad();
-            }
         }
 
         private void OnMouseDown()
         {
-            // Solo permitir click si es mi turno
-            if (GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false)
-            {
-                ToggleSelection();
-            }
+            if (!interactable) return;
+            if (!(GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false))
+                return;
+
+            ToggleSelection();
         }
 
-        #endregion
-
-        /// <summary>
-        /// Alterna la selección de la carta
-        /// </summary>
         public void ToggleSelection()
         {
-            if (GameManager.Instance == null) return;
+            if (GameManager.Instance == null || cardData == null) return;
 
+            bool wasSelected = GameManager.Instance.IsCardSelected(cardData);
             GameManager.Instance.ToggleCardSelection(cardData);
-            SetSelected(!isSelected);
+
+            bool nowSelected = GameManager.Instance.IsCardSelected(cardData);
+            if (nowSelected != wasSelected)
+                SetSelected(nowSelected);
         }
 
-        /// <summary>
-        /// Actualiza la posición original (usado por HandManager)
-        /// </summary>
         public void UpdateOriginalPosition(Vector3 newPosition)
         {
             originalPosition = newPosition;
-            
             if (!isSelected && !isHovered)
-            {
                 transform.position = originalPosition;
-            }
         }
 
-        /// <summary>
-        /// Destruye la carta con animación
-        /// </summary>
         public void DestroyWithAnimation()
         {
-            LeanTween.scale(gameObject, Vector3.zero, 0.3f)
+            LeanTween.scale(gameObject, Vector3.zero, 0.25f)
                 .setEaseInBack()
                 .setOnComplete(() => Destroy(gameObject));
         }
     }
 }
-

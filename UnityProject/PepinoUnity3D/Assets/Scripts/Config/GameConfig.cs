@@ -33,11 +33,11 @@ namespace PepinoGame.Config
         public float selectedCardScale = 1.2f;
 
         [Header("3D Settings")]
-        [Tooltip("Distancia entre cartas en la mano")]
-        public float cardSpacing = 1.5f;
+        [Tooltip("Distancia entre cartas en la mano (pack scale)")]
+        public float cardSpacing = 0.28f;
         
-        [Tooltip("Radio del arco de la mano")]
-        public float handArcRadius = 8f;
+        [Tooltip("Radio del arco de la mano (pack scale)")]
+        public float handArcRadius = 3.4f;
         
         [Tooltip("Altura de elevación al seleccionar carta")]
         public float selectedCardHeight = 0.5f;

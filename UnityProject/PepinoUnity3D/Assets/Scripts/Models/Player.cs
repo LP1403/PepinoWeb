@@ -1,34 +1,15 @@
-using System.Collections.Generic;
-using Newtonsoft.Json;
-
 namespace PepinoGame.Models
 {
-    /// <summary>
-    /// Representa un jugador en el juego de Pepino
-    /// </summary>
     [System.Serializable]
     public class Player
     {
-        [JsonProperty("connectionId")]
-        public string connectionId;
-        
-        [JsonProperty("name")]
-        public string name;
-        
-        [JsonProperty("cardCount")]
-        public int cardCount;          // Solo la cantidad de cartas (para otros jugadores)
-        
-        [JsonProperty("isConnected")]
-        public bool isConnected;
-        
-        [JsonProperty("isCurrentTurn")]
-        public bool isCurrentTurn;
-        
-        [JsonProperty("isSkipped")]
-        public bool isSkipped;         // Para el efecto "PEPINEADO"
-        
-        [JsonProperty("hasWon")]
-        public bool hasWon;
+        public string connectionId { get; set; }
+        public string name { get; set; }
+        public int cardCount { get; set; }
+        public bool isConnected { get; set; }
+        public bool isCurrentTurn { get; set; }
+        public bool isSkipped { get; set; }
+        public bool hasWon { get; set; }
 
         public Player()
         {
@@ -58,4 +39,3 @@ namespace PepinoGame.Models
         }
     }
 }
-
