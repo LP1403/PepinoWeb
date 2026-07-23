@@ -195,7 +195,7 @@ namespace PepinoGame.Managers
                     }
                     catch (Exception ex)
                     {
-                        LogError($"Error procesando GameStateUpdated: {ex.Message}");
+                        LogError($"Error procesando GameStateUpdated: {ex.Message}\n{ex.StackTrace}");
                     }
                 });
             });
@@ -469,7 +469,7 @@ namespace PepinoGame.Managers
                 }
                 catch (Exception ex)
                 {
-                    LogError($"Error en callback main-thread: {ex.Message}");
+                    LogError($"Error en callback main-thread: {ex.Message}\n{ex.StackTrace}");
                 }
             }
         }

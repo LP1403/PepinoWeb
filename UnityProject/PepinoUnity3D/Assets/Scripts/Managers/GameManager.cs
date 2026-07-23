@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using PepinoGame.Models;
+using PepinoGame.Controllers;
 using PepinoGame.Config;
 
 namespace PepinoGame.Managers
@@ -111,24 +112,21 @@ namespace PepinoGame.Managers
         {
             if (card == null) return;
 
-            var existingCard = selectedCards.FirstOrDefault(c => c.id == card.id);
-            
+            var existingCard = selectedCards.FirstOrDefault(c => SameCard(c, card));
+
             if (existingCard != null)
             {
-                // Deseleccionar
                 selectedCards.Remove(existingCard);
                 Log($"Carta deseleccionada: {card}");
             }
             else
             {
-                // Verificar que todas las cartas seleccionadas tengan el mismo valor
-                if (selectedCards.Count > 0 && selectedCards[0].value != card.value)
+                if (selectedCards.Count > 0 && selectedCards[0] != null && selectedCards[0].value != card.value)
                 {
                     Notify("⚠️ Debes jugar cartas del mismo valor");
                     return;
                 }
 
-                // Seleccionar
                 selectedCards.Add(card);
                 Log($"Carta seleccionada: {card}");
             }
@@ -148,7 +146,17 @@ namespace PepinoGame.Managers
         /// </summary>
         public bool IsCardSelected(Card card)
         {
-            return selectedCards.Any(c => c.id == card.id);
+            if (card == null) return false;
+            return selectedCards.Any(c => SameCard(c, card));
+        }
+
+        private static bool SameCard(Card a, Card b)
+        {
+            if (a == null || b == null) return false;
+            if (ReferenceEquals(a, b)) return true;
+            if (!string.IsNullOrEmpty(a.id) && !string.IsNullOrEmpty(b.id))
+                return a.id == b.id;
+            return false;
         }
 
         /// <summary>
@@ -158,32 +166,54 @@ namespace PepinoGame.Managers
         {
             if (selectedCards.Count == 0)
             {
-                Notify("⚠️ No has seleccionado ninguna carta");
+                Notify("No has seleccionado ninguna carta");
+                return;
+            }
+
+            if (currentGameState == null || NetworkManager.Instance == null)
+            {
+                Notify("Sin conexión / estado");
                 return;
             }
 
             if (!currentGameState.IsMyTurn(NetworkManager.Instance.MyConnectionId))
             {
-                Notify("⚠️ No es tu turno");
+                Notify("No es tu turno");
                 return;
             }
 
-            if (!ValidatePlay(selectedCards))
+            if (string.IsNullOrWhiteSpace(currentRoomId))
             {
-                Notify("⚠️ Jugada inválida");
+                Notify("Sala inválida");
+                return;
+            }
+
+            if (!TryValidatePlay(selectedCards, out string reason))
+            {
+                Notify(string.IsNullOrEmpty(reason) ? "Jugada inválida" : reason);
                 return;
             }
 
             try
             {
-                Log($"Jugando {selectedCards.Count} carta(s)");
-                await NetworkManager.Instance.PlayCards(currentRoomId, new List<Card>(selectedCards));
+                var toPlay = new List<Card>(selectedCards);
+                if (toPlay.Any(c => c == null || string.IsNullOrEmpty(c.id)))
+                {
+                    Notify("Cartas sin id — reconectá / reiniciá la partida");
+                    LogError("PlaySelectedCards: alguna carta seleccionada no tiene id válido");
+                    return;
+                }
+
+                Log($"Jugando {toPlay.Count} carta(s) en sala {currentRoomId}: {string.Join(", ", toPlay)}");
+                await NetworkManager.Instance.PlayCards(currentRoomId, toPlay);
                 ClearCardSelection();
+                if (Object.FindAnyObjectByType<HandManager>() is HandManager hm)
+                    hm.DeselectAllCards();
             }
             catch (System.Exception ex)
             {
-                LogError($"Error al jugar cartas: {ex.Message}");
-                Notify($"❌ Error: {ex.Message}");
+                LogError($"Error al jugar cartas: {ex.Message}\n{ex.StackTrace}");
+                Notify($"Error: {ex.Message}");
             }
         }
 
@@ -192,15 +222,21 @@ namespace PepinoGame.Managers
         /// </summary>
         public async void PassTurn()
         {
+            if (currentGameState == null || NetworkManager.Instance == null)
+            {
+                Notify("Sin conexión / estado");
+                return;
+            }
+
             if (!currentGameState.IsMyTurn(NetworkManager.Instance.MyConnectionId))
             {
-                Notify("⚠️ No es tu turno");
+                Notify("No es tu turno");
                 return;
             }
 
             if (currentGameState.IsFirstPlay())
             {
-                Notify("⚠️ No puedes pasar en la primera jugada");
+                Notify("No podés pasar en la primera jugada");
                 return;
             }
 
@@ -212,56 +248,83 @@ namespace PepinoGame.Managers
             catch (System.Exception ex)
             {
                 LogError($"Error al pasar turno: {ex.Message}");
-                Notify($"❌ Error: {ex.Message}");
+                Notify($"Error: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Valida si una jugada es válida
-        /// </summary>
-        public bool ValidatePlay(List<Card> cards)
-        {
-            if (cards == null || cards.Count == 0) return false;
+        /// <summary>Validación optimista espejo del backend CardService.</summary>
+        public bool ValidatePlay(List<Card> cards) => TryValidatePlay(cards, out _);
 
-            // Verificar que todas las cartas tengan el mismo valor
-            int firstValue = cards[0].value;
-            if (!cards.All(c => c.value == firstValue))
+        public bool TryValidatePlay(List<Card> cards, out string reason)
+        {
+            reason = null;
+            if (cards == null || cards.Count == 0)
             {
-                Log("❌ Validación: No todas las cartas tienen el mismo valor");
+                reason = "Seleccioná al menos una carta";
                 return false;
             }
 
-            // Si es la primera jugada o nueva ronda, cualquier carta es válida
-            if (currentGameState.IsFirstPlay() || currentGameState.isNewRound)
+            if (currentGameState == null)
             {
-                Log("✅ Validación: Primera jugada o nueva ronda - Válida");
+                reason = "Sin estado de juego";
+                return false;
+            }
+
+            int firstValue = cards[0].value;
+            if (!cards.All(c => c != null && c.value == firstValue))
+            {
+                reason = "Todas las cartas deben tener el mismo valor";
+                return false;
+            }
+
+            // Primera jugada de la partida: libre
+            if (currentGameState.IsFirstPlay())
+            {
+                Log("✅ Validación: Primera jugada - Válida");
+                return true;
+            }
+
+            // Vuelta completa: el último que jugó vuelve a tener mano libre
+            if (currentGameState.isNewRound)
+            {
+                Log("✅ Validación: Nueva ronda - Válida (juega libremente)");
                 return true;
             }
 
             var lastPlayed = currentGameState.lastPlayedCards;
-            
-            // Verificar que la cantidad de cartas sea la misma
-            if (lastPlayed != null && lastPlayed.Count != cards.Count)
+            if (lastPlayed == null || lastPlayed.Count == 0)
+                return true;
+
+            if (cards.Count != lastPlayed.Count)
             {
+                reason = $"Debés jugar exactamente {lastPlayed.Count} carta(s)";
                 Log($"❌ Validación: Cantidad incorrecta ({cards.Count} vs {lastPlayed.Count})");
                 return false;
             }
 
-            // Verificar que el valor sea mayor o igual (para PEPINEADO)
-            if (lastPlayed != null && lastPlayed.Count > 0)
+            int lastValue = GetCardComparisonValue(lastPlayed[0]);
+            int currentValue = GetCardComparisonValue(cards[0]);
+
+            if (currentValue < lastValue)
             {
-                int lastValue = GetCardComparisonValue(lastPlayed[0]);
-                int currentValue = GetCardComparisonValue(cards[0]);
-                
-                if (currentValue < lastValue)
-                {
-                    Log($"❌ Validación: Valor insuficiente ({currentValue} < {lastValue})");
-                    return false;
-                }
+                reason = $"Valor insuficiente ({FormatRank(cards[0])} no supera a {FormatRank(lastPlayed[0])})";
+                Log($"❌ Validación: Valor insuficiente ({currentValue} < {lastValue})");
+                return false;
             }
 
             Log("✅ Validación: Jugada válida");
             return true;
+        }
+
+        private static string FormatRank(Card card)
+        {
+            if (card == null) return "?";
+            return card.value switch
+            {
+                1 => "As",
+                2 => "2 (comodín)",
+                _ => card.value.ToString()
+            };
         }
 
         /// <summary>
@@ -269,9 +332,20 @@ namespace PepinoGame.Managers
         /// </summary>
         private int GetCardComparisonValue(Card card)
         {
-            if (card.value == 2) return 0;  // Comodín
+            if (card == null) return 0;
+            if (card.value == 2) return 0;  // Comodín (más bajo en jerarquía de comparación)
             if (card.value == 1) return 13; // As es el más alto
             return card.value;
+        }
+
+        /// <summary>True when it's my turn and the circle came back to me (free play).</summary>
+        public bool IsFreePlayRound()
+        {
+            if (currentGameState == null || NetworkManager.Instance == null) return false;
+            if (!currentGameState.isGameStarted) return false;
+            if (currentGameState.IsFirstPlay()) return false;
+            if (!currentGameState.isNewRound) return false;
+            return currentGameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
         }
 
         #endregion
@@ -289,9 +363,10 @@ namespace PepinoGame.Managers
                 currentRoomId = newState.roomId;
 
             bool roundChanged = lastKnownRoundNumber >= 0 && newState.roundNumber != lastKnownRoundNumber;
-            bool becameNewRound = newState.isNewRound && !lastWasNewRound;
 
-            if (newState.isGameStarted && (roundChanged || becameNewRound))
+            // Only clear table when backend RoundNumber bumps (real new deal),
+            // NOT on isNewRound (that flag means "free play after full circle" — cards stay on table).
+            if (newState.isGameStarted && roundChanged)
                 OnNewRound?.Invoke();
 
             lastKnownRoundNumber = newState.roundNumber;
@@ -300,28 +375,49 @@ namespace PepinoGame.Managers
 
             Log($"Estado actualizado - Sala: {newState.roomId}, Jugadores: {newState.players?.Count ?? 0}, Iniciado: {newState.isGameStarted}");
 
-            OnGameStateChanged?.Invoke(newState);
-            OnHandUpdated?.Invoke(newState.yourHand);
+            SafeInvoke(OnGameStateChanged, newState);
+            if (newState.yourHand != null)
+                SafeInvoke(OnHandUpdated, newState.yourHand);
         }
 
         private void HandleCardsDealt(List<Card> hand)
         {
-            if (currentGameState.yourHand == null)
-                currentGameState.yourHand = new List<Card>();
-            
+            if (hand == null) return;
+
+            if (currentGameState == null)
+                currentGameState = new GameState();
+
             currentGameState.yourHand = hand;
             Log($"Cartas recibidas: {hand.Count}");
-            
-            OnHandUpdated?.Invoke(hand);
+
+            SafeInvoke(OnHandUpdated, hand);
         }
 
         private void HandleCardsPlayed(PlayedCards playedCards)
         {
-            Log($"{playedCards.playerName} jugó {playedCards.cards.Count} carta(s)");
-            
+            if (playedCards == null) return;
+
+            int count = playedCards.cards?.Count ?? 0;
+            Log($"{playedCards.playerName} jugó {count} carta(s)");
+
             if (playedCards.isPepineado)
+                Log($"PEPINEADO por {playedCards.playerName}");
+        }
+
+        private void SafeInvoke<T>(System.Action<T> handlers, T arg)
+        {
+            if (handlers == null) return;
+
+            foreach (System.Delegate d in handlers.GetInvocationList())
             {
-                Notify($"🥒 ¡PEPINEADO! {playedCards.playerName}");
+                try
+                {
+                    ((System.Action<T>)d)?.Invoke(arg);
+                }
+                catch (System.Exception ex)
+                {
+                    LogError($"Listener {d.Method?.DeclaringType?.Name}.{d.Method?.Name} falló: {ex.Message}\n{ex.StackTrace}");
+                }
             }
         }
 
@@ -342,7 +438,8 @@ namespace PepinoGame.Managers
 
         private void HandlePlayerSkipped(string playerName)
         {
-            Notify($"⏭️ {playerName} fue saltado");
+            // Covered by Pepineado overlay when applicable — keep soft log only
+            Log($"Jugador saltado: {playerName}");
         }
 
         private void HandleGameStarted(string roomId)
@@ -361,7 +458,7 @@ namespace PepinoGame.Managers
             if (string.IsNullOrEmpty(currentGameState.roomId))
                 currentGameState.roomId = currentRoomId;
 
-            OnGameStateChanged?.Invoke(currentGameState);
+            SafeInvoke(OnGameStateChanged, currentGameState);
             OnNewRound?.Invoke();
             // Turn banner already communicates start — skip floating spam text
         }
@@ -379,6 +476,13 @@ namespace PepinoGame.Managers
         {
             Log($"[Notificación] {message}");
             OnNotification?.Invoke(message);
+        }
+
+        /// <summary>Short non-blocking hint while selecting an illegal combination.</summary>
+        public void NotifyPlayHint(string message)
+        {
+            if (string.IsNullOrEmpty(message)) return;
+            Notify(message);
         }
 
         private void Log(string message)

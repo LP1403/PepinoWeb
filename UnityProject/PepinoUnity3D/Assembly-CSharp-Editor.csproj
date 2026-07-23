@@ -85,6 +85,7 @@
   <ItemGroup>
     <Compile Include="Assets\LeanTween\Editor\LeanTweenDocumentationEditor.cs" />
     <Compile Include="Assets\Scripts\Editor\PepinoAlphaSceneSetup.cs" />
+    <Compile Include="Assets\Scripts\Editor\PepinoPresentationValidator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

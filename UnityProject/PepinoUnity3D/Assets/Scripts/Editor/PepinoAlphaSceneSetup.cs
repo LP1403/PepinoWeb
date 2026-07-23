@@ -65,7 +65,7 @@ namespace PepinoGame.EditorTools
 
             if (cardTable != null)
             {
-                cardTable.transform.position = Vector3.zero;
+                cardTable.transform.position = new Vector3(0.15f, 0f, 0.35f);
                 cardTable.transform.rotation = Quaternion.identity;
                 cardTable.transform.localScale = Vector3.one;
             }
@@ -90,9 +90,6 @@ namespace PepinoGame.EditorTools
                     so.FindProperty("handContainer").objectReferenceValue = handGo.transform;
                     so.FindProperty("cardPrefab").objectReferenceValue = fallback;
                     so.FindProperty("gameConfig").objectReferenceValue = cfg;
-                    so.FindProperty("cardSpacing").floatValue = 0.28f;
-                    so.FindProperty("arcRadius").floatValue = 1.35f;
-                    so.FindProperty("arcAngle").floatValue = 58f;
                     so.ApplyModifiedPropertiesWithoutUndo();
                 }
             }
@@ -117,11 +114,11 @@ namespace PepinoGame.EditorTools
             {
                 Undo.RecordObject(cam.transform, "Camera alpha");
                 Undo.RecordObject(cam, "Camera alpha props");
-                cam.transform.position = new Vector3(0f, 2.55f, -2.55f);
-                cam.transform.rotation = Quaternion.Euler(44f, 0f, 0f);
+                cam.transform.position = new Vector3(0f, 2.28f, -2.05f);
+                cam.transform.LookAt(new Vector3(0f, 0.9f, 0.18f));
                 cam.fieldOfView = 50f;
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.12f, 0.16f, 0.22f, 1f);
+                cam.backgroundColor = new Color(0.04f, 0.05f, 0.07f, 1f);
             }
 
             if (Object.FindFirstObjectByType<OpponentSeatManager>() == null)
@@ -135,8 +132,9 @@ namespace PepinoGame.EditorTools
             if (light != null)
             {
                 Undo.RecordObject(light.transform, "Light alpha");
-                light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
-                light.intensity = 1.1f;
+                light.transform.rotation = Quaternion.Euler(55f, -25f, 0f);
+                light.intensity = 0.55f;
+                light.color = new Color(1f, 0.92f, 0.8f);
             }
 
             var connectBtn = GameObject.Find("ConnectButton");

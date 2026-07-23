@@ -9,6 +9,7 @@ using TMPro;
 using PepinoGame.Models;
 using PepinoGame.Config;
 using PepinoGame.Managers;
+using PepinoGame.Utils;
 
 namespace PepinoGame.Controllers
 {
@@ -26,16 +27,16 @@ namespace PepinoGame.Controllers
 
         [Header("Settings")]
         [SerializeField] private GameConfig gameConfig;
-        [SerializeField] private Vector3 cardLocalScale = new Vector3(2.85f, 2.85f, 2.85f);
+        [SerializeField] private Vector3 cardLocalScale = new Vector3(0.95f, 0.95f, 0.95f);
 
         [Header("Viewport layout (0-1 screen)")]
-        [SerializeField] private float viewportY = 0.12f;
-        [SerializeField] private float viewportDepth = 0.62f;
-        [SerializeField] private float viewportXMin = 0.06f;
-        [SerializeField] private float viewportXMax = 0.78f; // deja hueco a JUGAR/PASAR
-        [SerializeField] private float stackDepthStep = 0.045f;
-        [SerializeField] private float stackPeekX = 0.014f;
-        [SerializeField] private float stackPeekY = 0.016f;
+        [SerializeField] private float viewportY = 0.05f;
+        [SerializeField] private float viewportDepth = 0.68f;
+        [SerializeField] private float viewportXMin = 0.2f;
+        [SerializeField] private float viewportXMax = 0.8f;
+        [SerializeField] private float stackDepthStep = 0.035f;
+        [SerializeField] private float stackPeekX = 0.01f;
+        [SerializeField] private float stackPeekY = 0.012f;
         [SerializeField] private float scrollSensitivity = 0.08f;
 
         private readonly List<Card3DController> cardControllers = new List<Card3DController>();
@@ -68,6 +69,14 @@ namespace PepinoGame.Controllers
             if (fallbackPrefab != null) cardPrefab = fallbackPrefab;
             if (config != null) gameConfig = config;
             if (handContainer == null) handContainer = transform;
+
+            // Force mockup hand sizing (readable, not covering the whole felt)
+            cardLocalScale = new Vector3(1.05f, 1.05f, 1.05f);
+            viewportY = 0.045f;
+            viewportDepth = 0.72f;
+            viewportXMin = 0.18f;
+            viewportXMax = 0.82f;
+
             EnsureHandOverlayCamera();
         }
 
@@ -201,6 +210,14 @@ namespace PepinoGame.Controllers
                 GameManager.Instance.ToggleCardSelection(group[i].CardData);
                 group[i].SetSelected(true);
             }
+
+            // Soft rule feedback: e.g. double 4 vs double 5 on table
+            if (nextCount > 0
+                && !GameManager.Instance.TryValidatePlay(GameManager.Instance.SelectedCards, out string reason)
+                && !string.IsNullOrEmpty(reason))
+            {
+                GameManager.Instance.NotifyPlayHint(reason);
+            }
         }
 
         private void SyncSelectionVisuals()
@@ -314,6 +331,7 @@ namespace PepinoGame.Controllers
                 controller = cardObj.AddComponent<Card3DController>();
 
             controller.Initialize(cardData, preservePackMaterials: true);
+            PepinoCardSkin.ApplyFaceUp(cardObj, cardData);
             cardControllers.Add(controller);
         }
 
@@ -451,7 +469,7 @@ namespace PepinoGame.Controllers
 
                     var controller = group[i];
                     if (controller.IsSelected)
-                        worldPos += -cam.transform.forward * 0.07f + cam.transform.up * 0.05f;
+                        worldPos += -cam.transform.forward * 0.1f + cam.transform.up * 0.08f;
 
                     var tr = controller.transform;
                     tr.SetParent(null, true);

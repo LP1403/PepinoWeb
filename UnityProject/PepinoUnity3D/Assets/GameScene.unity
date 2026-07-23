@@ -609,6 +609,7 @@ MonoBehaviour:
   tableContainer: {fileID: 1216837702}
   cardStackSpacing: 0.02
   tableCenter: {x: 0, y: 0, z: 0}
+  drawPileOffset: {x: -0.42, y: 0, z: 0.05}
   cardLocalScale: {x: 1.2, y: 1.2, z: 1.2}
 --- !u!4 &490642098
 Transform:
@@ -946,6 +947,7 @@ MonoBehaviour:
   startGameButton: {fileID: 1710992106}
   modeInfoText: {fileID: 1997710638}
   playersInfoText: {fileID: 1724103831}
+  titleText: {fileID: 0}
   selectedColor: {r: 0, g: 1, b: 0, a: 1}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &523651011
@@ -2495,10 +2497,15 @@ MonoBehaviour:
   cardPrefab: {fileID: 5521927078064037696, guid: 91ebca921da88f24887cb0ff8599ec63, type: 3}
   handContainer: {fileID: 574870861}
   gameConfig: {fileID: 11400000, guid: 1c3a31dbccdf72c498d75d1b3a8ca5cb, type: 2}
-  cardSpacing: 0.35
-  arcRadius: 2.5
-  arcAngle: 40
   cardLocalScale: {x: 1.2, y: 1.2, z: 1.2}
+  viewportY: 0.11
+  viewportDepth: 0.58
+  viewportXMin: 0.18
+  viewportXMax: 0.88
+  stackDepthStep: 0.045
+  stackPeekX: 0.014
+  stackPeekY: 0.016
+  scrollSensitivity: 0.08
 --- !u!4 &986346904
 Transform:
   m_ObjectHideFlags: 0
@@ -3538,6 +3545,18 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.55
+      objectReference: {fileID: 0}
+    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -3576,18 +3595,6 @@ PrefabInstance:
     - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 249150925622268775, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 594186936958880221, guid: cf856591953c8ed4bad3e9d863896e12, type: 3}
       propertyPath: m_Name

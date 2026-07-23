@@ -112,16 +112,20 @@ namespace PepinoGame.Controllers
             LeanTween.rotateY(gameObject, 360f, 0.5f).setEaseInOutQuad();
         }
 
+        private bool IsMyTurnNow()
+        {
+            if (GameManager.Instance?.CurrentGameState == null) return false;
+            if (NetworkManager.Instance == null) return false;
+            return GameManager.Instance.CurrentGameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
+        }
+
         private void OnMouseEnter()
         {
             if (!interactable) return;
-            if (!(GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false))
-                return;
+            if (!IsMyTurnNow()) return;
 
-            // Viewport layout owns positions each frame — skip LeanTween hover move
             isHovered = true;
             UpdateMaterial();
-            return;
         }
 
         private void OnMouseExit()
@@ -135,8 +139,7 @@ namespace PepinoGame.Controllers
         private void OnMouseDown()
         {
             if (!interactable) return;
-            if (!(GameManager.Instance?.CurrentGameState?.IsMyTurn(NetworkManager.Instance.MyConnectionId) ?? false))
-                return;
+            if (!IsMyTurnNow()) return;
 
             ToggleSelection();
         }

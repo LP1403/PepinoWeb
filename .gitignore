@@ -72,6 +72,10 @@ UnityProject/PepinoUnity3D/*.apk
 UnityProject/PepinoUnity3D/*.aab
 UnityProject/PepinoUnity3D/*.ipa
 UnityProject/PepinoUnity3D/*.unitypackage
+# Packs de Asset Store: pueden ser >100MB (límite de GitHub). El contenido
+# importado vive en Assets/; el .unitypackage no debe versionarse.
+*.unitypackage
+FPHands.unitypackage
 UnityProject/PepinoUnity3D/crashlytics-build.properties
 
 # Unity Crash Reports

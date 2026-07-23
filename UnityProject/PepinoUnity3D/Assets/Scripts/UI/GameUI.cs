@@ -9,7 +9,7 @@ using PepinoGame.Controllers;
 namespace PepinoGame.UI
 {
     /// <summary>
-    /// Main in-game HUD.
+    /// Main in-game HUD: match sidebar + turn + play/pass.
     /// </summary>
     public class GameUI : MonoBehaviour
     {
@@ -31,6 +31,7 @@ namespace PepinoGame.UI
         private readonly Dictionary<string, GameObject> playerInfoObjects = new Dictionary<string, GameObject>();
         private bool gameManagerBound;
         private bool networkBound;
+        private bool lastStarted;
 
         private void OnEnable()
         {
@@ -55,7 +56,26 @@ namespace PepinoGame.UI
             if (pepineadoEffectPanel != null)
                 pepineadoEffectPanel.SetActive(false);
 
-            // GamePanel often has a full-screen Image that blocks 3D clicks
+            DisableFullScreenRaycasts();
+            EnsurePlayersInfoText();
+
+            bool started = GameManager.Instance?.CurrentGameState?.isGameStarted ?? false;
+            GameHudPresenter.Apply(
+                roomInfoText,
+                turnInfoText,
+                notificationText,
+                playersInfoText,
+                playCardsButton,
+                passTurnButton,
+                started);
+            lastStarted = started;
+
+            BindEvents();
+            ApplyCurrentState();
+        }
+
+        private void DisableFullScreenRaycasts()
+        {
             var panelImage = GetComponent<Image>();
             if (panelImage != null)
             {
@@ -63,7 +83,6 @@ namespace PepinoGame.UI
                 panelImage.raycastTarget = false;
             }
 
-            // Cualquier Image full-screen hija también
             foreach (var img in GetComponentsInChildren<Image>(true))
             {
                 if (img == null) continue;
@@ -74,21 +93,6 @@ namespace PepinoGame.UI
                 if (fullBleed && img.color.a < 0.05f)
                     img.raycastTarget = false;
             }
-
-            EnsurePlayersInfoText();
-            GameHudPresenter.Apply(
-                roomInfoText,
-                turnInfoText,
-                notificationText,
-                playCardsButton,
-                passTurnButton);
-
-            // Hide legacy left-side player dump — seats are 3D around the table now
-            if (playersInfoText != null && gameObject.activeInHierarchy)
-                playersInfoText.gameObject.SetActive(false);
-
-            BindEvents();
-            ApplyCurrentState();
         }
 
         private void BindEvents()
@@ -133,7 +137,6 @@ namespace PepinoGame.UI
         {
             if (playersInfoText != null) return;
 
-            // Reuse existing PlayersInfoText in scene if present
             var existing = GameObject.Find("PlayersInfoText");
             if (existing != null)
             {
@@ -146,17 +149,7 @@ namespace PepinoGame.UI
 
             var go = new GameObject("PlayersInfoText", typeof(RectTransform));
             go.transform.SetParent(canvas.transform, false);
-            var rect = go.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0f, 0.5f);
-            rect.anchorMax = new Vector2(0f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.anchoredPosition = new Vector2(24f, 40f);
-            rect.sizeDelta = new Vector2(280f, 220f);
-
             playersInfoText = go.AddComponent<TextMeshProUGUI>();
-            playersInfoText.fontSize = 18;
-            playersInfoText.color = Color.white;
-            playersInfoText.alignment = TextAlignmentOptions.TopLeft;
             playersInfoText.text = "Jugadores:";
         }
 
@@ -168,25 +161,72 @@ namespace PepinoGame.UI
 
         private void OnGameStateChanged(GameState gameState)
         {
-            UpdateRoomInfo(gameState);
-            UpdateTurnInfo(gameState);
-            UpdatePlayersList(gameState);
-            UpdateButtonsState(gameState);
+            if (gameState == null) return;
+
+            try
+            {
+                bool started = gameState.isGameStarted;
+                // Always re-apply HUD layout while in-game so runtime fixes stick after hot reload
+                GameHudPresenter.Apply(
+                    roomInfoText,
+                    turnInfoText,
+                    notificationText,
+                    playersInfoText,
+                    playCardsButton,
+                    passTurnButton,
+                    started);
+                lastStarted = started;
+
+                UpdateRoomInfo(gameState);
+                UpdateTurnInfo(gameState);
+                UpdateMatchPlayersSidebar(gameState);
+                UpdateButtonsState(gameState);
+                SyncTableFromState(gameState);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[GameUI] OnGameStateChanged: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// Keep discard pile in sync with server lastPlayedCards (authoritative).
+        /// Avoids empty table when OnNewRound falsely cleared or CardsPlayed was missed.
+        /// </summary>
+        private void SyncTableFromState(GameState gameState)
+        {
+            if (tableManager == null || gameState == null || !gameState.isGameStarted)
+                return;
+
+            tableManager.SyncDiscardPile(gameState.lastPlayedCards);
         }
 
         private void OnHandUpdated(List<Card> hand)
         {
-            if (handManager != null)
-                handManager.UpdateHand(hand);
+            try
+            {
+                if (handManager != null)
+                    handManager.UpdateHand(hand);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[GameUI] OnHandUpdated: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         private void OnCardsPlayed(PlayedCards playedCards)
         {
-            if (tableManager != null)
-                tableManager.AddCardsToTable(playedCards.cards, playedCards.playerName);
+            if (playedCards == null) return;
 
-            if (playedCards.isPepineado)
-                ShowPepineadoEffect(playedCards.playerName);
+            try
+            {
+                if (playedCards.isPepineado)
+                    ShowPepineadoEffect(playedCards.playerName, playedCards.playerId);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[GameUI] OnCardsPlayed: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         private void OnPlayerWon(string playerName)
@@ -201,7 +241,7 @@ namespace PepinoGame.UI
 
         private void UpdateRoomInfo(GameState gameState)
         {
-            if (roomInfoText == null) return;
+            if (roomInfoText == null || gameState == null || !gameState.isGameStarted) return;
 
             string roomId = gameState.roomId;
             if (string.IsNullOrEmpty(roomId))
@@ -209,8 +249,7 @@ namespace PepinoGame.UI
             if (string.IsNullOrEmpty(roomId))
                 roomId = "???";
 
-            int playerCount = gameState.players?.Count ?? 0;
-            roomInfoText.text = $"Sala: {roomId} | Jugadores: {playerCount}";
+            roomInfoText.text = $"PARTIDA EN CURSO\nSala {roomId}";
         }
 
         private void UpdateTurnInfo(GameState gameState)
@@ -219,32 +258,42 @@ namespace PepinoGame.UI
 
             if (!gameState.isGameStarted)
             {
-                // El lobby (GameModeSelector) ya muestra el estado; no duplicar banner
-                turnInfoText.text = "";
+                turnInfoText.gameObject.SetActive(false);
                 return;
             }
 
             var currentPlayer = gameState.GetCurrentPlayer();
-            bool isMyTurn = gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
+            bool isMyTurn = NetworkManager.Instance != null
+                && gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
+            bool freePlay = GameManager.Instance != null && GameManager.Instance.IsFreePlayRound();
 
-            if (currentPlayer != null)
-            {
-                turnInfoText.text = isMyTurn
-                    ? "¡TU TURNO!"
-                    : $"Turno: {currentPlayer.name}";
-                turnInfoText.color = isMyTurn
-                    ? new Color(1f, 0.85f, 0.2f)
-                    : new Color(0.95f, 0.95f, 0.95f);
-            }
+            string message;
+            if (currentPlayer == null)
+                message = "Esperando…";
+            else if (isMyTurn && freePlay)
+                message = "NUEVA RONDA\nJuega libremente";
+            else if (isMyTurn)
+                message = "ES TU TURNO";
             else
-            {
-                turnInfoText.text = "Esperando...";
-            }
+                message = $"Turno de {currentPlayer.name}";
+
+            GameHudPresenter.SetTurnBannerState(turnInfoText, isMyTurn, message, freePlay);
         }
 
-        private void UpdatePlayersList(GameState gameState)
+        private void UpdateMatchPlayersSidebar(GameState gameState)
         {
-            // Opponent visuals live in OpponentSeatManager (3D seats). Keep prefab list path if wired.
+            if (playersInfoText == null) return;
+
+            if (!gameState.isGameStarted)
+            {
+                playersInfoText.gameObject.SetActive(false);
+                return;
+            }
+
+            playersInfoText.gameObject.SetActive(true);
+            string myId = NetworkManager.Instance?.MyConnectionId;
+            playersInfoText.text = GameHudPresenter.BuildPlayersSidebar(gameState, myId);
+
             if (playersListContainer == null || playerInfoPrefab == null) return;
 
             foreach (var obj in playerInfoObjects.Values)
@@ -256,22 +305,20 @@ namespace PepinoGame.UI
 
             if (gameState.players == null) return;
 
-            foreach (var player in gameState.players)
+            for (int i = 0; i < gameState.players.Count; i++)
             {
+                var player = gameState.players[i];
+                if (player == null) continue;
+
                 GameObject infoObj = Instantiate(playerInfoPrefab, playersListContainer);
                 TextMeshProUGUI infoText = infoObj.GetComponentInChildren<TextMeshProUGUI>();
-
                 if (infoText != null)
-                {
-                    string status = "";
-                    if (player.hasWon) status = "[GANO] ";
-                    else if (player.isCurrentTurn) status = "> ";
-                    else if (player.isSkipped) status = "[SKIP] ";
+                    infoText.text = $"{player.name} ({player.cardCount})";
 
-                    infoText.text = $"{status}{player.name} ({player.cardCount})";
-                }
-
-                playerInfoObjects[player.connectionId] = infoObj;
+                string key = !string.IsNullOrEmpty(player.connectionId)
+                    ? player.connectionId
+                    : $"p{i}";
+                playerInfoObjects[key] = infoObj;
             }
         }
 
@@ -279,27 +326,39 @@ namespace PepinoGame.UI
         {
             bool started = gameState != null && gameState.isGameStarted;
 
-            // En lobby no se muestran JUGAR / PASAR
             if (playCardsButton != null)
                 playCardsButton.gameObject.SetActive(started);
             if (passTurnButton != null)
                 passTurnButton.gameObject.SetActive(started);
 
             if (!started) return;
+            if (NetworkManager.Instance == null || GameManager.Instance == null) return;
 
             bool isMyTurn = gameState.IsMyTurn(NetworkManager.Instance.MyConnectionId);
-            bool hasSelectedCards = GameManager.Instance.SelectedCards.Count > 0;
-            bool isFirstPlay = gameState.IsFirstPlay() || gameState.isNewRound;
+            var selected = GameManager.Instance.SelectedCards;
+            bool hasSelectedCards = selected != null && selected.Count > 0;
+            bool playLegal = hasSelectedCards && GameManager.Instance.ValidatePlay(selected);
+            bool canPass = isMyTurn && !gameState.IsFirstPlay();
 
             if (playCardsButton != null)
-                playCardsButton.interactable = isMyTurn && hasSelectedCards;
+                playCardsButton.interactable = isMyTurn && playLegal;
 
             if (passTurnButton != null)
-                passTurnButton.interactable = isMyTurn && !isFirstPlay;
+                passTurnButton.interactable = canPass;
         }
 
         private void OnPlayCardsClicked()
         {
+            if (GameManager.Instance == null) return;
+
+            var selected = GameManager.Instance.SelectedCards;
+            if (selected != null && selected.Count > 0
+                && !GameManager.Instance.TryValidatePlay(selected, out string reason)
+                && !string.IsNullOrEmpty(reason))
+            {
+                ShowNotification(reason, 2.5f);
+            }
+
             GameManager.Instance.PlaySelectedCards();
         }
 
@@ -308,25 +367,37 @@ namespace PepinoGame.UI
             GameManager.Instance.PassTurn();
         }
 
-        private void ShowPepineadoEffect(string playerName)
+        private void ShowPepineadoEffect(string playerName, string playerId = null)
         {
-            if (pepineadoEffectPanel == null) return;
+            string myId = NetworkManager.Instance?.MyConnectionId;
+            if (string.IsNullOrEmpty(playerId))
+            {
+                var state = GameManager.Instance?.CurrentGameState;
+                if (state?.players != null)
+                {
+                    foreach (var p in state.players)
+                    {
+                        if (p != null && p.name == playerName)
+                        {
+                            playerId = p.connectionId;
+                            break;
+                        }
+                    }
+                }
+            }
 
-            pepineadoEffectPanel.SetActive(true);
-
-            var effectText = pepineadoEffectPanel.GetComponentInChildren<TextMeshProUGUI>();
-            if (effectText != null)
-                effectText.text = $"¡PEPINEADO!\n{playerName}";
+            PepineadoOverlay.Show(playerName, myId, playerId);
 
             if (tableManager != null)
                 tableManager.ShowPepineadoEffect();
 
-            CancelInvoke(nameof(HidePepineadoEffect));
-            Invoke(nameof(HidePepineadoEffect), 3f);
+            if (pepineadoEffectPanel != null)
+                pepineadoEffectPanel.SetActive(false);
         }
 
         private void HidePepineadoEffect()
         {
+            PepineadoOverlay.Hide();
             if (pepineadoEffectPanel != null)
                 pepineadoEffectPanel.SetActive(false);
         }
@@ -376,11 +447,6 @@ namespace PepinoGame.UI
                 NetworkManager.Instance.OnPlayerWon -= OnPlayerWon;
                 networkBound = false;
             }
-        }
-
-        private void OnDisable()
-        {
-            // Keep subscriptions while GamePanel toggles; OnDestroy cleans up
         }
     }
 }

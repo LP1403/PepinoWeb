@@ -1,4 +1,3 @@
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -8,7 +7,7 @@ using PepinoGame.Models;
 namespace PepinoGame.UI
 {
     /// <summary>
-    /// Lobby de sala antes de iniciar: lista de jugadores, mazos e Iniciar (≥2 jugadores).
+    /// Left sidebar lobby before start: players, decks, start (≥2), copy room code.
     /// </summary>
     public class GameModeSelectorUI : MonoBehaviour
     {
@@ -26,12 +25,17 @@ namespace PepinoGame.UI
 
         [Header("Colors")]
         [SerializeField] private Color selectedColor = new Color(0.25f, 0.85f, 0.45f, 1f);
-        [SerializeField] private Color normalColor = Color.white;
+        [SerializeField] private Color normalColor = new Color(0.85f, 0.87f, 0.9f, 1f);
 
         private int selectedDeckCount;
         private bool isRoomCreator;
         private bool layoutApplied;
         private TextMeshProUGUI waitingHintText;
+        private TextMeshProUGUI statusText;
+        private TextMeshProUGUI roomCodeText;
+        private Button copyRoomButton;
+        private RectTransform lobbyPlayerList;
+        private string lastRoomId = "";
 
         private void OnEnable()
         {
@@ -62,10 +66,14 @@ namespace PepinoGame.UI
 
         private void Start()
         {
-            EnsureTitleText();
-            EnsureWaitingHint();
+            EnsureExtraUi();
             ApplyLayout();
+            WireButtons();
+            UpdateUI(GameManager.Instance?.CurrentGameState);
+        }
 
+        private void WireButtons()
+        {
             if (deck1Button != null)
                 deck1Button.onClick.AddListener(() => SelectDeckCount(1));
             if (deck2Button != null)
@@ -79,69 +87,109 @@ namespace PepinoGame.UI
                 LobbyPanelPresenter.StyleStartButton(startGameButton, false);
             }
 
-            UpdateUI(GameManager.Instance?.CurrentGameState);
+            if (copyRoomButton != null)
+                copyRoomButton.onClick.AddListener(OnCopyRoomClicked);
+
+            RelabelDeck(deck1Button, "1 Mazo · 40 cartas");
+            RelabelDeck(deck2Button, "2 Mazos · 80 cartas");
+            RelabelDeck(deck3Button, "3 Mazos · 120 cartas");
         }
 
-        private void EnsureTitleText()
+        private static void RelabelDeck(Button button, string label)
         {
-            if (titleText != null) return;
-
-            var existing = transform.Find("LobbyTitle");
-            if (existing != null)
-            {
-                titleText = existing.GetComponent<TextMeshProUGUI>();
-                if (titleText != null) return;
-            }
-
-            var parent = selectorPanel != null ? selectorPanel.transform : transform;
-            var go = new GameObject("LobbyTitle", typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            go.transform.SetAsFirstSibling();
-            titleText = go.AddComponent<TextMeshProUGUI>();
-            titleText.text = "Lobby";
+            if (button == null) return;
+            var tmp = button.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmp != null) tmp.text = label;
         }
 
-        private void EnsureWaitingHint()
+        private void EnsureExtraUi()
         {
-            if (waitingHintText != null) return;
-
             var parent = selectorPanel != null ? selectorPanel.transform : transform;
-            var existing = parent.Find("WaitingHint");
-            if (existing != null)
+
+            if (titleText == null)
+                titleText = FindOrCreateTmp(parent, "LobbyTitle", "LOBBY");
+
+            statusText = FindOrCreateTmp(parent, "LobbyStatus", "Esperando jugadores…");
+            roomCodeText = FindOrCreateTmp(parent, "LobbyRoomCode", "Sala: ---");
+            waitingHintText = FindOrCreateTmp(parent, "WaitingHint", "");
+
+            // Own list — never share GameUI.playersInfoText (HUD hides it in lobby)
+            lobbyPlayerList = LobbyPlayerCards.EnsureContainer(parent);
+            if (playersInfoText != null)
+                playersInfoText.gameObject.SetActive(false);
+
+            if (copyRoomButton == null)
             {
-                waitingHintText = existing.GetComponent<TextMeshProUGUI>();
-                if (waitingHintText != null) return;
+                var existing = parent.Find("CopyRoomButton");
+                if (existing != null)
+                    copyRoomButton = existing.GetComponent<Button>();
             }
 
-            var go = new GameObject("WaitingHint", typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            waitingHintText = go.AddComponent<TextMeshProUGUI>();
-            waitingHintText.fontSize = 16;
-            waitingHintText.color = new Color(0.85f, 0.75f, 0.35f, 1f);
-            waitingHintText.alignment = TextAlignmentOptions.Center;
+            if (copyRoomButton == null)
+            {
+                var go = new GameObject("CopyRoomButton", typeof(RectTransform), typeof(Image), typeof(Button));
+                go.transform.SetParent(parent, false);
+                var label = new GameObject("Text", typeof(RectTransform));
+                label.transform.SetParent(go.transform, false);
+                var tmp = label.AddComponent<TextMeshProUGUI>();
+                tmp.text = "COPIAR";
+                StretchFull(label.GetComponent<RectTransform>());
+                copyRoomButton = go.GetComponent<Button>();
+            }
+        }
 
-            var rect = waitingHintText.rectTransform;
-            rect.anchorMin = new Vector2(0f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = new Vector2(0f, 100f);
-            rect.sizeDelta = new Vector2(-32f, 36f);
+        private static TextMeshProUGUI FindOrCreateTmp(Transform parent, string name, string initial)
+        {
+            var existing = parent.Find(name);
+            if (existing != null)
+            {
+                var t = existing.GetComponent<TextMeshProUGUI>();
+                if (t != null) return t;
+            }
+
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.text = initial;
+            return tmp;
+        }
+
+        private static void StretchFull(RectTransform rect)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
         }
 
         private void ApplyLayout()
         {
-            if (layoutApplied) return;
             var root = selectorPanel != null ? selectorPanel : gameObject;
             LobbyPanelPresenter.Apply(
                 root,
                 titleText,
-                playersInfoText,
+                statusText,
+                roomCodeText,
+                null, // playersInfoText replaced by LobbyPlayerList cards
                 modeInfoText,
+                copyRoomButton,
                 deck1Button,
                 deck2Button,
                 deck3Button,
-                startGameButton);
+                startGameButton,
+                waitingHintText);
+
+            if (lobbyPlayerList != null)
+                LobbyPlayerCards.Place(lobbyPlayerList);
+
             layoutApplied = true;
+        }
+
+        private void OnCopyRoomClicked()
+        {
+            if (string.IsNullOrEmpty(lastRoomId)) return;
+            GUIUtility.systemCopyBuffer = lastRoomId;
+            SetHint("Código copiado");
         }
 
         private async void SelectDeckCount(int deckCount)
@@ -217,19 +265,14 @@ namespace PepinoGame.UI
             }
         }
 
-        private void OnGameStarted(string roomId)
-        {
-            SetSelectorVisible(false);
-        }
+        private void OnGameStarted(string roomId) => SetSelectorVisible(false);
 
-        private void OnGameStateChanged(GameState newState)
-        {
-            UpdateUI(newState);
-        }
+        private void OnGameStateChanged(GameState newState) => UpdateUI(newState);
 
         private void UpdateUI(GameState gameState)
         {
-            ApplyLayout();
+            if (!layoutApplied)
+                ApplyLayout();
 
             if (gameState == null)
             {
@@ -245,9 +288,24 @@ namespace PepinoGame.UI
             string roomId = gameState.roomId;
             if (string.IsNullOrEmpty(roomId))
                 roomId = GameManager.Instance?.CurrentRoomId ?? "???";
+            lastRoomId = roomId;
 
             if (titleText != null)
-                titleText.text = $"Lobby · {roomId}";
+                titleText.text = "LOBBY";
+
+            if (roomCodeText != null)
+                roomCodeText.text = $"Partida privada · {roomId}";
+
+            int count = gameState.players?.Count ?? 0;
+            if (statusText != null)
+            {
+                statusText.text = count >= MinPlayersToStart
+                    ? $"Listos · {count} / 8"
+                    : $"Esperando jugadores… {count} / 8";
+                statusText.color = count >= MinPlayersToStart
+                    ? new Color(0.35f, 0.85f, 0.45f, 1f)
+                    : new Color(0.9f, 0.78f, 0.35f, 1f);
+            }
 
             UpdatePlayersList(gameState);
             UpdateCreatorControls(gameState);
@@ -296,11 +354,11 @@ namespace PepinoGame.UI
             if (!isRoomCreator) return;
 
             if (playerCount < MinPlayersToStart)
-                SetHint($"Esperando jugadores… ({playerCount}/{MinPlayersToStart} mínimo)");
+                SetHint($"Mínimo {MinPlayersToStart} jugadores ({playerCount}/{MinPlayersToStart})");
             else if (selectedDeckCount == 0)
-                SetHint("Elegí 1, 2 o 3 mazos para la partida");
+                SetHint("Elegí 1, 2 o 3 mazos");
             else
-                SetHint("Listo — podés iniciar la partida");
+                SetHint("Listo — podés iniciar");
         }
 
         private void SetHint(string message)
@@ -328,36 +386,15 @@ namespace PepinoGame.UI
 
         private void UpdatePlayersList(GameState gameState)
         {
-            if (playersInfoText == null) return;
+            if (lobbyPlayerList == null)
+            {
+                var parent = selectorPanel != null ? selectorPanel.transform : transform;
+                lobbyPlayerList = LobbyPlayerCards.EnsureContainer(parent);
+                LobbyPlayerCards.Place(lobbyPlayerList);
+            }
 
-            var players = gameState.players;
-            int count = players?.Count ?? 0;
             string myId = NetworkManager.Instance?.MyConnectionId;
-
-            var sb = new StringBuilder();
-            sb.AppendLine($"<b>Jugadores ({count}/8)</b>");
-
-            if (count == 0)
-            {
-                sb.AppendLine("Nadie en la sala todavía");
-                playersInfoText.text = sb.ToString();
-                return;
-            }
-
-            for (int i = 0; i < players.Count; i++)
-            {
-                var p = players[i];
-                bool isMe = !string.IsNullOrEmpty(myId) && p.connectionId == myId;
-                bool isHost = i == 0; // orden de ingreso: el primero creó la sala
-
-                string tags = "";
-                if (isHost) tags += " · anfitrión";
-                if (isMe) tags += " · vos";
-
-                sb.AppendLine($"{i + 1}. {p.name}{tags}");
-            }
-
-            playersInfoText.text = sb.ToString().TrimEnd();
+            LobbyPlayerCards.Rebuild(lobbyPlayerList, gameState?.players, myId);
         }
 
         private void UpdateModeInfo(GameMode mode)
@@ -371,8 +408,8 @@ namespace PepinoGame.UI
                 : Mathf.FloorToInt((mode.deckCount * 40f) / playerCount);
 
             modeInfoText.text =
-                $"{mode.deckCount} mazo{(mode.deckCount > 1 ? "s" : "")} · " +
-                $"{mode.deckCount * 40} cartas · ~{cardsPerPlayer} por jugador";
+                $"Ajustes: {mode.deckCount} mazo{(mode.deckCount > 1 ? "s" : "")} · " +
+                $"~{cardsPerPlayer} cartas/jugador";
         }
 
         private void UpdateModeInfoFromSelection()
@@ -382,7 +419,7 @@ namespace PepinoGame.UI
             if (selectedDeckCount <= 0)
             {
                 if (isRoomCreator)
-                    modeInfoText.text = "Seleccioná cantidad de mazos";
+                    modeInfoText.text = "Ajustes de partida — elegí mazos";
                 return;
             }
 
@@ -390,8 +427,8 @@ namespace PepinoGame.UI
             if (playerCount < 1) playerCount = 1;
             int cardsPerPlayer = Mathf.FloorToInt((selectedDeckCount * 40f) / playerCount);
             modeInfoText.text =
-                $"{selectedDeckCount} mazo{(selectedDeckCount > 1 ? "s" : "")} · " +
-                $"{selectedDeckCount * 40} cartas · ~{cardsPerPlayer} por jugador";
+                $"Ajustes: {selectedDeckCount} mazo{(selectedDeckCount > 1 ? "s" : "")} · " +
+                $"~{cardsPerPlayer} cartas/jugador";
         }
 
         private void UpdateDeckButtonsVisuals()
@@ -409,6 +446,10 @@ namespace PepinoGame.UI
             colors.highlightedColor = isSelected ? selectedColor : normalColor;
             colors.selectedColor = selectedColor;
             button.colors = colors;
+
+            var img = button.GetComponent<Image>();
+            if (img != null)
+                img.color = isSelected ? selectedColor : normalColor;
         }
 
         private void OnDestroy()
@@ -417,6 +458,7 @@ namespace PepinoGame.UI
             if (deck2Button != null) deck2Button.onClick.RemoveAllListeners();
             if (deck3Button != null) deck3Button.onClick.RemoveAllListeners();
             if (startGameButton != null) startGameButton.onClick.RemoveListener(OnStartGameClicked);
+            if (copyRoomButton != null) copyRoomButton.onClick.RemoveListener(OnCopyRoomClicked);
 
             if (GameManager.Instance != null)
                 GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
