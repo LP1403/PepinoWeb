@@ -63,11 +63,12 @@ namespace PepinoGame.Controllers
                 cardCollider.enabled = value;
         }
 
-        /// <summary>Soft mint rim when this card can legally answer the table (your turn).</summary>
+        /// <summary>Subtle warm rim when this card can legally answer the table (your turn).</summary>
         public void SetPlayAssist(bool enabled)
         {
             playAssist = enabled;
             EnsureAssistOutline();
+            ApplyAssistStyle();
             if (assistOutline != null)
                 assistOutline.SetActive(playAssist);
         }
@@ -87,41 +88,62 @@ namespace PepinoGame.Controllers
             lr.useWorldSpace = false;
             lr.loop = true;
             lr.positionCount = 4;
-            lr.numCornerVertices = 4;
+            lr.numCornerVertices = 6;
             lr.numCapVertices = 2;
             lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             lr.receiveShadows = false;
             lr.sortingOrder = 20;
+            lr.textureMode = LineTextureMode.Stretch;
+            lr.alignment = LineAlignment.View;
 
-            float halfW = 0.33f;
-            float halfH = 0.48f;
             if (cardRenderer == null)
                 cardRenderer = GetComponentInChildren<MeshRenderer>();
+
+            // Tight to card face — barely outside the edge
+            float halfW = 0.30f;
+            float halfH = 0.44f;
             if (cardRenderer != null)
             {
                 var b = cardRenderer.localBounds;
-                halfW = Mathf.Max(0.12f, b.extents.x * 1.08f);
-                halfH = Mathf.Max(0.18f, b.extents.y * 1.08f);
+                halfW = Mathf.Max(0.1f, b.extents.x * 1.02f);
+                halfH = Mathf.Max(0.15f, b.extents.y * 1.02f);
             }
 
-            lr.SetPosition(0, new Vector3(-halfW, -halfH, -0.02f));
-            lr.SetPosition(1, new Vector3(-halfW, halfH, -0.02f));
-            lr.SetPosition(2, new Vector3(halfW, halfH, -0.02f));
-            lr.SetPosition(3, new Vector3(halfW, -halfH, -0.02f));
+            lr.SetPosition(0, new Vector3(-halfW, -halfH, -0.015f));
+            lr.SetPosition(1, new Vector3(-halfW, halfH, -0.015f));
+            lr.SetPosition(2, new Vector3(halfW, halfH, -0.015f));
+            lr.SetPosition(3, new Vector3(halfW, -halfH, -0.015f));
 
             var shader = Shader.Find("Universal Render Pipeline/Unlit")
-                         ?? Shader.Find("Unlit/Color")
-                         ?? Shader.Find("Sprites/Default");
-            var mat = new Material(shader);
-            Color assist = new Color(0.35f, 0.95f, 0.55f, 1f);
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", assist);
-            if (mat.HasProperty("_Color")) mat.color = assist;
-            lr.sharedMaterial = mat;
-            lr.startColor = assist;
-            lr.endColor = assist;
-            lr.startWidth = 0.022f;
-            lr.endWidth = 0.022f;
+                         ?? Shader.Find("Sprites/Default")
+                         ?? Shader.Find("Unlit/Color");
+            lr.sharedMaterial = new Material(shader);
+            ApplyAssistStyle();
             assistOutline.SetActive(false);
+        }
+
+        private void ApplyAssistStyle()
+        {
+            if (assistOutline == null) return;
+            var lr = assistOutline.GetComponent<LineRenderer>();
+            if (lr == null) return;
+
+            // Soft champagne / warm gold — common in card UIs (not neon)
+            Color rim = new Color(0.92f, 0.78f, 0.42f, 0.55f);
+            if (lr.sharedMaterial != null)
+            {
+                if (lr.sharedMaterial.HasProperty("_BaseColor"))
+                    lr.sharedMaterial.SetColor("_BaseColor", rim);
+                if (lr.sharedMaterial.HasProperty("_Color"))
+                    lr.sharedMaterial.color = rim;
+            }
+
+            lr.startColor = rim;
+            lr.endColor = rim;
+            // Hairline in world space — reads as a thin elegant edge on hand cards
+            lr.startWidth = 0.0045f;
+            lr.endWidth = 0.0045f;
+            lr.widthMultiplier = 1f;
         }
 
         private void UpdateVisuals()

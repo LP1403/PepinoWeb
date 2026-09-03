@@ -49,7 +49,7 @@ namespace PepinoGame.Controllers
             if (tableContainer == null) tableContainer = transform;
             this.tableCenter = tableCenter;
             this.drawPileOffset = drawPileOffset;
-            tableCardLongEdge = 0.22f;
+            tableCardLongEdge = 0.28f;
 
             ClearPlayedCards();
             ClearDecorativeDeck();

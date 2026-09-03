@@ -31,7 +31,7 @@ namespace PepinoGame.UI
             StyleMatchSidebar(roomInfoText, playersInfoText, gameStarted);
             StyleTurnBanner(turnInfoText);
             StyleNotification(notificationText);
-            StyleActionButton(playCardsButton, "JUGAR CARTA", PlayGreen, Cream);
+            StyleActionButton(playCardsButton, "JUGAR", PlayGreen, Cream);
             StyleActionButton(passTurnButton, "PASAR", PassLight, DarkText);
             LayoutActionButtons(playCardsButton, passTurnButton);
         }
@@ -271,21 +271,33 @@ namespace PepinoGame.UI
 
         private static void LayoutActionButtons(Button play, Button pass)
         {
-            // Above the raised hand band, below table mid — don't cover discard
-            PlaceCentered(play, new Vector2(-120f, 290f), new Vector2(200f, 52f));
-            PlaceCentered(pass, new Vector2(120f, 290f), new Vector2(170f, 52f));
+            // Flank the hand — clear of card tops (hand band ~bottom 0–0.35 of screen)
+            PlaceFlanking(play, left: true, yFromBottom: 168f, size: new Vector2(148f, 50f));
+            PlaceFlanking(pass, left: false, yFromBottom: 168f, size: new Vector2(148f, 50f));
         }
 
-        private static void PlaceCentered(Button button, Vector2 anchoredPos, Vector2 size)
+        private static void PlaceFlanking(Button button, bool left, float yFromBottom, Vector2 size)
         {
             if (button == null) return;
             var rect = button.GetComponent<RectTransform>();
             if (rect == null) return;
 
-            rect.anchorMin = new Vector2(0.5f, 0f);
-            rect.anchorMax = new Vector2(0.5f, 0f);
-            rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = anchoredPos;
+            // Bottom-left / bottom-right corners of the canvas safe area
+            if (left)
+            {
+                rect.anchorMin = new Vector2(0f, 0f);
+                rect.anchorMax = new Vector2(0f, 0f);
+                rect.pivot = new Vector2(0f, 0f);
+                rect.anchoredPosition = new Vector2(28f, yFromBottom);
+            }
+            else
+            {
+                rect.anchorMin = new Vector2(1f, 0f);
+                rect.anchorMax = new Vector2(1f, 0f);
+                rect.pivot = new Vector2(1f, 0f);
+                rect.anchoredPosition = new Vector2(-28f, yFromBottom);
+            }
+
             rect.sizeDelta = size;
         }
     }

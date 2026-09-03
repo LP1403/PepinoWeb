@@ -44,8 +44,8 @@ namespace PepinoGame.Controllers
             this.seatHeight = seatHeight;
             // Always use readable world sizes (ignore stale serialized inspector values)
             // Mockup: rival backs smaller than local hand, overlapping fan
-            cardWidth = 0.26f;
-            cardHeight = 0.38f;
+            cardWidth = 0.30f;
+            cardHeight = 0.44f;
             cardThickness = 0.01f;
             _ = cardScale;
         }
@@ -224,11 +224,11 @@ namespace PepinoGame.Controllers
             view.towardCenter = -new Vector3(Mathf.Sin(rad), 0f, Mathf.Cos(rad));
             view.tangent = new Vector3(Mathf.Cos(rad), 0f, -Mathf.Sin(rad));
 
-            // Toward table center so the fan sits mid-upper screen (not off the far rim / outside mesh)
+            // Closer to camera / table center so rivals aren't tiny on the far rim
             view.seatPos = new Vector3(
                 Mathf.Sin(rad) * tableRadius,
                 seatHeight,
-                Mathf.Cos(rad) * tableRadius) + view.towardCenter * 0.15f;
+                Mathf.Cos(rad) * tableRadius) + view.towardCenter * 0.08f;
 
             view.root.transform.position = view.seatPos;
             view.root.transform.rotation = Quaternion.LookRotation(view.towardCenter, Vector3.up);

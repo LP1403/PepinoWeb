@@ -63,8 +63,9 @@ namespace PepinoGame.Utils
             tableManager?.Configure(
                 table.transform,
                 fallback,
-                tableCenter: new Vector3(0.08f, 0.05f, -0.08f),
-                drawPileOffset: new Vector3(-0.32f, 0.03f, 0.0f));
+                // Closer to player so discard/rivals read at mockup distance
+                tableCenter: new Vector3(0.06f, 0.05f, -0.28f),
+                drawPileOffset: new Vector3(-0.28f, 0.03f, 0.02f));
             // No decorative deck in lobby — only after the match starts
 
             EnsureOpponentSeats();
@@ -121,7 +122,7 @@ namespace PepinoGame.Utils
             }
 
             // Closer rim + above felt so fan sits mid-upper frame, not clipped / off-screen
-            manager.Configure(tableRadius: 0.55f, seatHeight: FeltY + 0.25f, cardScale: 5.5f);
+            manager.Configure(tableRadius: 0.42f, seatHeight: FeltY + 0.22f, cardScale: 5.5f);
         }
 
         private static GameObject EnsureEmpty(string name, Vector3 position)
@@ -194,11 +195,11 @@ namespace PepinoGame.Utils
 
             float felt = FeltY > 0.1f ? FeltY : MeasureFeltTop();
             cam.transform.SetParent(null);
-            // Chest-height sit, looking across the table — full hand + rivals in frame
-            Vector3 focus = new Vector3(0f, felt + 0.1f, 0.4f);
-            cam.transform.position = new Vector3(0f, felt + 1.32f, -2.7f);
+            // Closer seated POV — table center + rivals not lost in the distance
+            Vector3 focus = new Vector3(0f, felt + 0.08f, 0.12f);
+            cam.transform.position = new Vector3(0f, felt + 1.12f, -2.05f);
             cam.transform.LookAt(focus);
-            cam.fieldOfView = 52f;
+            cam.fieldOfView = 50f;
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 40f;
         }

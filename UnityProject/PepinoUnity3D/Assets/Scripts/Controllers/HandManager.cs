@@ -278,12 +278,9 @@ namespace PepinoGame.Controllers
                         || gm.CurrentGameState.lastPlayedCards == null
                         || gm.CurrentGameState.lastPlayedCards.Count == 0;
 
+            // Free play: no rim (highlighting every card is noise). Assist only when answering the table.
             if (free)
-            {
-                foreach (var kv in byValue)
-                    result.Add(kv.Key);
                 return result;
-            }
 
             int need = gm.CurrentGameState.lastPlayedCards.Count;
             int lastCmp = gm.CurrentGameState.lastPlayedCards[0].GetComparisonValue();
