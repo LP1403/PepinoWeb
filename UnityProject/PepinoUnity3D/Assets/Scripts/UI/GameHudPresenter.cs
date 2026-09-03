@@ -271,9 +271,9 @@ namespace PepinoGame.UI
 
         private static void LayoutActionButtons(Button play, Button pass)
         {
-            // Above the hand band — hand can cover ~bottom 280px in this POV
-            PlaceCentered(play, new Vector2(-120f, 520f), new Vector2(210f, 56f));
-            PlaceCentered(pass, new Vector2(120f, 520f), new Vector2(180f, 56f));
+            // Above the raised hand band, below table mid — don't cover discard
+            PlaceCentered(play, new Vector2(-120f, 290f), new Vector2(200f, 52f));
+            PlaceCentered(pass, new Vector2(120f, 290f), new Vector2(170f, 52f));
         }
 
         private static void PlaceCentered(Button button, Vector2 anchoredPos, Vector2 size)

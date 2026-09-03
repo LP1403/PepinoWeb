@@ -81,10 +81,12 @@ En código: comparación `2 → 0`, `1 → 13`, resto = valor facial.
 
 ## 5. Comodín (2)
 
-Documentación histórica / CLAUDE: “el 2 permite jugada libre en cualquier momento”.
+El **2** es comodín de mesa:
 
-**Código actual:** el 2 solo vale `0` en comparación; **no** está implementado como “siempre jugable contra cualquier cosa”.  
-Tratar esto como **deuda**: o se implementa el comodín libre, o se baja de las reglas escritas.
+- Se puede jugar **en cualquier momento** (no hace falta igualar la cantidad de la jugada anterior).
+- Podés tirar **1…N doses** (todas deben ser 2).
+- Esa jugada **reinicia** la secuencia: queda como última jugada en mesa; el siguiente debe igualar esa cantidad con valor ≥ (el 2 vale `0` en comparación, así que casi cualquier grupo de esa cantidad sirve).
+- En jerarquía de comparación el 2 sigue siendo el más bajo (`2 → 0`).
 
 ---
 
@@ -143,7 +145,7 @@ entonces es **PEPINEADO**: se **salta el turno** del siguiente jugador.
 
 ## 11. Pendientes de reglas / producto (relacionados)
 
-- Alinear comodín 2 (§5) doc ↔ código.
+- (sin deuda abierta de comodín 2 — ya alineado en §5 / CardService).
 - Texturas Pepino (frente/dorso) en Unity.
 - Firebase Auth.
 - Mostrar las mismas reglas en Unity (panel tipo Lobby web).

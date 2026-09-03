@@ -143,6 +143,11 @@ export class CardService {
             return { cards: selectedCards, playerId: '', isValid: true };
         }
 
+        // Comodín (2): siempre jugable, cualquier cantidad — reinicia la jugada libre
+        if (firstValue === 2) {
+            return { cards: selectedCards, playerId: '', isValid: true };
+        }
+
         // Verificar que la cantidad de cartas sea la misma
         if (selectedCards.length !== lastPlayedCards.length) {
             return { cards: selectedCards, playerId: '', isValid: false, reason: `Debes jugar ${lastPlayedCards.length} carta(s)` };

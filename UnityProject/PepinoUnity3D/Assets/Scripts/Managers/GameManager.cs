@@ -295,6 +295,13 @@ namespace PepinoGame.Managers
             if (lastPlayed == null || lastPlayed.Count == 0)
                 return true;
 
+            // Comodín (2): siempre jugable, cualquier cantidad — reinicia la jugada libre
+            if (firstValue == 2)
+            {
+                Log("✅ Validación: Comodín (2) - Válida (jugada libre)");
+                return true;
+            }
+
             if (cards.Count != lastPlayed.Count)
             {
                 reason = $"Debés jugar exactamente {lastPlayed.Count} carta(s)";

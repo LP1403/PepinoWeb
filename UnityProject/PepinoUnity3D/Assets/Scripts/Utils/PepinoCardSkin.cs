@@ -107,16 +107,24 @@ namespace PepinoGame.Utils
                 foreach (var r in cardObj.GetComponentsInChildren<Renderer>())
                 {
                     if (r == null) continue;
-                    var mats = r.materials;
+                    int count = r.sharedMaterials != null ? r.sharedMaterials.Length : 1;
+                    var mats = new Material[Mathf.Max(1, count)];
                     for (int i = 0; i < mats.Length; i++)
                         mats[i] = backMaterial;
-                    r.materials = mats;
+                    r.sharedMaterials = mats;
                 }
             }
             catch (System.Exception ex)
             {
                 Debug.LogWarning($"[PepinoCardSkin] ApplyBack: {ex.Message}");
             }
+        }
+
+        /// <summary>Shared Pepino back material (dark green + logo) for rival fans / deck.</summary>
+        public static Material GetBackMaterial()
+        {
+            EnsureLoaded();
+            return backMaterial;
         }
 
         private static void EnsureSuitBadge(GameObject cardObj, Card card)

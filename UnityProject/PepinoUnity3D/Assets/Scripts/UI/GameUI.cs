@@ -198,7 +198,10 @@ namespace PepinoGame.UI
             if (tableManager == null || gameState == null || !gameState.isGameStarted)
                 return;
 
-            tableManager.SyncDiscardPile(gameState.lastPlayedCards);
+            tableManager.SyncDiscardPile(
+                gameState.lastPlayedCards,
+                animate: true,
+                fromPlayerId: gameState.lastPlayerId);
         }
 
         private void OnHandUpdated(List<Card> hand)
@@ -220,6 +223,14 @@ namespace PepinoGame.UI
 
             try
             {
+                if (tableManager != null && playedCards.cards != null)
+                {
+                    tableManager.SyncDiscardPile(
+                        playedCards.cards,
+                        animate: true,
+                        fromPlayerId: playedCards.playerId);
+                }
+
                 if (playedCards.isPepineado)
                     ShowPepineadoEffect(playedCards.playerName, playedCards.playerId);
             }

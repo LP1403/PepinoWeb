@@ -68,7 +68,9 @@ namespace PepinoGame.Editor
 
             bool discardOk = last == 0 || played >= last;
             bool lightOk = !Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude)
-                .Any(l => l.enabled && (l.type == LightType.Point || l.type == LightType.Spot));
+                .Any(l => l.enabled
+                          && (l.type == LightType.Point || l.type == LightType.Spot)
+                          && l.name != "TableOverheadLight");
 
             Debug.Log(
                 $"[PepinoValidate] frame={(frameOk ? "PASS" : "FAIL")} near={nearY:F2} mid={midY:F2} far={farY:F2} | " +

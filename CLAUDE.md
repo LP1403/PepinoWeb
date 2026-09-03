@@ -30,7 +30,7 @@ Resumen UI: Lobby web (`Front/game-client/src/components/Lobby.tsx`).
 - Naipes españoles, 4 palos con temática: ♠ Policías, ♥ Médicos, ♦ Soldados, ♣ Bufones.
 - Valores 1-12 (48 cartas/mazo en `CardService`; docs viejas que digan 40 están desactualizadas).
 - Jerarquía de juego: `3 < 4 < ... < 12 < 1` (el As es la carta más alta).
-- El **2** en docs se describe como comodín libre; **en código hoy solo vale 0 en comparación** — ver `REGLAS_PEPINO.md` §5.
+- El **2** en docs y código es comodín libre (cualquier cantidad, en cualquier momento) — ver `REGLAS_PEPINO.md` §5.
 - El **3♦ ("Pepino de Oro")** define quién empieza. Con N mazos hay N Pepinos; inicia el **primer jugador (por orden de asiento) que tenga al menos un 3♦** (`FindPepinoOroPlayer`) — regla confirmada.
 - Se juegan grupos de 1 a N cartas del mismo valor; el siguiente debe igualar cantidad y
   jugar valor igual o mayor.

@@ -3,6 +3,7 @@ using UnityEngine;
 using TMPro;
 using PepinoGame.Models;
 using PepinoGame.Managers;
+using PepinoGame.Utils;
 
 namespace PepinoGame.Controllers
 {
@@ -13,16 +14,15 @@ namespace PepinoGame.Controllers
     {
         [SerializeField] private float tableRadius = 0.72f;
         [SerializeField] private float seatHeight = 1.7f;
-        [SerializeField] private float cardWidth = 0.48f;
-        [SerializeField] private float cardHeight = 0.70f;
-        [SerializeField] private float cardThickness = 0.04f;
+        [SerializeField] private float cardWidth = 0.26f;
+        [SerializeField] private float cardHeight = 0.38f;
+        [SerializeField] private float cardThickness = 0.01f;
         [SerializeField] private int maxVisibleCards = 5;
 
         private Transform seatsRoot;
         private readonly Dictionary<string, SeatView> seats = new Dictionary<string, SeatView>();
         private bool bound;
 
-        private static readonly Color BackGreen = new Color(0.2f, 0.85f, 0.4f, 1f);
         private static readonly Color Skin = new Color(0.86f, 0.66f, 0.52f, 1f);
 
         private class SeatView
@@ -43,10 +43,41 @@ namespace PepinoGame.Controllers
             this.tableRadius = tableRadius;
             this.seatHeight = seatHeight;
             // Always use readable world sizes (ignore stale serialized inspector values)
-            cardWidth = 0.55f;
-            cardHeight = 0.80f;
-            cardThickness = 0.05f;
+            // Mockup: rival backs smaller than local hand, overlapping fan
+            cardWidth = 0.26f;
+            cardHeight = 0.38f;
+            cardThickness = 0.01f;
             _ = cardScale;
+        }
+
+        /// <summary>World origin for play-to-table fly animation (center of rival card fan).</summary>
+        public bool TryGetPlayOrigin(string connectionId, out Vector3 worldPos)
+        {
+            worldPos = Vector3.zero;
+            if (string.IsNullOrEmpty(connectionId)) return false;
+            if (!seats.TryGetValue(connectionId, out var view) || view?.root == null)
+                return false;
+
+            if (view.cardsRoot != null && view.cards.Count > 0)
+            {
+                Vector3 sum = Vector3.zero;
+                int n = 0;
+                foreach (var c in view.cards)
+                {
+                    if (c == null) continue;
+                    sum += c.transform.position;
+                    n++;
+                }
+
+                if (n > 0)
+                {
+                    worldPos = sum / n;
+                    return true;
+                }
+            }
+
+            worldPos = view.root.transform.position + Vector3.up * 0.15f;
+            return true;
         }
 
         private void Update()
@@ -210,15 +241,27 @@ namespace PepinoGame.Controllers
 
             int want = player.cardCount <= 0 ? 0 : Mathf.Clamp(player.cardCount, 1, maxVisibleCards);
 
-            while (view.cards.Count < want)
-                view.cards.Add(CreateBackCard(view.cardsRoot));
-
-            while (view.cards.Count > want)
+            bool needsRebuild = view.cards.Count != want;
+            if (!needsRebuild && view.cards.Count > 0 && view.cards[0] != null)
             {
-                int last = view.cards.Count - 1;
-                if (view.cards[last] != null)
-                    Object.Destroy(view.cards[last]);
-                view.cards.RemoveAt(last);
+                // Drop legacy neon cubes in favor of Pepino-back quads
+                var mf = view.cards[0].GetComponent<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null && mf.sharedMesh.name.IndexOf("Cube", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    needsRebuild = true;
+            }
+
+            if (needsRebuild)
+            {
+                while (view.cards.Count > 0)
+                {
+                    int last = view.cards.Count - 1;
+                    if (view.cards[last] != null)
+                        Object.Destroy(view.cards[last]);
+                    view.cards.RemoveAt(last);
+                }
+
+                for (int i = 0; i < want; i++)
+                    view.cards.Add(CreateBackCard(view.cardsRoot));
             }
 
             for (int c = 0; c < view.cards.Count; c++)
@@ -227,9 +270,9 @@ namespace PepinoGame.Controllers
                 if (card == null) continue;
 
                 float fan = (c - (view.cards.Count - 1) * 0.5f);
-                card.transform.localPosition = new Vector3(fan * 0.32f, 0.22f + c * 0.02f, 0.05f);
+                card.transform.localPosition = new Vector3(fan * 0.14f, 0.16f + c * 0.008f, 0.04f);
                 card.transform.localRotation = Quaternion.identity;
-                card.transform.localScale = new Vector3(cardWidth, cardHeight, cardThickness);
+                card.transform.localScale = new Vector3(cardWidth, cardHeight, 1f);
                 card.SetActive(true);
             }
 
@@ -278,23 +321,22 @@ namespace PepinoGame.Controllers
 
         private static GameObject CreateBackCard(Transform parent)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
             go.name = "RivalCardBack";
             go.transform.SetParent(parent, false);
             Object.Destroy(go.GetComponent<Collider>());
 
-            var shader = Shader.Find("Universal Render Pipeline/Unlit")
-                         ?? Shader.Find("Unlit/Color")
-                         ?? Shader.Find("Standard");
-            var mat = new Material(shader);
-            if (mat.HasProperty("_BaseColor"))
-                mat.SetColor("_BaseColor", BackGreen);
-            if (mat.HasProperty("_Color"))
-                mat.color = BackGreen;
-            if (mat.HasProperty("_EmissionColor"))
+            var mat = PepinoCardSkin.GetBackMaterial();
+            if (mat == null)
             {
-                mat.EnableKeyword("_EMISSION");
-                mat.SetColor("_EmissionColor", BackGreen * 0.35f);
+                // Fallback dark forest green (never neon)
+                var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                             ?? Shader.Find("Unlit/Color")
+                             ?? Shader.Find("Standard");
+                mat = new Material(shader);
+                var forest = new Color(0.08f, 0.28f, 0.18f, 1f);
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", forest);
+                if (mat.HasProperty("_Color")) mat.color = forest;
             }
 
             var rend = go.GetComponent<Renderer>();

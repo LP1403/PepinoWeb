@@ -70,12 +70,12 @@ namespace PepinoGame.Controllers
             if (config != null) gameConfig = config;
             if (handContainer == null) handContainer = transform;
 
-            // Force mockup hand sizing (readable, not covering the whole felt)
-            cardLocalScale = new Vector3(1.05f, 1.05f, 1.05f);
-            viewportY = 0.045f;
-            viewportDepth = 0.72f;
-            viewportXMin = 0.18f;
-            viewportXMax = 0.82f;
+            // Full cards visible in lower band (mockup: hand not clipped by screen edge)
+            cardLocalScale = new Vector3(0.88f, 0.88f, 0.88f);
+            viewportY = 0.175f;
+            viewportDepth = 0.82f;
+            viewportXMin = 0.16f;
+            viewportXMax = 0.84f;
 
             EnsureHandOverlayCamera();
         }
@@ -104,7 +104,10 @@ namespace PepinoGame.Controllers
         {
             SyncHandCameraToMain();
             if (cardControllers.Count > 0)
+            {
                 ArrangeCardsInViewport();
+                RefreshPlayAssist();
+            }
         }
 
         private void HandlePointer()
@@ -230,6 +233,81 @@ namespace PepinoGame.Controllers
                 if (c.IsSelected != sel)
                     c.SetSelected(sel, animate: false);
             }
+
+            RefreshPlayAssist();
+        }
+
+        /// <summary>
+        /// Mint outline on cards that can legally answer the current table (only on your turn).
+        /// </summary>
+        private void RefreshPlayAssist()
+        {
+            var gm = GameManager.Instance;
+            var nm = NetworkManager.Instance;
+            bool myTurn = gm?.CurrentGameState != null
+                          && nm != null
+                          && gm.CurrentGameState.IsMyTurn(nm.MyConnectionId);
+
+            var playableValues = myTurn ? ComputePlayableValues() : null;
+
+            foreach (var c in cardControllers)
+            {
+                if (c?.CardData == null) continue;
+                bool assist = playableValues != null && playableValues.Contains(c.CardData.value);
+                c.SetPlayAssist(assist);
+            }
+        }
+
+        private HashSet<int> ComputePlayableValues()
+        {
+            var result = new HashSet<int>();
+            var gm = GameManager.Instance;
+            if (gm?.CurrentGameState == null) return result;
+
+            var hand = cardControllers
+                .Where(c => c?.CardData != null)
+                .Select(c => c.CardData)
+                .ToList();
+            if (hand.Count == 0) return result;
+
+            var byValue = hand.GroupBy(c => c.value)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            bool free = gm.CurrentGameState.IsFirstPlay()
+                        || gm.CurrentGameState.isNewRound
+                        || gm.CurrentGameState.lastPlayedCards == null
+                        || gm.CurrentGameState.lastPlayedCards.Count == 0;
+
+            if (free)
+            {
+                foreach (var kv in byValue)
+                    result.Add(kv.Key);
+                return result;
+            }
+
+            int need = gm.CurrentGameState.lastPlayedCards.Count;
+            int lastCmp = gm.CurrentGameState.lastPlayedCards[0].GetComparisonValue();
+
+            foreach (var kv in byValue)
+            {
+                int value = kv.Key;
+                int count = kv.Value;
+
+                // Comodín (2): any count is legal
+                if (value == 2)
+                {
+                    result.Add(value);
+                    continue;
+                }
+
+                if (count < need) continue;
+
+                int cmp = value == 1 ? 13 : value;
+                if (cmp >= lastCmp)
+                    result.Add(value);
+            }
+
+            return result;
         }
 
         private Card3DController PickCardAtScreen(Camera cam, Vector2 screenPos)

@@ -176,6 +176,13 @@ namespace GameServer.Services
                 return true;
             }
 
+            // Comodín (2): siempre jugable, cualquier cantidad — reinicia la jugada libre
+            if (firstValue == 2)
+            {
+                Console.WriteLine($"   ✅ Comodín (2) - Válida (jugada libre / reinicia)");
+                return true;
+            }
+
             // Verificar que la cantidad de cartas sea la misma
             if (selectedCards.Count != lastPlayedCards.Count) 
             {

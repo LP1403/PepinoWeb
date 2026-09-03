@@ -59,13 +59,13 @@ namespace PepinoGame.Utils
 
             Object.FindAnyObjectByType<HandManager>()?.Configure(hand.transform, fallback, config);
             var tableManager = Object.FindAnyObjectByType<TableManager>();
+            // Slightly toward player; modest size like mockup table cards
             tableManager?.Configure(
                 table.transform,
                 fallback,
-                // Slightly toward the player so discard reads large in the POV
-                tableCenter: new Vector3(0.05f, 0.06f, -0.12f),
-                drawPileOffset: new Vector3(-0.42f, 0.04f, 0.02f));
-            tableManager?.EnsureDecorativeDeck();
+                tableCenter: new Vector3(0.08f, 0.05f, -0.08f),
+                drawPileOffset: new Vector3(-0.32f, 0.03f, 0.0f));
+            // No decorative deck in lobby — only after the match starts
 
             EnsureOpponentSeats();
             EnsureTableProps(chipPrefab, dicePrefab);
@@ -185,7 +185,7 @@ namespace PepinoGame.Utils
         }
 
         /// <summary>
-        /// Seated POV: hand at bottom, discard mid-table, rivals mid-upper — all above felt.
+        /// Seated chest POV like the mockup: hands in lower band, full felt + far rivals.
         /// </summary>
         public static void ApplyCameraFrame()
         {
@@ -194,10 +194,11 @@ namespace PepinoGame.Utils
 
             float felt = FeltY > 0.1f ? FeltY : MeasureFeltTop();
             cam.transform.SetParent(null);
-            Vector3 focus = new Vector3(0f, felt + 0.05f, 0.05f);
-            cam.transform.position = new Vector3(0f, felt + 1.05f, -2.55f);
+            // Chest-height sit, looking across the table — full hand + rivals in frame
+            Vector3 focus = new Vector3(0f, felt + 0.1f, 0.4f);
+            cam.transform.position = new Vector3(0f, felt + 1.32f, -2.7f);
             cam.transform.LookAt(focus);
-            cam.fieldOfView = 48f;
+            cam.fieldOfView = 52f;
             cam.nearClipPlane = 0.05f;
             cam.farClipPlane = 40f;
         }
@@ -208,24 +209,56 @@ namespace PepinoGame.Utils
             if (cam != null)
             {
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.04f, 0.045f, 0.055f, 1f);
+                cam.backgroundColor = new Color(0.02f, 0.02f, 0.025f, 1f);
             }
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.42f, 0.4f, 0.38f);
+            RenderSettings.ambientLight = new Color(0.18f, 0.16f, 0.14f);
 
-            var keyGo = GameObject.Find("TableKeyLight");
-            if (keyGo != null)
-                Object.Destroy(keyGo);
+            var oldKey = GameObject.Find("TableKeyLight");
+            if (oldKey != null)
+                Object.Destroy(oldKey);
 
             foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude))
             {
+                if (light.type == LightType.Point || light.type == LightType.Spot)
+                {
+                    if (light.name == "TableOverheadLight") continue;
+                    light.enabled = false;
+                    continue;
+                }
+
                 if (light.type != LightType.Directional) continue;
-                light.transform.rotation = Quaternion.Euler(48f, -25f, 0f);
-                light.intensity = 0.95f;
-                light.color = new Color(1f, 0.96f, 0.9f);
+                light.transform.rotation = Quaternion.Euler(42f, -50f, 0f);
+                light.intensity = 0.28f;
+                light.color = new Color(0.85f, 0.88f, 0.95f);
                 light.shadows = LightShadows.Soft;
+                light.shadowStrength = 0.55f;
             }
+
+            EnsureOverheadTableLamp();
+        }
+
+        /// <summary>Warm soft lamp above the felt — mockup living-room table light.</summary>
+        private static void EnsureOverheadTableLamp()
+        {
+            float felt = FeltY > 0.1f ? FeltY : MeasureFeltTop();
+            var go = GameObject.Find("TableOverheadLight");
+            if (go == null)
+            {
+                go = new GameObject("TableOverheadLight");
+                go.AddComponent<Light>();
+            }
+
+            var light = go.GetComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.82f, 0.62f);
+            light.intensity = 2.4f;
+            light.range = 5.5f;
+            light.shadows = LightShadows.Soft;
+            light.shadowStrength = 0.4f;
+            light.enabled = true;
+            go.transform.position = new Vector3(0f, felt + 2.35f, 0.15f);
         }
 
         private static void HideConnectButton()

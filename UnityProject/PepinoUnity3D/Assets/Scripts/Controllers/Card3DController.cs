@@ -25,6 +25,8 @@ namespace PepinoGame.Controllers
         private bool isHovered;
         private bool preservePackMaterials;
         private bool interactable = true;
+        private bool playAssist;
+        private GameObject assistOutline;
 
         public Card CardData => cardData;
         public bool IsSelected => isSelected;
@@ -61,6 +63,67 @@ namespace PepinoGame.Controllers
                 cardCollider.enabled = value;
         }
 
+        /// <summary>Soft mint rim when this card can legally answer the table (your turn).</summary>
+        public void SetPlayAssist(bool enabled)
+        {
+            playAssist = enabled;
+            EnsureAssistOutline();
+            if (assistOutline != null)
+                assistOutline.SetActive(playAssist);
+        }
+
+        private void EnsureAssistOutline()
+        {
+            if (assistOutline != null) return;
+
+            assistOutline = new GameObject("PlayAssistOutline");
+            assistOutline.transform.SetParent(transform, false);
+            assistOutline.transform.localPosition = Vector3.zero;
+            assistOutline.transform.localRotation = Quaternion.identity;
+            assistOutline.transform.localScale = Vector3.one;
+            assistOutline.layer = gameObject.layer;
+
+            var lr = assistOutline.AddComponent<LineRenderer>();
+            lr.useWorldSpace = false;
+            lr.loop = true;
+            lr.positionCount = 4;
+            lr.numCornerVertices = 4;
+            lr.numCapVertices = 2;
+            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            lr.receiveShadows = false;
+            lr.sortingOrder = 20;
+
+            float halfW = 0.33f;
+            float halfH = 0.48f;
+            if (cardRenderer == null)
+                cardRenderer = GetComponentInChildren<MeshRenderer>();
+            if (cardRenderer != null)
+            {
+                var b = cardRenderer.localBounds;
+                halfW = Mathf.Max(0.12f, b.extents.x * 1.08f);
+                halfH = Mathf.Max(0.18f, b.extents.y * 1.08f);
+            }
+
+            lr.SetPosition(0, new Vector3(-halfW, -halfH, -0.02f));
+            lr.SetPosition(1, new Vector3(-halfW, halfH, -0.02f));
+            lr.SetPosition(2, new Vector3(halfW, halfH, -0.02f));
+            lr.SetPosition(3, new Vector3(halfW, -halfH, -0.02f));
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Unlit/Color")
+                         ?? Shader.Find("Sprites/Default");
+            var mat = new Material(shader);
+            Color assist = new Color(0.35f, 0.95f, 0.55f, 1f);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", assist);
+            if (mat.HasProperty("_Color")) mat.color = assist;
+            lr.sharedMaterial = mat;
+            lr.startColor = assist;
+            lr.endColor = assist;
+            lr.startWidth = 0.022f;
+            lr.endWidth = 0.022f;
+            assistOutline.SetActive(false);
+        }
+
         private void UpdateVisuals()
         {
             if (cardData == null) return;
@@ -95,7 +158,6 @@ namespace PepinoGame.Controllers
 
         private void AnimateSelect()
         {
-            // HandManager.LateUpdate applies the selected lift in viewport space
             LeanTween.scale(gameObject, originalScale * 1.12f, 0.15f).setEaseOutBack();
         }
 
