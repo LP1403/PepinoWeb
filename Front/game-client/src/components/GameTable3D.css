@@ -82,6 +82,7 @@
  .play-controls .primary-button, .play-controls .secondary-button { min-width:106px; padding:10px 14px; border-radius:18px; font-size:10px; }
  .play-controls .clear-selection { position:absolute; top:42px; left:50%; transform:translateX(-50%); white-space:nowrap; }
  .hand-helper { height:28px; margin-left:0; padding:0 72px; line-height:1.25; }
+ .hand-helper.waiting { visibility:hidden; }
  .turn-pill { left:50%; top:52%; max-width:70%; font-size:8px; padding:6px 12px; }
  .pile-caption { top:46%; font-size:9px; }
  .play-effect { top:34%; }

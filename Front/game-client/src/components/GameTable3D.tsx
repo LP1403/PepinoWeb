@@ -110,7 +110,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         {drag && <div className="drop-target">Soltá aquí para confirmar tu jugada</div>}
         <div className={`seat-badge local-seat seat-0 ${myTurn ? 'active' : ''}`}><div className="avatar">{local?.name.slice(0,2).toUpperCase()}<span className="seat-count">{state.yourHand.length}</span></div><span className="seat-name">{local?.name}</span><small>VOS</small></div>
         <section className="hand-area" aria-label="Tu mano">
-            <p className="hand-helper" aria-live="polite">{helper}</p>
+            <p className={`hand-helper${!myTurn ? ' waiting' : ''}`} aria-live="polite">{helper}</p>
             <div className="hand-scroll" ref={scroll} onWheel={e => { if (scroll.current) scroll.current.scrollLeft += e.deltaY; }}>
                 <div className="hand-fan">
                     {groups.map(([value, cards], gi) => <div className="value-stack" key={value} style={{ '--cards': cards.length, '--tilt': `${Math.max(-4, Math.min(4, (gi - (groups.length - 1) / 2) * 1.3))}deg` } as CSSProperties}>
