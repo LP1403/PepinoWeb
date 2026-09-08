@@ -5,6 +5,14 @@ namespace GameServer.Models
 {
     public class GameRoom
     {
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+        public HashSet<string> PassedPlayers { get; } = new();
+        public string? FreeLeadPlayerId { get; set; }
+        public PlayedCards? LastPlay { get; set; }
+        public long Revision { get; set; }
+        public long PlaySequence { get; set; }
+        public string? Notice { get; set; }
+        public bool IsGameFinished { get; set; }
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public List<Player> Players { get; set; } = new();
         public List<Card> TableCards { get; set; } = new();

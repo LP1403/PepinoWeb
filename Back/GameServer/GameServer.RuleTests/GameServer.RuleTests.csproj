@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../GameServer/Models/*.cs" Link="Models/%(Filename)%(Extension)" />
+    <Compile Include="../GameServer/Services/CardService.cs" Link="CardService.cs" />
+    <Compile Include="../GameServer/Services/GameLogicService.cs" Link="GameLogicService.cs" />
+  </ItemGroup>
+</Project>

@@ -5,7 +5,7 @@ export class CardService {
     private static readonly VALUES: Card['value'][] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
     /**
-     * Crea un mazo de naipes españoles (40 cartas)
+     * Crea un mazo de naipes españoles (48 cartas)
      */
     static createSpanishDeck(): Card[] {
         const deck: Card[] = [];
@@ -62,14 +62,14 @@ export class CardService {
         let maxWinners: number;
 
         if (playerCount <= 4) {
-            deckCount = Math.min(2, Math.max(1, Math.ceil(40 / playerCount))); // Máximo 2 mazos
+            deckCount = Math.min(2, Math.max(1, Math.ceil(48 / playerCount))); // Máximo 2 mazos
             maxWinners = 2;
         } else {
-            deckCount = Math.min(3, Math.max(1, Math.ceil(40 / playerCount))); // Máximo 3 mazos
+            deckCount = Math.min(3, Math.max(1, Math.ceil(48 / playerCount))); // Máximo 3 mazos
             maxWinners = 3;
         }
 
-        const totalCards = deckCount * 40;
+        const totalCards = deckCount * 48;
         const cardsPerPlayer = Math.floor(totalCards / playerCount);
 
         return {
@@ -156,16 +156,6 @@ export class CardService {
         // Verificar que el valor sea mayor O IGUAL (para PEPINEADO)
         const lastValue = this.getCardValue(lastPlayedCards[0]);
         const currentValue = this.getCardValue(selectedCards[0]);
-
-        // Debug logs para entender qué está pasando
-        console.log('🔍 Validación de jugada:');
-        console.log(`   📋 Cartas seleccionadas: ${selectedCards.map(c => `${c.value}${c.suit}`).join(', ')}`);
-        console.log(`   📋 Última jugada: ${lastPlayedCards.map(c => `${c.value}${c.suit}`).join(', ')}`);
-        console.log(`   🎯 Valor actual: ${currentValue} (carta: ${selectedCards[0].value}${selectedCards[0].suit})`);
-        console.log(`   🎯 Valor anterior: ${lastValue} (carta: ${lastPlayedCards[0].value}${lastPlayedCards[0].suit})`);
-        console.log(`   🎮 Primera jugada: ${isFirstPlay}`);
-        console.log(`   🔄 Nueva ronda: ${isNewRound}`);
-        console.log(`   ✅ ¿Es válida? ${currentValue >= lastValue ? 'SÍ' : 'NO'}`);
 
         if (currentValue < lastValue) {
             return { cards: selectedCards, playerId: '', isValid: false, reason: 'Debes jugar cartas de mayor o igual valor' };

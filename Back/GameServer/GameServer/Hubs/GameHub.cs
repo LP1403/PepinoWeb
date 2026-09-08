@@ -1,451 +1,194 @@
-﻿using GameServer.Models;
+using GameServer.Models;
 using GameServer.Services;
 using Microsoft.AspNetCore.SignalR;
-using System.Numerics;
 
 namespace GameServer.Hubs;
 
-public class GameHub : Hub
+public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) : Hub
 {
-    private readonly GameRoomManager _roomManager;
+    private readonly GameLogicService logic = new();
 
-    public GameHub(GameRoomManager roomManager)
+    private async Task InRoom(string id, Func<GameRoom, Task> action)
     {
-        _roomManager = roomManager;
+        var room = manager.GetRoom(id);
+        if (room == null) throw new HubException("Sala no encontrada.");
+        await room.Gate.WaitAsync();
+        try { await action(room); }
+        catch (InvalidOperationException e) { throw new HubException(e.Message); }
+        finally { room.Gate.Release(); }
+    }
+    private Player Member(GameRoom room) => room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
+        ?? throw new InvalidOperationException("No pertenecés a esta sala.");
+    private void Owner(GameRoom room)
+    {
+        Member(room);
+        if (room.CreatedBy != Context.ConnectionId) throw new InvalidOperationException("Solo el creador puede hacerlo.");
     }
 
-    public async Task JoinRoom(string roomId, string playerName)
+    // Kept for Unity and older web clients. Web uses JoinSession for reconnectable seats.
+    public Task JoinRoom(string roomId, string playerName) => Join(roomId, playerName, null);
+    public Task JoinSession(string roomId, string playerName, string token) => Join(roomId, playerName, token);
+    private async Task Join(string id, string name, string? token)
     {
-        var room = _roomManager.GetOrCreateRoom(roomId);
-        
-        if (room.Players.Count >= 8)
+        if (string.IsNullOrWhiteSpace(id) || id.Length > 32 || string.IsNullOrWhiteSpace(name) || name.Length > 24)
+            throw new HubException("Nombre o sala inválidos.");
+        if (token != null && (token.Length < 32 || token.Length > 128)) throw new HubException("Sesión inválida.");
+        manager.GetOrCreateRoom(id);
+        await InRoom(id, async room =>
         {
-            await Clients.Caller.SendAsync("Error", "La sala está llena");
-            return;
-        }
-
-        var player = new Player
-        {
-            ConnectionId = Context.ConnectionId,
-            Name = playerName,
-            IsConnected = true
-        };
-
-        // Si es el primer jugador, establecerlo como creador de la sala
-        if (room.Players.Count == 0)
-        {
-            room.CreatedBy = Context.ConnectionId;
-            room.CreatorName = playerName;
-            Console.WriteLine($"👑 {playerName} es el creador de la sala {roomId}");
-        }
-
-        room.Players.Add(player);
-        await Groups.AddToGroupAsync(Context.ConnectionId, roomId);
-
-        await Clients.Group(roomId).SendAsync("PlayerJoined", playerName, room.Players.Count);
-        await SendGameStateUpdate(room);
-    }
-
-    public async Task SelectGameMode(string roomId, int deckCount)
-    {
-        var room = _roomManager.GetRoom(roomId);
-        if (room == null) return;
-
-        Console.WriteLine($"🎯 SelectGameMode llamado por {Context.ConnectionId} para sala {roomId} con {deckCount} mazos");
-        Console.WriteLine($"🔍 DEBUG SelectGameMode:");
-        Console.WriteLine($"   👤 ConnectionId del llamador: {Context.ConnectionId}");
-        Console.WriteLine($"   👑 Creador de la sala: {room.CreatedBy}");
-        Console.WriteLine($"   ✅ Es creador: {room.CreatedBy == Context.ConnectionId}");
-
-        // Verificar que solo el creador de la sala pueda seleccionar el modo
-        if (room.CreatedBy != Context.ConnectionId)
-        {
-            Console.WriteLine($"❌ {Context.ConnectionId} intentó seleccionar modo pero no es el creador. Creador: {room.CreatedBy}");
-            await Clients.Caller.SendAsync("Error", "Solo el creador de la sala puede seleccionar el modo de juego");
-            return;
-        }
-
-        // Validar el número de mazos
-        if (deckCount < 1 || deckCount > 3)
-        {
-            await Clients.Caller.SendAsync("Error", "El número de mazos debe estar entre 1 y 3");
-            return;
-        }
-
-        // Calcular el modo de juego con el número de mazos seleccionado
-        var gameMode = new GameMode
-        {
-            DeckCount = deckCount,
-            MaxWinners = room.Players.Count <= 4 ? 2 : 3,
-            CardsPerPlayer = (deckCount * 40) / room.Players.Count
-        };
-
-        room.GameMode = gameMode;
-        Console.WriteLine($"🎯 Modo de juego seleccionado: {deckCount} mazos, {gameMode.CardsPerPlayer} cartas por jugador");
-        Console.WriteLine($"📊 Enviando estado actualizado a {room.Players.Count} jugadores");
-
-        // Enviar estado actualizado a todos los jugadores
-        await SendGameStateUpdate(room);
-        Console.WriteLine("✅ Estado enviado después de seleccionar modo de juego");
-    }
-
-    public async Task StartGame(string roomId)
-    {
-        var room = _roomManager.GetRoom(roomId);
-        if (room == null) 
-        {
-            Console.WriteLine($"❌ No se puede iniciar el juego: Sala {roomId} no encontrada");
-            await Clients.Caller.SendAsync("Error", $"Sala '{roomId}' no encontrada");
-            return;
-        }
-        // Para testing local, permitir 1 jugador. Para producción, cambiar a < 2
-        if (room.Players.Count < 1) 
-        {
-            Console.WriteLine($"❌ No se puede iniciar el juego: No hay jugadores en la sala");
-            return;
-        }
-        // Verificar que solo el creador de la sala pueda iniciar el juego
-        if (room.CreatedBy != Context.ConnectionId)
-        {
-            Console.WriteLine($"❌ {Context.ConnectionId} intentó iniciar el juego pero no es el creador de la sala");
-            await Clients.Caller.SendAsync("Error", "Solo el creador de la sala puede iniciar el juego");
-            return;
-        }
-        // Verificar que se haya seleccionado un modo de juego
-        if (room.GameMode == null)
-        {
-            await Clients.Caller.SendAsync("Error", "Debe seleccionar un modo de juego antes de iniciar");
-            return;
-        }
-        Console.WriteLine($"🎮 Iniciando juego en sala {roomId} con {room.Players.Count} jugadores");
-        Console.WriteLine($"📊 Modo de juego: {room.GameMode.DeckCount} mazos, {room.GameMode.MaxWinners} ganadores máx, {room.GameMode.CardsPerPlayer} cartas por jugador");
-        // PRUEBA: Verificar generación de cartas
-        Console.WriteLine("🧪 Ejecutando prueba de generación de cartas...");
-        CardService.TestCardGeneration();
-        // Crear y barajar mazos
-        Console.WriteLine($"🃏 Creando {room.GameMode.DeckCount} mazos...");
-        var allCards = CardService.CreateMultipleDecks(room.GameMode.DeckCount);
-        Console.WriteLine($"🃏 Mazos creados: {allCards.Count} cartas totales");
-        Console.WriteLine($"🔀 Barajando mazos...");
-        var shuffledDeck = CardService.ShuffleDeck(allCards);
-        Console.WriteLine($"🔀 Mazos barajados: {shuffledDeck.Count} cartas");
-        // Repartir todas las cartas
-        Console.WriteLine($"🎴 Repartiendo cartas entre {room.Players.Count} jugadores...");
-        var (hands, remainingDeck) = CardService.DealAllCards(shuffledDeck, room.Players.Count);
-        Console.WriteLine($"🎴 Cartas repartidas: {hands.Count} manos, {remainingDeck.Count} cartas restantes");
-        // Asignar manos a jugadores
-        Console.WriteLine($"👤 Asignando manos a jugadores...");
-        for (int i = 0; i < room.Players.Count; i++)
-        {
-            room.Players[i].Hand = hands[i];
-            Console.WriteLine($"👤 {room.Players[i].Name}: {hands[i].Count} cartas");
-            // Log de las primeras 3 cartas para verificar
-            if (hands[i].Count > 0)
+            var player = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
+            if (player == null && token != null)
             {
-                var sampleCards = hands[i].Take(3).Select(c => $"{c.Value}{c.Suit}").ToList();
-                Console.WriteLine($"   📋 Muestra de cartas: {string.Join(", ", sampleCards)}");
+                player = room.Players.FirstOrDefault(p => p.ResumeToken == token);
+                if (player != null)
+                {
+                    var old = player.ConnectionId;
+                    await Groups.RemoveFromGroupAsync(old, id);
+                    player.ConnectionId = Context.ConnectionId;
+                    player.IsConnected = true;
+                    if (room.CreatedBy == old) room.CreatedBy = player.ConnectionId;
+                    if (room.LastPlayerId == old) room.LastPlayerId = player.ConnectionId;
+                    if (room.FreeLeadPlayerId == old) room.FreeLeadPlayerId = player.ConnectionId;
+                    if (room.PassedPlayers.Remove(old)) room.PassedPlayers.Add(player.ConnectionId);
+                    room.Winners = room.Winners.Select(x => x == old ? player.ConnectionId : x).ToList();
+                    if (room.LastPlay?.PlayerId == old) room.LastPlay.PlayerId = player.ConnectionId;
+                    if (room.LastPlay?.SkippedPlayerId == old) room.LastPlay.SkippedPlayerId = player.ConnectionId;
+                }
             }
-        }
-        // Encontrar quien tiene el Pepino de Oro
-        Console.WriteLine($"🥒 Buscando Pepino de Oro...");
-        var pepinoOroIndex = CardService.FindPepinoOroPlayer(hands);
-        room.CurrentTurnIndex = pepinoOroIndex;
-        
-        // Limpiar todos los turnos primero
-        foreach (var player in room.Players)
-        {
-            player.IsCurrentTurn = false;
-            player.IsSkipped = false;
-        }
-        
-        // Establecer el turno del jugador con Pepino de Oro
-        room.Players[pepinoOroIndex].IsCurrentTurn = true;
-        Console.WriteLine($"🥒 Pepino de Oro encontrado en: {room.Players[pepinoOroIndex].Name} (índice {pepinoOroIndex})");
-        Console.WriteLine($"🎯 Turno inicial establecido para: {room.Players[pepinoOroIndex].Name}");
-        // Actualizar estado del juego
-        room.IsGameStarted = true;
-        room.Deck = remainingDeck;
-        room.LastPlayedCards.Clear();
-        room.LastPlayerId = null;
-        room.GameStartedAt = DateTime.UtcNow;
-        Console.WriteLine("✅ Juego iniciado correctamente");
-        // Enviar manos a cada jugador
-        Console.WriteLine($"📤 Enviando manos a cada jugador...");
-        for (int i = 0; i < room.Players.Count; i++)
-        {
-            Console.WriteLine($"📤 Enviando {room.Players[i].Hand.Count} cartas a {room.Players[i].Name} (ConnectionId: {room.Players[i].ConnectionId})");
-            
-            // Log detallado de las cartas que se envían a cada jugador
-            if (room.Players[i].Hand.Count > 0)
+            if (player == null)
             {
-                var handDetails = room.Players[i].Hand.Take(5).Select(c => $"{c.Value}{c.Suit}").ToList();
-                Console.WriteLine($"   📋 Cartas enviadas a {room.Players[i].Name}: {string.Join(", ", handDetails)}");
+                if (room.IsGameStarted) throw new InvalidOperationException("La partida ya empezó. Esperá la próxima.");
+                if (room.IsFull) throw new InvalidOperationException("La sala está llena.");
+                player = new Player { ConnectionId = Context.ConnectionId, Name = name.Trim(), ResumeToken = token };
+                room.Players.Add(player);
+                if (room.CreatedBy == null)
+                {
+                    room.CreatedBy = player.ConnectionId; room.CreatorName = player.Name;
+                }
             }
-            
-            await Clients.Client(room.Players[i].ConnectionId)
-                .SendAsync("CardsDealt", room.Players[i].Hand);
-        }
-        // Notificar a todos que el juego ha iniciado
+            if (room.GameMode != null && !room.IsGameStarted)
+                room.GameMode = CardService.MakeMode(room.GameMode.DeckCount, room.Players.Count);
+            await Groups.AddToGroupAsync(Context.ConnectionId, id);
+            await Clients.Group(id).SendAsync("PlayerJoined", player.Name, room.Players.Count);
+            await Broadcast(room);
+        });
+    }
+    public Task SelectGameMode(string roomId, int deckCount) => InRoom(roomId, async room =>
+    {
+        Owner(room);
+        if (room.IsGameStarted) throw new InvalidOperationException("La partida está en curso.");
+        if (deckCount is < 1 or > 3) throw new InvalidOperationException("Elegí de 1 a 3 mazos.");
+        room.GameMode = CardService.MakeMode(deckCount, room.Players.Count);
+        await Broadcast(room);
+    });
+    public Task StartGame(string roomId) => InRoom(roomId, async room =>
+    {
+        Owner(room); logic.StartGame(room);
+        foreach (var p in room.Players) await Clients.Client(p.ConnectionId).SendAsync("CardsDealt", p.Hand);
         await Clients.Group(roomId).SendAsync("GameStarted", roomId);
-        Console.WriteLine($"🎮 Notificando inicio del juego a todos los jugadores de la sala {roomId}");
-        
-        Console.WriteLine($"🔄 Enviando estado del juego actualizado...");
-        await SendGameStateUpdate(room);
-        Console.WriteLine("🔄 Estado del juego enviado a todos los jugadores");
-    }
-
-    public async Task PlayCards(string roomId, List<Card> cards)
+        await Broadcast(room);
+    });
+    public Task PlayCards(string roomId, List<Card> cards) => PlayCardIds(roomId, cards.Select(c => c.Id).ToList());
+    public Task PlayCardIds(string roomId, List<string> ids) => InRoom(roomId, async room =>
     {
-        var room = _roomManager.GetRoom(roomId);
-        if (room == null || !room.IsGameStarted) return;
-
-        var currentPlayer = room.Players[room.CurrentTurnIndex];
-        if (currentPlayer.ConnectionId != Context.ConnectionId) return;
-
-        var isFirstPlay = room.LastPlayedCards.Count == 0;
-        
-        // Verificar si es una nueva ronda (vuelta completa)
-        var isNewRound = room.LastPlayerId == currentPlayer.ConnectionId && room.LastPlayedCards.Count > 0;
-        
-        Console.WriteLine($"🎯 DEBUG Validación de Jugada:");
-        Console.WriteLine($"   👤 Jugador: {currentPlayer.Name}");
-        Console.WriteLine($"   🃏 Cartas seleccionadas: {cards.Count} cartas");
-        Console.WriteLine($"   🎮 Primera jugada: {isFirstPlay}");
-        Console.WriteLine($"   🔄 Nueva ronda: {isNewRound}");
-        Console.WriteLine($"   📋 Última jugada: {room.LastPlayedCards.Count} cartas");
-        
-        var isValidPlay = CardService.ValidatePlay(cards, room.LastPlayedCards, isFirstPlay, isNewRound);
-        
-        Console.WriteLine($"   ✅ ¿Es válida? {isValidPlay}");
-
-        if (!isValidPlay)
-        {
-            await Clients.Caller.SendAsync("Error", "Jugada inválida");
-            return;
-        }
-
-        // Remover cartas de la mano del jugador
-        foreach (var card in cards)
-        {
-            currentPlayer.Hand.RemoveAll(c => c.Id == card.Id);
-        }
-
-        // Verificar si el jugador ganó
-        if (currentPlayer.Hand.Count == 0)
-        {
-            currentPlayer.HasWon = true;
-            room.Winners.Add(currentPlayer.ConnectionId);
-            
-            await Clients.Group(roomId).SendAsync("PlayerWon", currentPlayer.Name);
-            
-            // Verificar si el juego terminó
-            if (room.Winners.Count >= room.GameMode!.MaxWinners)
-            {
-                room.IsGameStarted = false;
-                await SendGameStateUpdate(room);
-                return;
-            }
-        }
-
-        // Verificar si es PEPINEADO
-        var isPepineado = CardService.IsPepineado(cards, room.LastPlayedCards);
-
-        // Agregar cartas a la mesa
-        room.TableCards.AddRange(cards);
-        room.LastPlayedCards = cards;
-        room.LastPlayerId = currentPlayer.ConnectionId;
-
-        // Enviar evento de cartas jugadas
-        var playedCards = new PlayedCards
-        {
-            Cards = cards,
-            PlayerId = currentPlayer.ConnectionId,
-            PlayerName = currentPlayer.Name,
-            IsPepineado = isPepineado
-        };
-
-        await Clients.Group(roomId).SendAsync("CardsPlayed", playedCards);
-
-        // Mover al siguiente turno
-        await MoveToNextTurn(room, isPepineado);
-
-        await SendGameStateUpdate(room);
-    }
-
-    public async Task PassTurn(string roomId)
+        Member(room);
+        var before = room.Winners.Count;
+        var play = logic.Play(room, Context.ConnectionId, ids);
+        await Clients.Group(roomId).SendAsync("CardsPlayed", play);
+        if (play.SkippedPlayerName != null) await Clients.Group(roomId).SendAsync("PlayerSkipped", play.SkippedPlayerName);
+        if (room.Winners.Count > before) await Clients.Group(roomId).SendAsync("PlayerWon", play.PlayerName);
+        await Broadcast(room);
+    });
+    public Task PassTurn(string roomId) => InRoom(roomId, async room =>
     {
-        var room = _roomManager.GetRoom(roomId);
-        if (room == null || !room.IsGameStarted) return;
-
-        var currentPlayer = room.Players[room.CurrentTurnIndex];
-        if (currentPlayer.ConnectionId != Context.ConnectionId) return;
-
-        // Solo se puede pasar si no es la primera jugada
-        if (room.LastPlayedCards.Count == 0) return;
-
-        await MoveToNextTurn(room, false);
-        await SendGameStateUpdate(room);
-    }
-
-    public async Task GetGameState(string roomId)
+        Member(room); logic.Pass(room, Context.ConnectionId); await Broadcast(room);
+    });
+    public Task GetGameState(string roomId) => InRoom(roomId, room => SendState(room, Member(room)));
+    public Task LeaveRoom(string roomId, string playerName) => InRoom(roomId, async room =>
     {
-        var room = _roomManager.GetRoom(roomId);
-        if (room == null) return;
-
-        var player = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
-        if (player != null)
-        {
-            await SendGameStateToPlayer(room, player);
-        }
-    }
-
-    public async Task LeaveRoom(string roomId, string playerName)
+        var p = Member(room);
+        await Groups.RemoveFromGroupAsync(p.ConnectionId, roomId);
+        await Remove(room, p);
+    });
+    private async Task Remove(GameRoom room, Player player)
     {
-        var room = _roomManager.GetRoom(roomId);
-        var player = room?.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
-        
-        if (player != null)
+        if (room.IsGameStarted)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomId);
-            room!.Players.Remove(player);
-            
-            // Si no quedan jugadores, eliminar la sala
-            if (room.Players.Count == 0)
-            {
-                _roomManager.RemoveRoom(roomId);
-            }
-            else
-            {
-                await Clients.Group(roomId).SendAsync("PlayerLeft", player.Name, room.Players.Count);
-                await SendGameStateUpdate(room);
-            }
+            logic.ResetGame(room);
+            room.Notice = $"{player.Name} salió. Volvemos al lobby para una nueva partida.";
         }
+        room.Players.Remove(player);
+        if (room.CreatedBy == player.ConnectionId)
+        {
+            var owner = room.Players.FirstOrDefault(p => p.IsConnected) ?? room.Players.FirstOrDefault();
+            room.CreatedBy = owner?.ConnectionId; room.CreatorName = owner?.Name;
+        }
+        if (room.GameMode != null) room.GameMode = CardService.MakeMode(room.GameMode.DeckCount, room.Players.Count);
+        await Clients.Group(room.Id).SendAsync("PlayerLeft", player.Name, room.Players.Count);
+        await Broadcast(room);
     }
-
-    private async Task MoveToNextTurn(GameRoom room, bool skipNext)
+    private async Task Broadcast(GameRoom room)
     {
-        // Limpiar estado del turno actual
-        room.Players[room.CurrentTurnIndex].IsCurrentTurn = false;
-        room.Players[room.CurrentTurnIndex].IsSkipped = false;
-
-        // Calcular siguiente jugador
-        int nextIndex = room.CurrentTurnIndex;
-        int skipCount = skipNext ? 2 : 1; // PEPINEADO salta 2 jugadores
-
-        for (int i = 0; i < skipCount; i++)
-        {
-            do
-            {
-                nextIndex = (nextIndex + 1) % room.Players.Count;
-            } while (room.Players[nextIndex].HasWon); // Saltar ganadores
-        }
-
-        // Si el siguiente jugador está saltado por PEPINEADO, marcarlo
-        if (skipNext)
-        {
-            room.Players[nextIndex].IsSkipped = true;
-            await Clients.Group(room.Id).SendAsync("PlayerSkipped", room.Players[nextIndex].Name);
-        }
-
-        room.CurrentTurnIndex = nextIndex;
-        room.Players[nextIndex].IsCurrentTurn = true;
+        room.Revision++;
+        foreach (var p in room.Players.Where(p => p.IsConnected)) await SendState(room, p);
     }
-
-    private async Task SendGameStateToPlayer(GameRoom room, Player player)
+    private Task SendState(GameRoom room, Player player) => Clients.Client(player.ConnectionId).SendAsync("GameStateUpdated", new
     {
-        var isCreator = room.CreatedBy == player.ConnectionId;
-        
-        Console.WriteLine($"🔍 DEBUG SendGameStateToPlayer:");
-        Console.WriteLine($"   👤 Jugador: {player.Name} (ConnectionId: {player.ConnectionId})");
-        Console.WriteLine($"   👑 Creador de la sala: {room.CreatedBy}");
-        Console.WriteLine($"   ✅ Es creador: {isCreator}");
-        Console.WriteLine($"   🎯 Modo de juego: {room.GameMode?.DeckCount ?? 0} mazos");
-        Console.WriteLine($"   🎮 Juego iniciado: {room.IsGameStarted}");
-        
-        // Verificar si es una nueva ronda (vuelta completa)
-        var isNewRound = room.LastPlayerId == player.ConnectionId && room.LastPlayedCards.Count > 0;
-        
-        Console.WriteLine($"🔄 DEBUG Nueva Ronda:");
-        Console.WriteLine($"   👤 Jugador actual: {player.Name} (ConnectionId: {player.ConnectionId})");
-        Console.WriteLine($"   🎯 Último jugador: {room.LastPlayerId}");
-        Console.WriteLine($"   🃏 Última jugada: {room.LastPlayedCards.Count} cartas");
-        Console.WriteLine($"   🔄 ¿Es nueva ronda? {isNewRound}");
-        
-        var gameState = new
-        {
-            roomId = room.Id,
-            players = room.Players.Select(p => new 
-            { 
-                name = p.Name, 
-                connectionId = p.ConnectionId,
-                cardCount = p.Hand.Count, // Solo la cantidad, NO la mano completa
-                isCurrentTurn = p.IsCurrentTurn,
-                isSkipped = p.IsSkipped,
-                hasWon = p.HasWon,
-                isConnected = p.IsConnected
-            }).ToList(),
-            tableCards = room.TableCards,
-            currentTurnIndex = room.CurrentTurnIndex,
-            lastPlayedCards = room.LastPlayedCards,
-            lastPlayerId = room.LastPlayerId,
-            isGameStarted = room.IsGameStarted,
-            gameMode = room.GameMode,
-            winners = room.Winners,
-            roundNumber = room.RoundNumber,
-            isRoomCreator = isCreator,
-            yourHand = player.Hand, // Solo la mano del jugador actual
-            isNewRound = isNewRound
-        };
-
-        Console.WriteLine($"📤 Enviando estado a {player.Name} (ConnectionId: {player.ConnectionId})");
-        Console.WriteLine($"👑 Es creador: {isCreator}");
-        Console.WriteLine($"📊 Estado del juego: IsGameStarted={room.IsGameStarted}, Jugadores={room.Players.Count}");
-        Console.WriteLine($"🎴 Mano del jugador {player.Name}: {player.Hand.Count} cartas");
-        Console.WriteLine($"🔍 DEBUG: Enviando isRoomCreator={isCreator} a {player.Name}");
-        
-        // Log detallado de la mano del jugador
-        if (player.Hand.Count > 0)
-        {
-            var handDetails = player.Hand.Take(5).Select(c => $"{c.Value}{c.Suit}").ToList();
-            Console.WriteLine($"   📋 Primeras cartas: {string.Join(", ", handDetails)}");
-        }
-
-        await Clients.Client(player.ConnectionId).SendAsync("GameStateUpdated", gameState);
-    }
-
-    private async Task SendGameStateUpdate(GameRoom room)
-    {
-        foreach (var player in room.Players)
-        {
-            await SendGameStateToPlayer(room, player);
-        }
-    }
+        roomId = room.Id, yourPlayerId = player.ConnectionId, revision = room.Revision,
+        players = room.Players.Select(p => new { name = p.Name, connectionId = p.ConnectionId,
+            cardCount = p.Hand.Count, p.IsConnected, p.IsCurrentTurn, p.IsSkipped, p.HasWon }),
+        tableCards = room.TableCards, currentTurnIndex = room.CurrentTurnIndex,
+        lastPlayedCards = room.LastPlayedCards, lastPlayerId = room.LastPlayerId, lastPlay = room.LastPlay,
+        isGameStarted = room.IsGameStarted, isGameFinished = room.IsGameFinished,
+        gameMode = room.GameMode, winners = room.Winners, roundNumber = room.RoundNumber,
+        isRoomCreator = room.CreatedBy == player.ConnectionId, yourHand = player.Hand,
+        isNewRound = room.FreeLeadPlayerId == player.ConnectionId, notice = room.Notice,
+        isPaused = room.IsGameStarted && room.Players.Any(p => !p.IsConnected)
+    });
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        // Buscar en qué sala estaba el jugador
-        var room = _roomManager.GetRoomByConnectionId(Context.ConnectionId);
-        if (room != null)
+        // Retain private hands briefly; no moves are accepted while a seat reconnects.
+        foreach (var room in manager.GetActiveRooms())
         {
-            var player = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
-            if (player != null)
+            await room.Gate.WaitAsync();
+            try
             {
-                await Groups.RemoveFromGroupAsync(Context.ConnectionId, room.Id);
-                room.Players.Remove(player);
-                
-                // Si no quedan jugadores, eliminar la sala
-                if (room.Players.Count == 0)
-                {
-                    _roomManager.RemoveRoom(room.Id);
-                }
-                else
-                {
-                    await Clients.Group(room.Id).SendAsync("PlayerLeft", player.Name, room.Players.Count);
-                    await SendGameStateUpdate(room);
-                }
+                var p = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
+                if (p == null) continue;
+                p.IsConnected = false;
+                await Broadcast(room);
+                var id = p.ConnectionId;
+                var clients = hubContext.Clients;
+                _ = ExpireSeat(room, id, clients);
             }
+            finally { room.Gate.Release(); }
         }
-
         await base.OnDisconnectedAsync(exception);
+    }
+    private static async Task ExpireSeat(GameRoom room, string id, IHubClients clients)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(60));
+        await room.Gate.WaitAsync();
+        try
+        {
+            var p = room.Players.FirstOrDefault(p => p.ConnectionId == id && !p.IsConnected);
+            if (p == null) return;
+            if (room.IsGameStarted)
+            {
+                new GameLogicService().ResetGame(room);
+                room.Notice = $"{p.Name} no volvió a conectarse. La partida fue cancelada.";
+            }
+            room.Players.Remove(p);
+            if (room.CreatedBy == id)
+            {
+                var owner = room.Players.FirstOrDefault(x => x.IsConnected) ?? room.Players.FirstOrDefault();
+                room.CreatedBy = owner?.ConnectionId; room.CreatorName = owner?.Name;
+            }
+            room.Revision++;
+            // Clients fetch their private snapshot after this notification.
+            await clients.Group(room.Id).SendAsync("PlayerLeft", p.Name, room.Players.Count);
+        }
+        finally { room.Gate.Release(); }
     }
 }

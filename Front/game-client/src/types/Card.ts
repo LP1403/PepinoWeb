@@ -32,6 +32,12 @@ export interface GameRoom {
 }
 
 export interface GameState {
+    yourPlayerId: string;
+    revision: number;
+    lastPlay: PlayedCards | null;
+    isGameFinished: boolean;
+    isPaused: boolean;
+    notice: string | null;
     roomId: string;
     players: Player[];
     tableCards: Card[];
@@ -39,7 +45,7 @@ export interface GameState {
     lastPlayedCards: Card[];
     lastPlayerId: string;
     isGameStarted: boolean;
-    gameMode: GameMode;
+    gameMode: GameMode | null;
     winners: string[];
     roundNumber: number;
     yourHand: Card[]; // Mano privada del jugador actual
@@ -54,6 +60,10 @@ export interface GameMode {
 }
 
 export interface PlayedCards {
+    sequence: number;
+    skippedPlayerId?: string;
+    skippedPlayerName?: string;
+    isWildcard?: boolean;
     cards: Card[];
     playerId: string;
     playerName: string;

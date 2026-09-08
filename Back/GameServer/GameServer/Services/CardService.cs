@@ -1,242 +1,56 @@
-﻿using GameServer.Models;
+using GameServer.Models;
 
-namespace GameServer.Services
+namespace GameServer.Services;
+
+public static class CardService
 {
-    public static class CardService
+    public static List<Card> CreateSpanishDeck() => new[] { "♠", "♥", "♦", "♣" }
+        .SelectMany(s => Enumerable.Range(1, 12).Select(v => new Card(s, v))).ToList();
+
+    public static List<Card> CreateMultipleDecks(int count)
     {
-        private static readonly string[] Suits = { "♠", "♥", "♦", "♣" };
-        private static readonly int[] Values = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }; // A=1, J=11, Q=12, K=13
-
-        public static List<Card> CreateSpanishDeck()
-        {
-            var deck = new List<Card>();
-            foreach (var suit in Suits)
-            {
-                foreach (var value in Values)
-                {
-                    deck.Add(new Card(suit, value));
-                }
-            }
-            Console.WriteLine($"🃏 Mazo español creado: {deck.Count} cartas");
-            return deck;
-        }
-
-        public static List<Card> CreateMultipleDecks(int deckCount)
-        {
-            var allCards = new List<Card>();
-            for (int i = 0; i < deckCount; i++)
-            {
-                var deck = CreateSpanishDeck();
-                foreach (var card in deck)
-                {
-                    card.Id = $"{card.Id}-deck{i}";
-                }
-                allCards.AddRange(deck);
-            }
-            Console.WriteLine($"🃏 {deckCount} mazos creados: {allCards.Count} cartas totales");
-            return allCards;
-        }
-
-        // Método de prueba para verificar cartas
-        public static void TestCardGeneration()
-        {
-            Console.WriteLine("🧪 Probando generación de cartas...");
-            var deck = CreateSpanishDeck();
-            Console.WriteLine($"📊 Mazo generado: {deck.Count} cartas");
-            
-            if (deck.Count > 0)
-            {
-                var sampleCards = deck.Take(5).Select(c => $"{c.Value}{c.Suit}").ToList();
-                Console.WriteLine($"📋 Muestra de cartas: {string.Join(", ", sampleCards)}");
-            }
-            
-            var shuffled = ShuffleDeck(deck);
-            Console.WriteLine($"🔀 Mazo barajado: {shuffled.Count} cartas");
-            
-            var (hands, remaining) = DealAllCards(shuffled, 2);
-            Console.WriteLine($"🎴 Repartido entre 2 jugadores: {hands.Count} manos, {remaining.Count} restantes");
-            
-            for (int i = 0; i < hands.Count; i++)
-            {
-                Console.WriteLine($"👤 Jugador {i + 1}: {hands[i].Count} cartas");
-                if (hands[i].Count > 0)
-                {
-                    var sample = hands[i].Take(3).Select(c => $"{c.Value}{c.Suit}").ToList();
-                    Console.WriteLine($"   📋 Muestra: {string.Join(", ", sample)}");
-                }
-            }
-        }
-
-        public static List<Card> ShuffleDeck(List<Card> deck)
-        {
-            var shuffled = new List<Card>(deck);
-            var random = new Random();
-            for (int i = shuffled.Count - 1; i > 0; i--)
-            {
-                int j = random.Next(i + 1);
-                var temp = shuffled[i];
-                shuffled[i] = shuffled[j];
-                shuffled[j] = temp;
-            }
-            return shuffled;
-        }
-
-        public static GameMode CalculateGameMode(int playerCount)
-        {
-            int deckCount, maxWinners;
-
-            if (playerCount <= 4)
-            {
-                deckCount = Math.Min(2, Math.Max(1, (int)Math.Ceiling(40.0 / playerCount)));
-                maxWinners = 2;
-            }
-            else
-            {
-                deckCount = Math.Min(3, Math.Max(1, (int)Math.Ceiling(40.0 / playerCount)));
-                maxWinners = 3;
-            }
-
-            int totalCards = deckCount * 40;
-            int cardsPerPlayer = totalCards / playerCount;
-
-            return new GameMode
-            {
-                DeckCount = deckCount,
-                MaxWinners = maxWinners,
-                CardsPerPlayer = cardsPerPlayer
-            };
-        }
-
-        public static (List<List<Card>> hands, List<Card> remainingDeck) DealAllCards(List<Card> deck, int numPlayers)
-        {
-            var hands = new List<List<Card>>();
-            for (int i = 0; i < numPlayers; i++)
-            {
-                hands.Add(new List<Card>());
-            }
-
-            var remainingDeck = new List<Card>(deck);
-            int currentPlayer = 0;
-
-            // Repartir todas las cartas equitativamente (1 carta por jugador hasta agotar el mazo)
-            while (remainingDeck.Count > 0)
-            {
-                var card = remainingDeck[remainingDeck.Count - 1];
-                remainingDeck.RemoveAt(remainingDeck.Count - 1);
-                hands[currentPlayer].Add(card);
-                currentPlayer = (currentPlayer + 1) % numPlayers;
-            }
-
-            Console.WriteLine($"🎴 Cartas repartidas (total: {deck.Count} cartas):");
-            for (int i = 0; i < hands.Count; i++)
-            {
-                Console.WriteLine($"   👤 Jugador {i}: {hands[i].Count} cartas");
-                if (hands[i].Count > 0)
-                {
-                    var sample = hands[i].Take(3).Select(c => $"{c.Value}{c.Suit}").ToList();
-                    Console.WriteLine($"      📋 Muestra: {string.Join(", ", sample)}");
-                }
-            }
-
-            return (hands, remainingDeck);
-        }
-
-        public static int GetCardValue(Card card)
-        {
-            if (card.Value == 2) return 0; // Comodín
-            if (card.Value == 1) return 13; // El 1 es el más alto
-            return card.Value; // 3-12 mantienen su valor
-        }
-
-        public static bool ValidatePlay(List<Card> selectedCards, List<Card> lastPlayedCards, bool isFirstPlay, bool isNewRound)
-        {
-            Console.WriteLine($"🔍 DEBUG CardService.ValidatePlay:");
-            Console.WriteLine($"   🃏 Cartas seleccionadas: {selectedCards.Count} cartas");
-            Console.WriteLine($"   🎮 Primera jugada: {isFirstPlay}");
-            Console.WriteLine($"   🔄 Nueva ronda: {isNewRound}");
-            Console.WriteLine($"   📋 Última jugada: {lastPlayedCards?.Count ?? 0} cartas");
-            
-            if (selectedCards.Count == 0) return false;
-
-            // Verificar que todas las cartas tengan el mismo valor
-            var firstValue = selectedCards[0].Value;
-            if (!selectedCards.All(c => c.Value == firstValue)) return false;
-
-            // Si es la primera jugada de la partida, cualquier carta es válida
-            if (isFirstPlay || lastPlayedCards == null || lastPlayedCards.Count == 0) 
-            {
-                Console.WriteLine($"   ✅ Primera jugada - Válida");
-                return true;
-            }
-
-            // Si es una nueva ronda (vuelta completa), cualquier carta es válida
-            if (isNewRound) 
-            {
-                Console.WriteLine($"   ✅ Nueva ronda - Válida (juega libremente)");
-                return true;
-            }
-
-            // Comodín (2): siempre jugable, cualquier cantidad — reinicia la jugada libre
-            if (firstValue == 2)
-            {
-                Console.WriteLine($"   ✅ Comodín (2) - Válida (jugada libre / reinicia)");
-                return true;
-            }
-
-            // Verificar que la cantidad de cartas sea la misma
-            if (selectedCards.Count != lastPlayedCards.Count) 
-            {
-                Console.WriteLine($"   ❌ Cantidad incorrecta: {selectedCards.Count} vs {lastPlayedCards.Count}");
-                return false;
-            }
-
-            // Verificar que el valor sea mayor O IGUAL (para PEPINEADO)
-            var lastValue = GetCardValue(lastPlayedCards[0]);
-            var currentValue = GetCardValue(selectedCards[0]);
-            
-            Console.WriteLine($"   🎯 Valor actual: {currentValue} vs Valor anterior: {lastValue}");
-            Console.WriteLine($"   ✅ ¿Es válida? {currentValue >= lastValue}");
-
-            return currentValue >= lastValue;
-        }
-
-        public static bool IsPepineado(List<Card> selectedCards, List<Card> lastPlayedCards)
-        {
-            if (lastPlayedCards == null || lastPlayedCards.Count == 0) return false;
-            if (selectedCards.Count != lastPlayedCards.Count) return false;
-
-            var selectedValue = selectedCards[0].Value;
-            var lastValue = lastPlayedCards[0].Value;
-
-            return selectedValue == lastValue && selectedCards.All(c => c.Value == selectedValue);
-        }
-
-        public static int FindPepinoOroPlayer(List<List<Card>> hands)
-        {
-            Console.WriteLine($"🥒 Buscando Pepino de Oro (3♦) entre {hands.Count} jugadores...");
-            
-            for (int i = 0; i < hands.Count; i++)
-            {
-                Console.WriteLine($"🔍 Revisando mano del jugador {i} ({hands[i].Count} cartas):");
-                var pepinoOroCards = hands[i].Where(c => c.IsPepinoOro).ToList();
-                
-                // Log de todas las cartas del jugador para debugging
-                var allCards = hands[i].Select(c => $"{c.Value}{c.Suit}").ToList();
-                Console.WriteLine($"   📋 Todas las cartas: {string.Join(", ", allCards)}");
-                
-                if (pepinoOroCards.Any())
-                {
-                    Console.WriteLine($"🥒 ¡ENCONTRADO! Jugador {i} tiene {pepinoOroCards.Count} Pepino(s) de Oro: {string.Join(", ", pepinoOroCards.Select(c => $"{c.Value}{c.Suit}"))}");
-                    return i;
-                }
-                else
-                {
-                    Console.WriteLine($"   ❌ Jugador {i} NO tiene Pepino de Oro");
-                }
-            }
-            
-            Console.WriteLine($"🥒 No se encontró Pepino de Oro, iniciando con jugador 0");
-            return 0;
-        }
+        if (count is < 1 or > 3) throw new ArgumentOutOfRangeException(nameof(count));
+        return Enumerable.Range(0, count).SelectMany(_ => CreateSpanishDeck()).ToList();
     }
+
+    public static List<Card> ShuffleDeck(List<Card> cards)
+    {
+        var result = cards.ToList();
+        for (int i = result.Count - 1; i > 0; i--)
+        {
+            var j = System.Security.Cryptography.RandomNumberGenerator.GetInt32(i + 1);
+            (result[i], result[j]) = (result[j], result[i]);
+        }
+        return result;
+    }
+
+    public static GameMode CalculateGameMode(int players) => MakeMode(1, players);
+    public static GameMode MakeMode(int decks, int players) => new()
+    {
+        DeckCount = decks, MaxWinners = players <= 4 ? 2 : 3,
+        CardsPerPlayer = decks * 48 / Math.Max(1, players)
+    };
+
+    public static (List<List<Card>> hands, List<Card> remainingDeck) DealAllCards(List<Card> deck, int players)
+    {
+        if (players < 1) throw new ArgumentOutOfRangeException(nameof(players));
+        var hands = Enumerable.Range(0, players).Select(_ => new List<Card>()).ToList();
+        for (int i = 0; i < deck.Count; i++) hands[i % players].Add(deck[i]);
+        return (hands, new());
+    }
+
+    public static int GetCardValue(Card card) => card.Value == 2 ? 0 : card.Value == 1 ? 13 : card.Value;
+    public static bool ValidatePlay(List<Card> cards, List<Card>? last, bool first, bool newRound = false)
+    {
+        if (cards.Count == 0 || cards.Any(c => c.Value is < 1 or > 12) ||
+            cards.Any(c => c.Value != cards[0].Value)) return false;
+        if (first || newRound || last == null || last.Count == 0 || cards[0].Value == 2) return true;
+        return cards.Count == last.Count && GetCardValue(cards[0]) >= GetCardValue(last[0]);
+    }
+    public static bool IsPepineado(List<Card> cards, List<Card>? last) =>
+        cards.Count > 0 && cards[0].Value != 2 && last is { Count: > 0 } && cards.Count == last.Count &&
+        cards.All(c => c.Value == last[0].Value);
+    public static int FindPepinoOroPlayer(List<List<Card>> hands) =>
+        Math.Max(0, hands.FindIndex(h => h.Any(c => c.Suit == "♦" && c.Value == 3)));
+    public static void TestCardGeneration() { _ = CreateSpanishDeck(); }
 }
