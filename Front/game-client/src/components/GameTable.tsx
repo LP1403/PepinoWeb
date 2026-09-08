@@ -22,7 +22,7 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
             <section className="lobby-panel">
                 <span className="eyebrow">{state?.isGameFinished ? 'PARTIDA TERMINADA' : 'ANTES DE REPARTIR'}</span>
                 <h1>{state?.isGameFinished ? '¡Bien jugado!' : 'Tu mesa, tus amigos.'}</h1>
-                <div className="lobby-room-code"><span>SALA</span><strong>{roomId}</strong><button onClick={() => { void navigator.clipboard?.writeText(roomId); }}>COPIAR CÓDIGO</button><button onClick={() => void shareRoom()}>COMPARTIR</button></div>
+                <div className="lobby-room-code"><span>SALA</span><strong>{roomId}</strong><button onClick={() => void shareRoom()}>COMPARTIR SALA</button></div>
                 {!state ? <p role="status">{game.status}</p> : <>
                     {state.notice && <p className="lobby-notice">{state.notice}</p>}
                     {state.isGameFinished && <ol className="winners-list">{state.winners.map(id => <li key={id}>{state.players.find(p => p.connectionId === id)?.name}</li>)}</ol>}
