@@ -8,10 +8,14 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(builder =>
     {
-        builder.AllowAnyHeader()
+        var origins = Environment.GetEnvironmentVariable("PEPINO_FRONTEND_ORIGINS")
+            ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ?? new[] { "http://localhost:5174", "http://localhost:5173" };
+
+        builder.WithOrigins(origins)
+               .AllowAnyHeader()
                .AllowAnyMethod()
-               .AllowCredentials()
-               .SetIsOriginAllowed(_ => true); // Permitir cualquier origen en desarrollo
+               .AllowCredentials();
     });
 });
 

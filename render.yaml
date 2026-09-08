@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: pepino-api
+    runtime: dotnet
+    rootDir: Back/GameServer/GameServer
+    buildCommand: dotnet publish -c Release -o out
+    startCommand: dotnet out/GameServer.dll --urls http://0.0.0.0:$PORT
+    envVars:
+      - key: PEPINO_FRONTEND_ORIGINS
+        sync: false
+
+  - type: web
+    name: pepino-web
+    runtime: static
+    rootDir: Front/game-client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_GAME_HUB_URL
+        sync: false
