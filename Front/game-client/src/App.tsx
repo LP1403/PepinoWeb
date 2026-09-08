@@ -3,10 +3,11 @@ import GameTable from './components/GameTable';
 import Lobby from './components/Lobby';
 import DemoGame from './components/DemoGame';
 import './App.css';
+import { PLAYER_NAME_KEY } from './config/player';
 
 export default function App() {
     const [session, setSession] = useState<{ room: string; name: string } | null>(null);
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('demo')) return <DemoGame />;
     return session ? <GameTable roomId={session.room} playerName={session.name} onLeave={() => setSession(null)} />
-        : <Lobby onJoin={(room, name) => setSession({ room, name })} />;
+        : <Lobby onJoin={(room, name) => { localStorage.setItem(PLAYER_NAME_KEY, name); setSession({ room, name }); }} />;
 }

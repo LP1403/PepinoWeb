@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import SceneView from './SceneView';
 import './GameTable3D.css';
+import { PLAYER_NAME_KEY } from '../config/player';
 export default function Lobby({ onJoin }: { onJoin: (room: string, name: string) => void }) {
-    const [name, setName] = useState('');
-    const [room, setRoom] = useState('');
+    const params = new URLSearchParams(location.search);
+    const linkedRoom = params.get('room') ?? params.get('sala') ?? '';
+    const [name, setName] = useState(() => localStorage.getItem(PLAYER_NAME_KEY) ?? '');
+    const [room, setRoom] = useState(linkedRoom.toUpperCase().replace(/[^A-Z0-9_-]/g,''));
     return <main className="pepino-game lobby-screen"><SceneView />
         <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div><span className="alpha-tag">ALPHA · WEB 3D</span></header>
         <section className="lobby-panel entrance-panel"><span className="eyebrow">HECHO PARA JUGAR ENTRE AMIGOS</span><h1>Una mesa.<br/>Muchas revanchas.</h1><p>El juego de cartas donde la misma jugada<br/>puede dejar a otro sin turno.</p>

@@ -10,10 +10,15 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
     const state = game.state;
     const connected = game.status === 'Conectado';
     async function leave() { await game.leave(); onLeave(); }
+    async function shareRoom() {
+        const url = `${location.origin}/?room=${encodeURIComponent(roomId)}`;
+        if (navigator.share) await navigator.share({ title: 'Mesa de Pepino', text: `${playerName} te invitó a jugar Pepino`, url });
+        else { await navigator.clipboard.writeText(url); alert('Link de sala copiado.'); }
+    }
     return <>
         {state?.isGameStarted ? <GameTable3D state={state} busy={game.busy} connected={connected} onPlay={game.play} onPass={game.pass} onLeave={() => setLeaving(true)} /> :
         <main className="pepino-game lobby-screen"><SceneView />
-            <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div><button className="secondary-button" onClick={() => void leave()}>SALIR</button></header>
+            <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div><div className="top-actions"><button className="secondary-button" onClick={() => void shareRoom()}>COMPARTIR SALA</button><button className="secondary-button" onClick={() => void leave()}>SALIR</button></div></header>
             <section className="lobby-panel">
                 <span className="eyebrow">{state?.isGameFinished ? 'PARTIDA TERMINADA' : 'ANTES DE REPARTIR'}</span>
                 <h1>{state?.isGameFinished ? '¡Bien jugado!' : 'Tu mesa, tus amigos.'}</h1>
