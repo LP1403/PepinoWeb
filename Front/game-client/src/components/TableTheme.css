@@ -1,0 +1,49 @@
+/* Warm table theme. Shared by the entrance, room and live match. */
+.pepino-game { background:#171713; color:#f4eddf; }
+.pepino-game::before,.pepino-game::after { display:none; }
+.wordmark { color:#f4eddf; text-shadow:0 2px 6px #0008; }
+.room-tag,.top-actions button,.audio-settings summary,.alpha-tag { background:#151d18d9; border-color:#d7c6a230; color:#f4eddf; }
+.seat-name,.turn-pill { background:#14251edd; color:#ece5d5; }
+.avatar { background:linear-gradient(140deg,#d6c2a0,#9b805c); color:#332a20; border-color:#d7c5a8; box-shadow:0 6px 16px #0005; }
+.active .avatar { outline-color:#c3b47c; outline-width:2px; }
+.seat-count { background:#253f35; border-color:#ded3ba; }
+.seat-badge small { color:#e1d4be; text-shadow:0 1px 4px #000; }
+.primary-button { background:linear-gradient(#4b7045,#345431); color:#fff8e8; border:1px solid #829468; box-shadow:0 4px 12px #0003; }
+.secondary-button { background:#202a24ef; color:#e8dfcf; border:1px solid #c9b79055; }
+.hand-helper,.hand-navigation,.clear-selection { color:#e5d7bd; text-shadow:0 1px 3px #000; }
+.stack-count { color:#e4d6b8; }
+.hand-navigation button { background:#24352b; color:#e4d6b8; border-color:#a595724d; }
+.pile-caption { top:57%; background:#18261ed9; color:#e3d7bd; border:1px solid #b9a88033; border-radius:14px; padding:5px 12px; }
+.turn-pill { top:63%; }
+.turn-pill.your-turn { background:#385135; color:#fff4ca; box-shadow:0 0 18px #c7b37020; }
+.lobby-panel { color:#ece4d4; background:#131b17ec; border-color:#bba78335; box-shadow:0 20px 80px #0006; border-radius:18px; }
+.eyebrow,.lobby-description,.lobby-section-heading span,.lobby-players small,.entrance-panel>p,.rules,.entrance-panel form>small { color:#b9b8a6; }
+.lobby-room-code,.lobby-players li,.deck-picker button,.entrance-panel input { background:#243127; color:#ece4d4; border-color:#aa9a7833; }
+.lobby-room-code button { color:#d5c59c; }
+.deck-picker button[aria-pressed=true] { background:#3d5838; border-color:#aaaf77; }
+.lobby-notice { background:#344132; }
+.rules { border-color:#aa9a7833; }
+.lobby-slogan { top:27%; transform:none; }
+.lobby-slogan>span { font-family:Georgia,serif; font-size:clamp(28px,3.8vw,56px); letter-spacing:-1px; color:#dbcfaf; text-shadow:0 3px 16px #000; }
+.lobby-slogan p { color:#bdb69f; font-weight:400; }
+.game-modal { background:#1e2b23; color:#eee5d4; border-color:#aa9a7855; }
+.game-modal::backdrop { background:#090e0bc9; }
+.audio-panel { background:#1e2b23; }
+.play-controls { left:50%; right:auto; bottom:35%; transform:translateX(-50%); flex-direction:row; width:auto; gap:10px; }
+.play-controls>button { min-width:110px; }
+.play-controls .clear-selection { position:absolute; top:45px; left:50%; transform:translateX(-50%); white-space:nowrap; }
+.hand-area { --card-h:clamp(120px,23vh,215px); }
+.lobby-seating { position:absolute; left:52%; right:4%; top:48%; height:43%; z-index:2; }
+.lobby-place { position:absolute; transform:translate(-50%,-50%); display:flex; align-items:center; gap:9px; padding:8px 12px; max-width:160px; background:#142119e8; border:1px solid #c2b08b44; border-radius:30px; font-size:12px; }
+.lobby-place span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lobby-place .mini-avatar { width:30px; height:30px; border-radius:50%; }
+@media(max-width:600px) {
+ .pile-caption { top:53%; font-size:9px; }
+ .turn-pill { top:58%; }
+ .play-controls { top:63%; bottom:auto; }
+ .hand-area { --card-h:clamp(108px,19dvh,164px); }
+ .local-seat { top:69%; left:10%; }
+ .hand-helper { padding:0 4px; margin:0; height:24px; }
+ .lobby-seating { display:none; }
+ .lobby-panel { background:#131b17f2; }
+}

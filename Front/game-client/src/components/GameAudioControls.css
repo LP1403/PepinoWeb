@@ -1,0 +1,10 @@
+.audio-settings { position:relative; }
+.audio-settings summary { list-style:none; cursor:pointer; border:1px solid #c5f1ff70; background:#15577170; color:#fff; padding:9px 12px; border-radius:20px; font-size:10px; font-weight:800; }
+.audio-settings summary::-webkit-details-marker { display:none; }
+.audio-settings summary:focus-visible { outline:2px solid #ffe4a1; outline-offset:3px; }
+.audio-panel { position:absolute; top:calc(100% + 10px); right:0; width:230px; max-width:80vw; padding:18px; background:#183e49; border:1px solid #ffffff30; border-radius:16px; box-shadow:0 12px 30px #0004; color:#fff; }
+.audio-panel strong { font-size:13px; }
+.audio-panel label { display:block; margin-top:18px; font-size:12px; }
+.audio-panel label span { display:flex; justify-content:space-between; }
+.audio-panel input { width:100%; margin:10px 0; accent-color:#e1c98e; min-height:24px; }
+.audio-panel button { width:100%; margin-top:10px; }

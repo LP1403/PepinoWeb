@@ -6,6 +6,7 @@ import { cardImage } from '../game3d/cardArt';
 import { seatPositions } from '../game3d/layout';
 import SceneView from './SceneView';
 import GameModal from './GameModal';
+import GameAudioControls from './GameAudioControls';
 import './GameTable3D.css';
 
 export interface GameTable3DProps {
@@ -24,8 +25,8 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     const [drag, setDrag] = useState<{ x: number; y: number; cards: Card[] } | null>(null);
     const gesture = useRef<{ id: string; x: number; y: number; dragging: boolean } | null>(null);
     const suppressClick = useRef(false);
-    const [sound, setSound] = useState(false);
-    const audio = useRef<AudioContext | null>(null);
+
+
     const previousPlay = useRef(state.lastPlay?.sequence ?? 0);
     const [effect, setEffect] = useState('');
     const scroll = useRef<HTMLDivElement>(null);
@@ -56,16 +57,10 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         if (event.isPepineado) setEffect(event.skippedPlayerId === state.yourPlayerId ? `${event.playerName} te pepineó` : `${event.playerName} pepineó a ${event.skippedPlayerName}`);
         else if (event.isWildcard) setEffect(`${event.playerName} jugó un comodín`);
         else setEffect('');
-        if (sound && audio.current) {
-            const context = audio.current, oscillator = context.createOscillator(), gain = context.createGain();
-            oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(580, context.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(240, context.currentTime + .13);
-            gain.gain.setValueAtTime(.06, context.currentTime); gain.gain.exponentialRampToValueAtTime(.001, context.currentTime + .16);
-            oscillator.connect(gain); gain.connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + .17);
-        }
+
         const timer = setTimeout(() => setEffect(''), 2600); return () => clearTimeout(timer);
-    }, [state.lastPlay, state.yourPlayerId, sound]);
-    useEffect(() => () => { void audio.current?.close(); }, []);
+    }, [state.lastPlay?.sequence, state.yourPlayerId]);
+
     function toggle(id: string) {
         if (suppressClick.current) { suppressClick.current = false; return; }
         if (!myTurn || busy) return;
@@ -98,7 +93,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         <SceneView opponents={opponents} play={state.lastPlay} />
         <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div>
             <div className="room-tag">SALA <b>{state.roomId}</b><span>RONDA {state.roundNumber}</span></div>
-            <div className="top-actions"><button aria-label={sound ? 'Silenciar sonidos' : 'Activar sonidos'} onClick={() => { if (!audio.current) audio.current = new AudioContext(); void audio.current.resume(); setSound(!sound); }}>{sound ? 'SONIDO ON' : 'SONIDO OFF'}</button><button onClick={onLeave}>SALIR</button></div>
+            <div className="top-actions"><GameAudioControls state={state} /><button onClick={onLeave}>SALIR</button></div>
         </header>
         {opponents.map((p,i) => <div key={p.connectionId} className={`seat-badge seat-${i % 4} ${p.isCurrentTurn ? 'active' : ''}`} style={{ left: `${seats[i].avatarX * 100}%`, top: `${seats[i].avatarY * 100}%` }} data-testid="opponent">
             <div className="avatar">{p.name.slice(0,2).toUpperCase()}<span className="seat-count">{p.hasWon ? '★' : p.cardCount}</span></div>

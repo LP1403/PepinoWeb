@@ -5,15 +5,15 @@ export function seatPositions(count: number, portrait = false): SeatPosition[] {
         rotation: (i % 4 - 1.5) * .08,
         avatarX: (i % 4 + .5) / 4, avatarY: .115 + Math.floor(i / 4) * .18
     }));
-    if (count === 1) return [{ x: .5, y: .22, rotation: 0, avatarX: .5, avatarY: .16 }];
+    if (count === 1) return [{ x: .5, y: .29, rotation: 0, avatarX: .5, avatarY: .15 }];
     if (count === 2) return [
         { x: .24, y: .29, rotation: -.55, avatarX: .1, avatarY: .24 },
         { x: .76, y: .29, rotation: .55, avatarX: .9, avatarY: .24 }
     ];
     if (count === 3) return [
-        { x: .22, y: .40, rotation: -.65, avatarX: .1, avatarY: .30 },
-        { x: .5, y: .16, rotation: 0, avatarX: .5, avatarY: .13 },
-        { x: .78, y: .40, rotation: .65, avatarX: .9, avatarY: .30 }
+        { x: .22, y: .38, rotation: -.3, avatarX: .14, avatarY: .25 },
+        { x: .5, y: .27, rotation: 0, avatarX: .5, avatarY: .14 },
+        { x: .78, y: .38, rotation: .3, avatarX: .86, avatarY: .25 }
     ];
     return Array.from({ length: count }, (_, i) => {
         const a = Math.PI * (.07 + .86 * i / Math.max(1, count - 1));

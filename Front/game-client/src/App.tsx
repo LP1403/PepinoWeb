@@ -4,6 +4,7 @@ import Lobby from './components/Lobby';
 import DemoGame from './components/DemoGame';
 import './App.css';
 import { PLAYER_NAME_KEY } from './config/player';
+import './components/TableTheme.css';
 
 export default function App() {
     const [session, setSession] = useState<{ room: string; name: string } | null>(null);

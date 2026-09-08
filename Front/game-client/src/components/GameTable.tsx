@@ -17,7 +17,7 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
     }
     return <>
         {state?.isGameStarted ? <GameTable3D state={state} busy={game.busy} connected={connected} onPlay={game.play} onPass={game.pass} onLeave={() => setLeaving(true)} /> :
-        <main className="pepino-game lobby-screen"><SceneView />
+        <main className="pepino-game lobby-screen"><SceneView lobby />
             <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div></header>
             <section className="lobby-panel">
                 <span className="eyebrow">{state?.isGameFinished ? 'PARTIDA TERMINADA' : 'ANTES DE REPARTIR'}</span>
@@ -37,6 +37,10 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
                     <button className="lobby-leave" onClick={() => void leave()}>SALIR DE LA SALA</button>
                 </section>
             <div className="lobby-slogan"><span>UN COMODÍN.<br/>OTRA OPORTUNIDAD.</span><p>Jugá tus cartas. Cambiá la ronda.</p></div>
+            <div className="lobby-seating" aria-label="Asientos de la mesa">{state?.players.map((p,i) => {
+                const angle = Math.PI * 2 * i / state.players.length - Math.PI / 2;
+                return <div className="lobby-place" key={p.connectionId} style={{left:`${50+Math.cos(angle)*38}%`,top:`${50+Math.sin(angle)*37}%`}}><span className="mini-avatar">{p.name.slice(0,2).toUpperCase()}</span><span>{p.name}{p.connectionId===state.yourPlayerId?' (vos)':''}</span></div>;
+            })}</div>
         </main>}
         {!connected && state && <div className="connection-banner" role="status">{game.status}</div>}
         {game.error && <div className="error-toast" role="alert"><span>{game.error}</span><button onClick={game.clearError} aria-label="Cerrar error">×</button></div>}
