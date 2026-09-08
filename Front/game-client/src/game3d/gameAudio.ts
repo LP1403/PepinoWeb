@@ -9,7 +9,7 @@ export function loadAudioSettings(): AudioSettings {
     } catch { return { music: .22, effects: .35 }; }
 }
 
-// Original, quiet ambient score: slow extended chords and a sparse pentatonic melody.
+// Original downtempo ambience: warm pads, rounded bass and brushed percussion.
 // Generated locally, with no downloads, external tracks or looping-file seams.
 export class GameAudio {
     private context: AudioContext | null = null;
@@ -19,7 +19,8 @@ export class GameAudio {
     private nextBar = 0;
     private bar = 0;
     private disposed = false;
-    private nodes = new Set<OscillatorNode>();
+    private nodes = new Set<AudioScheduledSourceNode>();
+    private noise: AudioBuffer | null = null;
     private settings: AudioSettings;
     constructor(settings: AudioSettings) { this.settings = settings; }
     async unlock() {
@@ -65,12 +66,41 @@ export class GameAudio {
         if (!ctx || ctx.state !== 'running' || !this.music || document.hidden) return;
         if (this.nextBar < ctx.currentTime) this.nextBar = ctx.currentTime + .1;
         if (this.nextBar > ctx.currentTime + .4) return;
-        const chords = [[48, 55, 59, 62], [45, 52, 55, 59], [41, 48, 52, 57], [43, 50, 57, 60]];
-        const melody = [[72, 76, 79], [76, 74, 71], [69, 72, 76], [74, 71, 67]];
-        const index = this.bar++ % 4;
-        chords[index].forEach((note, i) => this.tone(note, this.nextBar + i * .09, 4.9, .027, this.music!, .65));
-        melody[index].forEach((note, i) => this.tone(note, this.nextBar + .75 + i * 1.5, 1.9, .025, this.music!, .035));
-        this.nextBar += 5; // 48 BPM, four beats per bar.
+        const beat = 60 / 82;
+        const chords = [[57,60,64,67], [53,57,60,64], [48,55,59,62], [55,59,62,69]];
+        const roots = [33,29,36,31];
+        const bar = this.bar++, index = Math.floor(bar / 2) % 4;
+        const at = this.nextBar;
+        // Long attacks, no piano-like lead or bright arpeggio.
+        if (bar % 2 === 0) chords[index].forEach((note,i) => this.tone(note,at+i*.025,beat*8.5,.024,this.music!,1.3));
+        [0,1.75,2.5].forEach((step,i) => this.tone(roots[index]+(i===2?12:0),at+step*beat,beat*.9,.065,this.music!,.045));
+        [0,2].forEach(step => this.kick(at+step*beat));
+        [1,3].forEach(step => this.brush(at+step*beat,.12,.032,1500));
+        for(let i=0;i<8;i++) this.brush(at+(i*.5+(i%2?.045:0))*beat,.055,i%2?.012:.008,4300);
+        this.nextBar += beat*4;
+    }
+    private kick(at: number) {
+        const ctx=this.context!, oscillator=ctx.createOscillator(), gain=ctx.createGain();
+        oscillator.frequency.setValueAtTime(105,at); oscillator.frequency.exponentialRampToValueAtTime(48,at+.16);
+        gain.gain.setValueAtTime(0,at); gain.gain.linearRampToValueAtTime(.09,at+.008); gain.gain.exponentialRampToValueAtTime(.0001,at+.24);
+        oscillator.connect(gain); gain.connect(this.music!); this.nodes.add(oscillator);
+        oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();this.nodes.delete(oscillator);};
+        oscillator.start(at); oscillator.stop(at+.26);
+    }
+    private brush(at: number, duration: number, volume: number, frequency: number) {
+        const ctx=this.context!;
+        if(!this.noise) {
+            this.noise=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*.25),ctx.sampleRate);
+            const data=this.noise.getChannelData(0);
+            let seed=193;
+            for(let i=0;i<data.length;i++) { seed=(1664525*seed+1013904223)>>>0; data[i]=seed/2147483648-1; }
+        }
+        const source=ctx.createBufferSource(), filter=ctx.createBiquadFilter(), gain=ctx.createGain();
+        source.buffer=this.noise; filter.type='bandpass';filter.frequency.value=frequency;filter.Q.value=.6;
+        gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(volume,at+.004);gain.gain.exponentialRampToValueAtTime(.0001,at+duration);
+        source.connect(filter);filter.connect(gain);gain.connect(this.music!);this.nodes.add(source);
+        source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();this.nodes.delete(source);};
+        source.start(at);source.stop(at+duration+.01);
     }
     cue(cue: SoundCue) {
         if (!this.context || this.context.state !== 'running' || !this.effects || document.hidden) return;

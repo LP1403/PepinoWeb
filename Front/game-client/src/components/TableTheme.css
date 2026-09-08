@@ -13,7 +13,7 @@
 .hand-helper,.hand-navigation,.clear-selection { color:#e5d7bd; text-shadow:0 1px 3px #000; }
 .stack-count { color:#e4d6b8; }
 .hand-navigation button { background:#24352b; color:#e4d6b8; border-color:#a595724d; }
-.pile-caption { top:57%; background:#18261ed9; color:#e3d7bd; border:1px solid #b9a88033; border-radius:14px; padding:5px 12px; }
+.pile-caption { top:54%; background:#18261ed9; color:#e3d7bd; border:1px solid #b9a88033; border-radius:14px; padding:5px 12px; }
 .turn-pill { top:63%; }
 .turn-pill.your-turn { background:#385135; color:#fff4ca; box-shadow:0 0 18px #c7b37020; }
 .lobby-panel { color:#ece4d4; background:#131b17ec; border-color:#bba78335; box-shadow:0 20px 80px #0006; border-radius:18px; }
@@ -46,4 +46,31 @@
  .hand-helper { padding:0 4px; margin:0; height:24px; }
  .lobby-seating { display:none; }
  .lobby-panel { background:#131b17f2; }
+}
+
+/* The actions and helper share document flow with the hand, so wrapping text
+   cannot sit behind independently positioned buttons. */
+.hand-area .play-controls { position:relative; inset:auto; transform:none; width:100%; display:flex; flex-direction:row; justify-content:center; align-items:center; gap:10px; min-height:44px; }
+.hand-area .play-controls .clear-selection { position:static; inset:auto; transform:none; min-width:0; padding:10px 8px; }
+.hand-area .hand-helper { margin:8px 0 0; padding:0 8px; height:auto; min-height:28px; line-height:1.35; text-align:center; }
+.hand-card.dragging-card { opacity:.22; }
+.hand-scroll { scrollbar-width:none; -ms-overflow-style:none; }
+.hand-scroll::-webkit-scrollbar { display:none; width:0; height:0; }
+.drag-ghost.drag-group { width:104px; height:150px; transform:translate(-50%,-75%); }
+.drag-group img { position:absolute; inset:0; width:104px; height:150px; transform-origin:50% 90%; border-radius:9px; animation:drag-lift .14s ease-out; }
+.drag-group b { top:auto; bottom:-32px; right:auto; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:11px; background:#1e3229; border:1px solid #d4c39566; }
+.drop-target { left:25%; right:25%; top:34%; height:23%; background:#233e2ddb; color:#f5e8c9; border-color:#c1b17b; font-size:12px; text-align:center; }
+@keyframes drag-lift { from { opacity:.4; scale:.9; } to { opacity:1; scale:1; } }
+@media(max-width:600px) {
+ .hand-area .play-controls { gap:6px; }
+ .hand-area .play-controls .primary-button,.hand-area .play-controls .secondary-button { min-width:92px; }
+ .hand-area .play-controls .clear-selection { font-size:9px; }
+ .hand-area .hand-helper { font-size:9px; min-height:26px; }
+ .drop-target { left:12%; right:12%; }
+}
+@media(max-height:800px) and (min-width:601px) {
+ .hand-area { --card-h:clamp(90px,17vh,136px); }
+}
+@media(max-height:700px) and (max-width:600px) {
+ .hand-area { --card-h:clamp(90px,17dvh,119px); }
 }

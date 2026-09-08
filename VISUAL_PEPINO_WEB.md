@@ -16,6 +16,10 @@ fotorrealista de las imágenes de referencia.
 - Mobile conserva las acciones juntas y reduce decoración: sin manos locales;
   con más de cuatro jugadores tampoco renderiza manos rivales.
 - Audio ambiental y controles independientes de música/efectos.
+- Acciones y ayuda en flujo compartido, sin posicionamiento independiente.
+- Arrastre de selección múltiple: abanico con todas las cartas, originales
+  atenuados, zona de destino visible y confirmación antes de enviar la jugada.
+  Soltar fuera conserva la selección; una revisión de estado nueva invalida el drop.
 
 ## Pulido pendiente
 

@@ -23,7 +23,8 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     useEffect(() => { const resize = () => setPortrait(innerWidth < 600); addEventListener('resize', resize); return () => removeEventListener('resize', resize); }, []);
     const [confirmation, setConfirmation] = useState<{ cards: Card[]; revision: number } | null>(null);
     const [drag, setDrag] = useState<{ x: number; y: number; cards: Card[] } | null>(null);
-    const gesture = useRef<{ id: string; x: number; y: number; dragging: boolean } | null>(null);
+    const gesture = useRef<{ id: string; x: number; y: number; dragging: boolean; cards: Card[]; revision: number } | null>(null);
+    const dropTarget = useRef<HTMLDivElement>(null);
     const suppressClick = useRef(false);
 
 
@@ -72,15 +73,15 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
             g.dragging = true; e.currentTarget.setPointerCapture(e.pointerId); suppressClick.current = true;
         }
         if (g.dragging) {
-            const cards = chosen.some(c => c.id === g.id) ? chosen : state.yourHand.filter(c => c.id === g.id);
-            setDrag({ x: e.clientX, y: e.clientY, cards });
+            setDrag({ x: e.clientX, y: e.clientY, cards: g.cards });
         }
     }
     function release(e: PointerEvent<HTMLButtonElement>) {
-        if (gesture.current?.dragging && drag && e.clientY < innerHeight * .65 && e.clientX > innerWidth * .15 && e.clientX < innerWidth * .85) {
-            const valid = CardService.validatePlay(drag.cards, state.lastPlayedCards, !state.lastPlayedCards.length, !!state.isNewRound);
-            setSelected(drag.cards.map(c => c.id));
-            if (valid.isValid) setConfirmation({ cards: drag.cards, revision: state.revision });
+        const g = gesture.current, zone = dropTarget.current?.getBoundingClientRect();
+        if (g?.dragging && zone && myTurn && !busy && g.revision === state.revision && e.clientX >= zone.left && e.clientX <= zone.right && e.clientY >= zone.top && e.clientY <= zone.bottom) {
+            const valid = CardService.validatePlay(g.cards, state.lastPlayedCards, !state.lastPlayedCards.length, !!state.isNewRound);
+            setSelected(g.cards.map(c => c.id));
+            if (valid.isValid) setConfirmation({ cards: g.cards, revision: state.revision });
         }
         gesture.current = null; setDrag(null);
     }
@@ -102,17 +103,18 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         <div className="pile-caption" data-testid="last-play">{state.lastPlay ? <><b>{state.lastPlay.cards.length} × {state.lastPlay.cards[0].value}</b><span>{state.lastPlay.playerName}</span></> : <span>El 3♦ decide quién empieza</span>}</div>
         {effect && <div className="play-effect" role="status"><strong>{state.lastPlay?.isPepineado ? '¡PEPINEADO!' : 'COMODÍN'}</strong><span>{effect}</span></div>}
         <div className={`turn-pill ${myTurn ? 'your-turn' : ''}`} role="status">{myTurn ? 'TU TURNO' : state.isPaused ? 'EN PAUSA' : `TURNO DE ${turn?.name.toUpperCase() ?? '…'}`}</div>
-        {drag && <div className="drop-target">Soltá aquí para confirmar tu jugada</div>}
+        {drag && <div className="drop-target" ref={dropTarget}>{CardService.validatePlay(drag.cards, state.lastPlayedCards, !state.lastPlayedCards.length, !!state.isNewRound).isValid ? `Soltá para jugar ${drag.cards.length} carta${drag.cards.length > 1 ? 's' : ''}` : 'Esta combinación no se puede jugar'}</div>}
         <div className={`seat-badge local-seat seat-0 ${myTurn ? 'active' : ''}`}><div className="avatar">{local?.name.slice(0,2).toUpperCase()}<span className="seat-count">{state.yourHand.length}</span></div><span className="seat-name">{local?.name}</span><small>VOS</small></div>
         <section className="hand-area" aria-label="Tu mano">
+            <div className="play-controls"><button className="primary-button" disabled={!canPlay} onClick={() => setConfirmation({ cards: chosen, revision: state.revision })}>JUGAR</button><button className="secondary-button" disabled={!canPass} onClick={() => { void onPass(); }}>PASAR</button>{chosen.length > 0 && <button className="clear-selection" onClick={() => setSelected([])}>Limpiar ({chosen.length})</button>}</div>
             <p className={`hand-helper${!myTurn ? ' waiting' : ''}`} aria-live="polite">{helper}</p>
             <div className="hand-scroll" ref={scroll} onWheel={e => { if (scroll.current) scroll.current.scrollLeft += e.deltaY; }}>
                 <div className="hand-fan">
                     {groups.map(([value, cards], gi) => <div className="value-stack" key={value} style={{ '--cards': cards.length, '--tilt': `${Math.max(-4, Math.min(4, (gi - (groups.length - 1) / 2) * 1.3))}deg` } as CSSProperties}>
-                        {cards.map((card, i) => <button key={card.id} className={`hand-card ${chosen.some(c => c.id === card.id) ? 'selected' : ''} ${myTurn && playable.has(card.id) ? 'possible' : ''}`}
+                        {cards.map((card, i) => <button key={card.id} className={`hand-card ${chosen.some(c => c.id === card.id) ? 'selected' : ''} ${myTurn && playable.has(card.id) ? 'possible' : ''} ${drag?.cards.some(c => c.id === card.id) ? 'dragging-card' : ''}`}
                             style={{ '--index': i } as CSSProperties} aria-label={`${card.value} de ${card.suit}`} aria-pressed={chosen.some(c => c.id === card.id)} data-card-id={card.id} data-value={card.value}
                             onClick={() => toggle(card.id)} disabled={!myTurn || busy}
-                            onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); suppressClick.current = false; gesture.current = { id: card.id, x: e.clientX, y: e.clientY, dragging: false }; }}
+                            onPointerDown={e => { if (!e.isPrimary || e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); suppressClick.current = false; gesture.current = { id: card.id, x: e.clientX, y: e.clientY, dragging: false, cards: chosen.some(c => c.id === card.id) ? chosen : [card], revision: state.revision }; }}
                             onPointerMove={move} onPointerUp={release} onPointerCancel={() => { gesture.current = null; setDrag(null); }}>
                             <img src={cardImage(card)} alt="" draggable={false} />
                         </button>)}
@@ -122,8 +124,9 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
             </div>
             <nav className="hand-navigation" aria-label="Desplazar cartas"><button onClick={() => scroll.current?.scrollBy({ left: -250, behavior: 'smooth' })} aria-label="Cartas anteriores">‹</button><span>{state.yourHand.length} CARTAS · AGRUPADAS POR VALOR</span><button onClick={() => scroll.current?.scrollBy({ left: 250, behavior: 'smooth' })} aria-label="Cartas siguientes">›</button></nav>
         </section>
-        <div className="play-controls"><button className="primary-button" disabled={!canPlay} onClick={() => setConfirmation({ cards: chosen, revision: state.revision })}>JUGAR</button><button className="secondary-button" disabled={!canPass} onClick={() => { void onPass(); }}>PASAR</button>{chosen.length > 0 && <button className="clear-selection" onClick={() => setSelected([])}>Limpiar ({chosen.length})</button>}</div>
-        {drag && <div className="drag-ghost" style={{ left: drag.x, top: drag.y }}><img src={cardImage(drag.cards[0])} alt=""/><b>{drag.cards.length}</b></div>}
+        {drag && <div className="drag-ghost drag-group" aria-label={`Arrastrando ${drag.cards.length} cartas`} style={{ left: drag.x, top: drag.y }}>
+            {drag.cards.map((card,i) => <img key={card.id} src={cardImage(card)} alt={`${card.value} de ${card.suit}`} style={{ transform: `translateX(${(i-(drag.cards.length-1)/2)*Math.min(32,220/Math.max(1,drag.cards.length-1))}px) rotate(${(i-(drag.cards.length-1)/2)*Math.min(4,20/Math.max(1,drag.cards.length-1))}deg)`, zIndex:i }} />)}<b>{drag.cards.length} carta{drag.cards.length > 1 ? 's' : ''}</b>
+        </div>}
         {confirmation && <GameModal title="¿Jugar estas cartas?" onClose={() => !busy && setConfirmation(null)}>
             <p>{confirmation.cards.length} carta(s) de valor <b>{confirmation.cards[0].value}</b>{confirmation.cards[0].value === 2 ? ' · Después volvés a jugar libremente.' : ''}</p>
             <div className="confirm-cards">{confirmation.cards.map(c => <img key={c.id} src={cardImage(c)} alt={`${c.value}${c.suit}`} />)}</div>
