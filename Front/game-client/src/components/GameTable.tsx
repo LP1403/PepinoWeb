@@ -28,9 +28,9 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
                     {state.isGameFinished && <ol className="winners-list">{state.winners.map(id => <li key={id}>{state.players.find(p => p.connectionId === id)?.name}</li>)}</ol>}
                     <div className="lobby-section-heading"><h2>Jugadores</h2><span>{state.players.length}/8</span></div>
                     <ol className="lobby-players">{state.players.map((p, i) => <li key={p.connectionId}><span className={`mini-avatar seat-${i % 4}`}>{p.name.slice(0,2).toUpperCase()}</span><div><b>{p.name}{p.connectionId === state.yourPlayerId ? ' (vos)' : ''}</b><small>{p.isConnected ? 'Listo para jugar' : 'Reconectando…'}</small></div><span className="seat-number">{String(i + 1).padStart(2,'0')}</span></li>)}</ol>
-                    <div className="lobby-section-heading"><h2>Mazos</h2><span>48 cartas cada uno</span></div>
+                    <div className="lobby-section-heading"><h2>Mazos</h2><span>Elegí cómo jugar</span></div>
                     <div className="deck-picker">{[1,2,3].map(n => <button key={n} aria-pressed={state.gameMode?.deckCount === n} disabled={!state.isRoomCreator || game.busy || !connected} onClick={() => void game.selectMode(n)}><strong>{n}</strong><span>{n === 1 ? 'MAZO' : 'MAZOS'}</span></button>)}</div>
-                    <p className="lobby-description">{state.gameMode ? `${state.gameMode.deckCount * 48} cartas · ${state.gameMode.cardsPerPlayer}–${Math.ceil(state.gameMode.deckCount * 48 / state.players.length)} por persona` : 'El creador elige cuántos mazos repartir.'}</p>
+                    <p className="lobby-description">Más mazos = manos más grandes.</p>
                     <button className="primary-button start-button" disabled={!state.isRoomCreator || !state.gameMode || state.players.length < 2 || state.players.some(p => !p.isConnected) || game.busy || !connected} onClick={() => void game.start()}>{state.isGameFinished ? 'VOLVER A JUGAR' : 'INICIAR PARTIDA'}</button>
                     <p className="lobby-description">{state.players.length < 2 ? 'Falta al menos un jugador. Compartí el código de sala.' : !state.isRoomCreator ? 'El creador de la sala inicia la partida.' : 'El primer jugador con un 3♦ empieza.'}</p>
                 </>}
