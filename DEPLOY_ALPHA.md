@@ -16,9 +16,8 @@ Render permite crear un Static Site para el frontend y un Web Service para ASP.N
 Crear un **Web Service** conectado al repositorio:
 
 - Root Directory: `Back/GameServer/GameServer`
-- Runtime: `.NET`
-- Build Command: `dotnet publish -c Release -o out`
-- Start Command: `dotnet out/GameServer.dll --urls http://0.0.0.0:$PORT`
+- Runtime: `Docker`
+- Dockerfile: `Back/GameServer/GameServer/Dockerfile`
 
 El servicio debe escuchar en `0.0.0.0` y en `$PORT`; Render necesita detectar ese puerto. Guardar la URL pública, por ejemplo `https://pepino-api.onrender.com`.
 

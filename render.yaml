@@ -1,10 +1,9 @@
 services:
   - type: web
     name: pepino-api
-    runtime: dotnet
+    runtime: docker
     rootDir: Back/GameServer/GameServer
-    buildCommand: dotnet publish -c Release -o out
-    startCommand: dotnet out/GameServer.dll --urls http://0.0.0.0:$PORT
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PEPINO_FRONTEND_ORIGINS
         sync: false
