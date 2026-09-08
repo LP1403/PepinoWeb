@@ -18,11 +18,11 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
     return <>
         {state?.isGameStarted ? <GameTable3D state={state} busy={game.busy} connected={connected} onPlay={game.play} onPass={game.pass} onLeave={() => setLeaving(true)} /> :
         <main className="pepino-game lobby-screen"><SceneView />
-            <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div><div className="top-actions"><button className="secondary-button" onClick={() => void shareRoom()}>COMPARTIR SALA</button><button className="secondary-button" onClick={() => void leave()}>SALIR</button></div></header>
+            <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div></header>
             <section className="lobby-panel">
                 <span className="eyebrow">{state?.isGameFinished ? 'PARTIDA TERMINADA' : 'ANTES DE REPARTIR'}</span>
                 <h1>{state?.isGameFinished ? '¡Bien jugado!' : 'Tu mesa, tus amigos.'}</h1>
-                <div className="lobby-room-code"><span>SALA</span><strong>{roomId}</strong><button onClick={() => { void navigator.clipboard?.writeText(roomId); }}>COPIAR CÓDIGO</button></div>
+                <div className="lobby-room-code"><span>SALA</span><strong>{roomId}</strong><button onClick={() => { void navigator.clipboard?.writeText(roomId); }}>COPIAR CÓDIGO</button><button onClick={() => void shareRoom()}>COMPARTIR</button></div>
                 {!state ? <p role="status">{game.status}</p> : <>
                     {state.notice && <p className="lobby-notice">{state.notice}</p>}
                     {state.isGameFinished && <ol className="winners-list">{state.winners.map(id => <li key={id}>{state.players.find(p => p.connectionId === id)?.name}</li>)}</ol>}
@@ -34,7 +34,8 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
                     <button className="primary-button start-button" disabled={!state.isRoomCreator || !state.gameMode || state.players.length < 2 || state.players.some(p => !p.isConnected) || game.busy || !connected} onClick={() => void game.start()}>{state.isGameFinished ? 'VOLVER A JUGAR' : 'INICIAR PARTIDA'}</button>
                     <p className="lobby-description">{state.players.length < 2 ? 'Falta al menos un jugador. Compartí el código de sala.' : !state.isRoomCreator ? 'El creador de la sala inicia la partida.' : 'El primer jugador con un 3♦ empieza.'}</p>
                 </>}
-            </section>
+                    <button className="lobby-leave" onClick={() => void leave()}>SALIR DE LA SALA</button>
+                </section>
             <div className="lobby-slogan"><span>UN COMODÍN.<br/>OTRA OPORTUNIDAD.</span><p>Jugá tus cartas. Cambiá la ronda.</p></div>
         </main>}
         {!connected && state && <div className="connection-banner" role="status">{game.status}</div>}
