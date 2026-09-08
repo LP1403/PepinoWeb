@@ -2,6 +2,7 @@ services:
   - type: web
     name: pepino-api
     runtime: docker
+    plan: free
     rootDir: Back/GameServer/GameServer
     dockerfilePath: ./Dockerfile
     envVars:
