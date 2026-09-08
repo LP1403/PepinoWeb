@@ -75,7 +75,19 @@
 
 
 @media(max-width:600px) {
- .turn-pill { left:8%; top:56.5%; max-width:18%; font-size:7px; padding:5px 8px; }
+ .hand-area { left:2%; width:96%; --card-h:clamp(112px,20vh,172px); bottom:7px; }
+ .hand-scroll { padding:22px 6px 3px; }
+ .hand-fan { justify-content:flex-start; gap:10px; padding:0 8px; }
+ .play-controls { left:50%; right:auto; top:61%; bottom:auto; transform:translateX(-50%); flex-direction:row; width:auto; min-width:0; gap:8px; }
+ .play-controls .primary-button, .play-controls .secondary-button { min-width:106px; padding:10px 14px; border-radius:18px; font-size:10px; }
+ .play-controls .clear-selection { position:absolute; top:42px; left:50%; transform:translateX(-50%); white-space:nowrap; }
+ .hand-helper { height:28px; margin-left:0; padding:0 72px; line-height:1.25; }
+ .turn-pill { left:50%; top:52%; max-width:70%; font-size:8px; padding:6px 12px; }
+ .pile-caption { top:46%; font-size:9px; }
+ .play-effect { top:34%; }
+ .local-seat { left:5%; top:68%; width:72px; }
+ .local-seat .avatar { width:38px; height:38px; font-size:14px; }
+ .turn-pill { left:50%; top:52%; max-width:70%; font-size:8px; padding:6px 12px; }
  .hand-helper { margin-left:62px; font-size:8px; }
  .seat-badge:not(.local-seat) .avatar { width:34px; height:34px; font-size:13px; border-radius:10px; border-width:2px; }
  .seat-badge:not(.local-seat) .seat-name { font-size:9px; padding:1px 7px; max-width:75px; }
