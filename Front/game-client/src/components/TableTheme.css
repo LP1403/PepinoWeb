@@ -70,9 +70,9 @@
  .wordmark strong { font-size:30px; }
  .wordmark .logo-cucumber { width:13px; height:29px; }
  .wordmark span { display:none; }
- .entry-screen .game-topbar { top:26px; left:5%; width:90%; margin-left:0; }
+ .entry-screen .game-topbar { top:115px; left:5%; width:90%; margin-left:0; }
  .entry-screen .alpha-tag { display:none; }
- .entry-screen .wordmark { transform:scale(1.5); }
+ .entry-screen .wordmark { transform:scale(2.2); }
  .entry-screen .entrance-panel { top:52%; left:50%; width:min(420px,calc(100% - 28px)); transform:translate(-50%,-50%); bottom:auto; height:auto; max-height:calc(100dvh - 145px); }
  .entry-screen .lobby-slogan { display:none; }
  .brand-footer { left:5%; width:90%; bottom:10px; font-size:9px; }
