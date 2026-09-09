@@ -1,38 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="32" height="32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <defs>
-    <linearGradient id="pepinoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#66BB6A;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#388E3C;stop-opacity:1" />
+    <linearGradient id="pepinoGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b9e66b" />
+      <stop offset=".52" stop-color="#72b83d" />
+      <stop offset="1" stop-color="#27652f" />
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
-    </filter>
   </defs>
-  
-  <!-- Pepino principal -->
-  <ellipse cx="50" cy="60" rx="25" ry="35" fill="url(#pepinoGradient)" filter="url(#shadow)"/>
-  
-  <!-- Textura del pepino -->
-  <ellipse cx="50" cy="55" rx="20" ry="25" fill="none" stroke="#2E7D32" stroke-width="1" opacity="0.6"/>
-  <ellipse cx="50" cy="65" rx="18" ry="20" fill="none" stroke="#2E7D32" stroke-width="1" opacity="0.4"/>
-  
-  <!-- Ojos -->
-  <circle cx="42" cy="50" r="3" fill="#2E7D32"/>
-  <circle cx="58" cy="50" r="3" fill="#2E7D32"/>
-  <circle cx="43" cy="49" r="1" fill="white"/>
-  <circle cx="59" cy="49" r="1" fill="white"/>
-  
-  <!-- Sonrisa -->
-  <path d="M 40 60 Q 50 70 60 60" stroke="#2E7D32" stroke-width="2" fill="none"/>
-  
-  <!-- Hojas -->
-  <path d="M 45 25 Q 50 15 55 25" stroke="#4CAF50" stroke-width="3" fill="none" stroke-linecap="round"/>
-  <path d="M 40 28 Q 45 18 50 28" stroke="#4CAF50" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <path d="M 50 28 Q 55 18 60 28" stroke="#4CAF50" stroke-width="2" fill="none" stroke-linecap="round"/>
-  
-  <!-- Brillo dorado para el Pepino de Oro -->
-  <circle cx="50" cy="45" r="15" fill="none" stroke="#FFD700" stroke-width="1" opacity="0.6">
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/>
-  </circle>
-</svg> 
+  <path d="M17.8 4.2c1.7-1.2 3.7-1.6 5.5-1.1-1 1.6-2.1 2.8-3.7 3.6" fill="none" stroke="#6eaf36" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M15.2 5.8c4.3-1.2 8.5 1.6 9 6.1.6 5-2.7 12.9-7.1 15.5-3.7 2.2-8.6-.1-9.5-4.5-1-4.9 2.6-15.7 7.6-17.1Z" fill="url(#pepinoGradient)" stroke="#1e4f2a" stroke-width="1.1"/>
+  <g fill="#d0ec80" opacity=".72">
+    <circle cx="14" cy="10" r=".85"/><circle cx="18.7" cy="9.3" r=".7"/><circle cx="12.2" cy="15" r=".7"/>
+    <circle cx="17" cy="14.5" r=".8"/><circle cx="11.5" cy="20" r=".65"/><circle cx="15.5" cy="19.5" r=".7"/>
+    <circle cx="19" cy="18.7" r=".6"/><circle cx="13.8" cy="24" r=".7"/>
+  </g>
+</svg>

@@ -1,7 +1,15 @@
 /* Warm table theme. Shared by the entrance, room and live match. */
 .pepino-game { background:#171713; color:#f4eddf; }
 .pepino-game::before,.pepino-game::after { display:none; }
-.wordmark { color:#f4eddf; text-shadow:0 2px 6px #0008; }
+.wordmark { display:flex; align-items:center; gap:5px; color:#f4eddf; text-shadow:0 2px 6px #0008; }
+.wordmark strong { font-size:32px; font-style:normal; font-weight:950; letter-spacing:-2px; }
+.wordmark .logo-cucumber { display:inline-block; width:13px; height:29px; margin-left:-2px; border-radius:55% 45% 48% 52%; background:linear-gradient(90deg,#204e2d,#75b832 58%,#b6df63); transform:rotate(18deg); box-shadow:inset 2px 0 #a7d65b,0 2px 5px #0007; }
+.wordmark .logo-cucumber::after { content:''; display:block; width:4px; height:4px; margin:7px 0 0 4px; border-radius:50%; background:#183e25; box-shadow:0 9px #183e25; }
+.wordmark span { flex-basis:100%; margin-left:-48px; margin-top:34px; }
+.entry-screen .game-topbar { justify-content:center; left:68%; width:430px; margin-left:-215px; top:62px; padding:0; }
+.entry-screen .alpha-tag { display:none; }
+.entry-screen .wordmark { transform:scale(1.8); transform-origin:center bottom; }
+.entry-screen .entrance-panel { top:105px; bottom:auto; height:auto; min-height:0; max-height:calc(100dvh - 145px); overflow:auto; }
 .room-tag,.top-actions button,.audio-settings summary,.alpha-tag { background:#151d18d9; border-color:#d7c6a230; color:#f4eddf; }
 .seat-name,.turn-pill { background:#14251edd; color:#ece5d5; }
 .avatar { background:linear-gradient(140deg,#d6c2a0,#9b805c); color:#332a20; border-color:#d7c5a8; box-shadow:0 6px 16px #0005; }
@@ -23,10 +31,23 @@
 .deck-picker button[aria-pressed=true] { background:#3d5838; border-color:#aaaf77; }
 .lobby-notice { background:#344132; }
 .rules { border-color:#aa9a7833; }
-.lobby-slogan { top:27%; transform:none; }
-.lobby-slogan>span { font-family:Georgia,serif; font-size:clamp(28px,3.8vw,56px); letter-spacing:-1px; color:#dbcfaf; text-shadow:0 3px 16px #000; }
+.rules-link { display:flex; align-items:center; justify-content:space-between; width:100%; margin-top:25px; padding:16px 0 0; border:0; border-top:1px solid #aa9a7833; background:transparent; color:#d7cfbd; font:inherit; font-size:11px; font-weight:800; text-align:left; cursor:pointer; }
+.rules-link span { color:#b9a76f; font-size:15px; transition:transform .15s ease; }
+.rules-link:hover span { transform:translateX(3px); }
+.lobby-slogan { display:none; }
+.entry-screen .lobby-slogan { display:block; left:68%; top:25%; opacity:1; transform:translateX(-50%); }
+.entry-screen .lobby-slogan>span { font-size:clamp(30px,3vw,50px); color:#f1e4c4; text-shadow:0 4px 0 #4e3820,0 8px 22px #000a; }
+.entry-screen .lobby-slogan p { color:#e4d6b7; text-shadow:0 2px 8px #000; }
+.brand-footer { position:fixed; left:7%; bottom:18px; width:430px; text-align:center; z-index:4; color:#a99e86; font-size:10px; letter-spacing:1px; opacity:.8; }
+.brand-footer { display:flex; justify-content:center; gap:8px; }
+.version-footer { display:inline; }
+.lobby-slogan>span { font-family:Georgia,serif; font-size:clamp(25px,3.2vw,48px); letter-spacing:-1px; color:#dbcfaf; text-shadow:0 3px 16px #000; }
 .lobby-slogan p { color:#bdb69f; font-weight:400; }
+.lobby-notice-temporary { animation:notice-in .2s ease-out, notice-out .5s ease-in 3.1s forwards; }
+@keyframes notice-in { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:none; } }
+@keyframes notice-out { to { opacity:0; transform:translateY(-5px); } }
 .game-modal { background:#1e2b23; color:#eee5d4; border-color:#aa9a7855; }
+.game-modal .modal-actions { justify-content:flex-end; }
 .game-modal::backdrop { background:#090e0bc9; }
 .audio-panel { background:#1e2b23; }
 .play-controls { left:50%; right:auto; bottom:35%; transform:translateX(-50%); flex-direction:row; width:auto; gap:10px; }
@@ -46,6 +67,16 @@
  .hand-helper { padding:0 4px; margin:0; height:24px; }
  .lobby-seating { display:none; }
  .lobby-panel { background:#131b17f2; }
+ .wordmark strong { font-size:30px; }
+ .wordmark .logo-cucumber { width:13px; height:29px; }
+ .wordmark span { display:none; }
+ .entry-screen .game-topbar { top:26px; left:5%; width:90%; margin-left:0; }
+ .entry-screen .alpha-tag { display:none; }
+ .entry-screen .wordmark { transform:scale(1.5); }
+ .entry-screen .entrance-panel { top:94px; bottom:auto; height:auto; max-height:calc(100dvh - 145px); }
+ .brand-footer { left:5%; width:90%; bottom:10px; font-size:9px; }
+ .game-modal { width:min(430px,86vw); padding:22px; border-radius:18px; }
+ .game-modal p { font-size:12px; line-height:1.5; }
 }
 
 /* The actions and helper share document flow with the hand, so wrapping text

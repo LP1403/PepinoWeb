@@ -92,7 +92,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     const helper = state.isPaused ? 'Partida pausada · esperando reconexión (hasta 60 s)' : local?.hasWon ? '¡Ya estás entre los ganadores!' : !myTurn ? `${turn?.name ?? 'Otro jugador'} está pensando…` : chosen.length ? (validation.isValid ? `${chosen.length} carta${chosen.length > 1 ? 's' : ''} lista${chosen.length > 1 ? 's' : ''}` : validation.reason) : state.isNewRound ? 'Nueva ronda · Juega libremente' : 'Elegí tus cartas · los bordes dorados indican jugadas posibles';
     return <main className="pepino-game" data-testid="game" data-turn={myTurn} data-revision={state.revision}>
         <SceneView opponents={opponents} play={state.lastPlay} />
-        <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div>
+        <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div>
             <div className="room-tag">SALA <b>{state.roomId}</b><span>RONDA {state.roundNumber}</span></div>
             <div className="top-actions"><GameAudioControls state={state} /><button onClick={onLeave}>SALIR</button></div>
         </header>

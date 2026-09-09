@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameConnection } from '../hooks/useGameConnection';
 import GameTable3D from './GameTable3D';
 import SceneView from './SceneView';
@@ -7,8 +7,15 @@ import './GameTable3D.css';
 export default function GameTable({ roomId, playerName, onLeave }: { roomId: string; playerName: string; onLeave: () => void }) {
     const game = useGameConnection({ roomId, playerName });
     const [leaving, setLeaving] = useState(false);
+    const [visibleNotice, setVisibleNotice] = useState<string | null>(null);
     const state = game.state;
     const connected = game.status === 'Conectado';
+    useEffect(() => {
+        if (!state?.notice) { setVisibleNotice(null); return; }
+        setVisibleNotice(state.notice);
+        const timer = window.setTimeout(() => setVisibleNotice(null), 3600);
+        return () => window.clearTimeout(timer);
+    }, [state?.notice]);
     async function leave() { await game.leave(); onLeave(); }
     async function shareRoom() {
         const url = `${location.origin}/?room=${encodeURIComponent(roomId)}`;
@@ -18,13 +25,13 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
     return <>
         {state?.isGameStarted ? <GameTable3D state={state} busy={game.busy} connected={connected} onPlay={game.play} onPass={game.pass} onLeave={() => setLeaving(true)} /> :
         <main className="pepino-game lobby-screen"><SceneView lobby />
-            <header className="game-topbar"><div className="wordmark">pepino<span>CLUB DE CARTAS</span></div></header>
+            <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div></header>
             <section className="lobby-panel">
                 <span className="eyebrow">{state?.isGameFinished ? 'PARTIDA TERMINADA' : 'ANTES DE REPARTIR'}</span>
                 <h1>{state?.isGameFinished ? '¡Bien jugado!' : 'Tu mesa, tus amigos.'}</h1>
                 <div className="lobby-room-code"><span>SALA</span><strong>{roomId}</strong><button onClick={() => void shareRoom()}>COMPARTIR SALA</button></div>
                 {!state ? <p role="status">{game.status}</p> : <>
-                    {state.notice && <p className="lobby-notice">{state.notice}</p>}
+                    {visibleNotice && <p className="lobby-notice lobby-notice-temporary" role="status">{visibleNotice}</p>}
                     {state.isGameFinished && <ol className="winners-list">{state.winners.map(id => <li key={id}>{state.players.find(p => p.connectionId === id)?.name}</li>)}</ol>}
                     <div className="lobby-section-heading"><h2>Jugadores</h2><span>{state.players.length}/8</span></div>
                     <ol className="lobby-players">{state.players.map((p, i) => <li key={p.connectionId}><span className={`mini-avatar seat-${i % 4}`}>{p.name.slice(0,2).toUpperCase()}</span><div><b>{p.name}{p.connectionId === state.yourPlayerId ? ' (vos)' : ''}</b><small>{p.isConnected ? 'Listo para jugar' : 'Reconectando…'}</small></div><span className="seat-number">{String(i + 1).padStart(2,'0')}</span></li>)}</ol>
@@ -36,7 +43,6 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
                 </>}
                     <button className="lobby-leave" onClick={() => void leave()}>SALIR DE LA SALA</button>
                 </section>
-            <div className="lobby-slogan"><span>UN COMODÍN.<br/>OTRA OPORTUNIDAD.</span><p>Jugá tus cartas. Cambiá la ronda.</p></div>
             <div className="lobby-seating" aria-label="Asientos de la mesa">{state?.players.map((p,i) => {
                 const angle = Math.PI * 2 * i / state.players.length - Math.PI / 2;
                 return <div className="lobby-place" key={p.connectionId} style={{left:`${50+Math.cos(angle)*38}%`,top:`${50+Math.sin(angle)*37}%`}}><span className="mini-avatar">{p.name.slice(0,2).toUpperCase()}</span><span>{p.name}{p.connectionId===state.yourPlayerId?' (vos)':''}</span></div>;

@@ -17,7 +17,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NeutralToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.25;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.autoClear = false;
@@ -27,8 +27,8 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     scene.fog = new THREE.FogExp2(0x171713, .027);
     const camera = new THREE.PerspectiveCamera(43, 1, .1, 100);
     camera.position.set(0, 5.4, 8.3); camera.lookAt(0, 0, -.3);
-    scene.add(new THREE.HemisphereLight(0xf5e8d4, 0x282119, 1.25));
-    const sunlight = new THREE.DirectionalLight(0xffe0ad, 2.2);
+    scene.add(new THREE.HemisphereLight(0xffedd7, 0x332619, 1.65));
+    const sunlight = new THREE.DirectionalLight(0xffe0ad, 2.65);
     sunlight.position.set(-4, 9, 5); sunlight.castShadow = true;
     sunlight.shadow.mapSize.set(1024, 1024);
     Object.assign(sunlight.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 });
