@@ -143,3 +143,17 @@ Estados usados: **Hecho en código** significa que la funcionalidad ya existe; *
 5. **Cierre:** comprobar que un drop válido no envíe cartas con una revisión vieja y que una jugada inválida no cambie la selección de forma inesperada.
 
 La auditoría de código confirma qué existe, pero no reemplaza estas pruebas en un navegador de escritorio y en un teléfono real. El primer bloque recomendado es ejecutar esta matriz y, si aparece una falla, convertir cada caso en una prueba automatizada o una corrección concreta.
+
+## Observabilidad agregada al backend
+
+El backend registra en Render eventos estructurados con sala, jugador, ronda, revisión y duración:
+
+- `room_created`, `player_joined`, `player_reconnected`, `player_disconnected`, `player_left` y `room_deleted`.
+- `game_started` con cantidad de jugadores, mazos y primer turno.
+- `cards_played` con cartas por valor y palo, jugada anterior, comodín, pepineado, jugador salteado, turnos antes y después, ronda, ganadores y duración.
+- `turn_passed` con turnos, ronda, cartas vigentes, revisión y duración.
+- `game_reset` cuando una salida o desconexión expirada cancela una partida.
+- `hub_rejected` para acciones rechazadas por reglas y `hub_failed` para errores inesperados.
+- `state_broadcast` con nivel `Debug`, para medir duración y tamaño lógico del estado sin llenar los logs normales.
+
+En Render se pueden buscar `room=PRIMARDOS`, `pepineado=true`, `game_reset`, `hub_rejected` o `hub_failed`. Para recibir los eventos de diagnóstico `Debug`, configurar temporalmente la variable `Logging__LogLevel__GameServer=Debug` en el servicio y volver a desplegar. Conviene dejarla en `Information` durante el uso normal para no agregar ruido ni costo innecesario.
