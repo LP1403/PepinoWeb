@@ -78,7 +78,7 @@
  .lobby-screen { height:100dvh; min-height:0; }
  .lobby-screen:not(.entry-screen) .game-topbar { top:115px; left:5%; width:90%; margin-left:0; transform:none; justify-content:center; }
  .lobby-screen:not(.entry-screen) .wordmark { transform:scale(2.2); transform-origin:center bottom; }
- .lobby-screen:not(.entry-screen) .lobby-panel { top:96px; bottom:auto; height:auto; max-height:calc(100dvh - 112px); overflow:auto; }
+ .lobby-screen:not(.entry-screen) .lobby-panel { top:250px; left:50%; width:min(430px,calc(100% - 28px)); transform:translateX(-50%); bottom:auto; height:auto; max-height:calc(100dvh - 270px); overflow:auto; }
  .brand-footer { left:5%; width:90%; bottom:10px; font-size:9px; }
  .game-modal { width:min(430px,86vw); padding:22px; border-radius:18px; }
  .game-modal p { font-size:12px; line-height:1.5; }
