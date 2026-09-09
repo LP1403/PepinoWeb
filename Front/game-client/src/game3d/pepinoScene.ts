@@ -61,18 +61,12 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const cardLoader = new THREE.TextureLoader();
     const physicalMaterials = new Map<string, THREE.MeshStandardMaterial>();
     function cardMaterial(card?: Card, highlighted=false, deckIndex = card?.deckIndex ?? 0) {
-        const key = (card ? `${card.suit}${card.value}-deck${deckIndex}` : `back-${deckIndex}`) + (highlighted?'-highlight':'');
+        // Selection must never replace a custom card asset with the procedural
+        // fallback. The HTML hand supplies the selection outline separately.
+        const key = card ? `${card.suit}${card.value}-deck${deckIndex}` : `back-${deckIndex}`;
         if (!textures.has(key)) {
             const source=cardCanvas(card);
-            const art=highlighted ? document.createElement('canvas') : source;
-            if(highlighted) {
-                art.width=source.width;art.height=source.height;
-                const pen=art.getContext('2d')!;
-                pen.drawImage(source,0,0);
-                pen.strokeStyle='#56a894';pen.lineWidth=8;
-                pen.beginPath();pen.roundRect(7,7,346,506,20);pen.stroke();
-            }
-            const tex = own(new THREE.CanvasTexture(art)); tex.colorSpace = THREE.SRGBColorSpace;
+            const tex = own(new THREE.CanvasTexture(source)); tex.colorSpace = THREE.SRGBColorSpace;
             const material = own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest:.5, depthTest: true, toneMapped: false }));
             textures.set(key, material);
             if (!highlighted) {

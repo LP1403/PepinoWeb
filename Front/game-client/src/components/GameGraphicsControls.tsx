@@ -5,7 +5,7 @@ import type {GraphicsQuality} from '../game3d/graphicsSettings';
 import GameAudioControls from './GameAudioControls';
 import type {GameState} from '../types/Card';
 
-export default function GameGraphicsControls({state}:{state:GameState}) {
+export default function GameGraphicsControls({state}:{state?:GameState}) {
     const [open,setOpen]=useState(false);
     const [quality,setQuality]=useState(loadGraphicsQuality);
     const [fullscreen,setFullscreen]=useState(!!document.fullscreenElement);
