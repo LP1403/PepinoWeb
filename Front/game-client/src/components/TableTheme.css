@@ -73,7 +73,8 @@
  .entry-screen .game-topbar { top:26px; left:5%; width:90%; margin-left:0; }
  .entry-screen .alpha-tag { display:none; }
  .entry-screen .wordmark { transform:scale(1.5); }
- .entry-screen .entrance-panel { top:94px; bottom:auto; height:auto; max-height:calc(100dvh - 145px); }
+ .entry-screen .entrance-panel { top:52%; left:50%; width:min(420px,calc(100% - 28px)); transform:translate(-50%,-50%); bottom:auto; height:auto; max-height:calc(100dvh - 145px); }
+ .entry-screen .lobby-slogan { display:none; }
  .brand-footer { left:5%; width:90%; bottom:10px; font-size:9px; }
  .game-modal { width:min(430px,86vw); padding:22px; border-radius:18px; }
  .game-modal p { font-size:12px; line-height:1.5; }

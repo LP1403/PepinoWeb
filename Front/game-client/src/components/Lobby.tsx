@@ -3,6 +3,7 @@ import SceneView from './SceneView';
 import GameModal from './GameModal';
 import './GameTable3D.css';
 import { PLAYER_NAME_KEY } from '../config/player';
+import { APP_VERSION } from '../config/version';
 export default function Lobby({ onJoin }: { onJoin: (room: string, name: string) => void }) {
     const params = new URLSearchParams(location.search);
     const linkedRoom = params.get('room') ?? params.get('sala') ?? '';
@@ -20,7 +21,7 @@ export default function Lobby({ onJoin }: { onJoin: (room: string, name: string)
             <button type="button" className="rules-link" onClick={() => setRulesOpen(true)}>Cómo se juega Pepino <span>→</span></button>
         </section>
         <div className="lobby-slogan"><span>Te vas a ir<br/>pepineado.</span></div>
-        <footer className="brand-footer"><span>© 2026 RayenCo</span><span className="version-footer">v0.1.0-alpha.1</span></footer>
+        <footer className="brand-footer"><span>© 2026 RayenCo</span><span className="version-footer">v{APP_VERSION}</span></footer>
         {rulesOpen && <GameModal title="Cómo se juega Pepino" onClose={() => setRulesOpen(false)}>
             <p>2–8 jugadores · 1–3 mazos de 48 cartas. El primer asiento con 3♦ empieza. Jugá grupos del mismo número; igualá la cantidad y superá o igualá el valor. Orden: 3 → 12 → 1.</p>
             <p>El 2 es comodín: jugá uno o varios y abrí otra vez libremente. Misma cantidad y valor salta al siguiente: ¡pepineado! Cuando todos pasan, volvés a abrir. No podés pasar al abrir una ronda.</p>
