@@ -9,6 +9,7 @@ import {GRAPHICS_EVENT,loadGraphicsQuality} from './graphicsSettings';
 
 export interface PepinoSceneApi {
     setOpponents(players: Player[]): void;
+    setTurnIndicator(active: boolean): void;
     setLastPlay(play: PlayedCards | null, animate: boolean): void;
     setDiscardCount(count:number):void;
     dispose(): void;
@@ -41,7 +42,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const resources = new Set<THREE.BufferGeometry | THREE.Material | THREE.Texture>();
     const own = <T extends THREE.BufferGeometry | THREE.Material | THREE.Texture>(item: T): T => { resources.add(item); return item; };
     const environment=buildTableEnvironment(scene, own);
-    let mateAngle=0,mateFrom=0,mateStarted=0;
+    let mateAngle=0,mateFrom=0,mateStarted=0,turnIndicator=false;
     const mateFromPosition=new THREE.Vector3(3.75,0,1.7);
     const mateTargetPosition=new THREE.Vector3(3.75,0,1.7);
     let discardLabelDirty=true;
@@ -269,7 +270,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         environment.mate.rotation.y=mateFrom+(mateAngle-mateFrom)*(1-Math.pow(1-mateProgress,3));
         environment.mate.position.lerpVectors(mateFromPosition,mateTargetPosition,1-Math.pow(1-mateProgress,3));
         const mateGlow=environment.mate.userData.glow as THREE.Mesh;
-        if(mateGlow) (mateGlow.material as THREE.MeshBasicMaterial).opacity=lobby?0:.68+Math.sin(now*.004)*.12;
+        if(mateGlow) (mateGlow.material as THREE.MeshBasicMaterial).opacity=(!lobby && turnIndicator)? .68+Math.sin(now*.004)*.12 : 0;
         if (!lobby && !reducedMotion && now-enteredAt<1000) {
             const t=1-Math.pow(1-Math.min(1,(now-enteredAt)/900),3);
             camera.position.set(0,10.8+(5.4-10.8)*t,6.8+(8.3-6.8)*t);camera.lookAt(0,0,-.3);
@@ -335,6 +336,33 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         sampledAt=performance.now();sampledFrames=0;
     };
     window.addEventListener(GRAPHICS_EVENT,graphicsChanged);
+    function updateMateTarget() {
+        if (lobby) return;
+        const index=opponents.findIndex(player=>player.isCurrentTurn);
+        const seats=seatPositions(opponents.length,width<600,width>=601 && height<=550);
+        const nextMate = turnIndicator && index >= 0 ? (() => {
+            const seat=seats[index];
+            if(seat.x<.35)return new THREE.Vector3(-3.8,0,-1.8);
+            if(seat.x>.65)return new THREE.Vector3(3.8,0,-1.8);
+            return new THREE.Vector3(0,0,-3.35);
+        })() : new THREE.Vector3(3.75,0,1.7);
+        if(mateTargetPosition.distanceToSquared(nextMate)>.0001) {
+            mateFromPosition.copy(environment.mate.position);
+            mateTargetPosition.copy(nextMate);
+            mateStarted=performance.now();
+        }
+        if (!turnIndicator || index < 0) return;
+        const seat=seats[index];
+        const target=new THREE.Vector3((seat.x-.5)*10,0,-3);
+        const direction=target.sub(environment.mate.position);
+        const angle=Math.atan2(-direction.z,direction.x);
+        const delta=Math.atan2(Math.sin(angle-mateAngle),Math.cos(angle-mateAngle));
+        if(Math.abs(delta)>.001) {
+            mateFrom=environment.mate.rotation.y;
+            mateAngle=mateFrom+Math.atan2(Math.sin(angle-mateFrom),Math.cos(angle-mateFrom));
+            mateStarted=performance.now();
+        }
+    }
     resize(); raf = requestAnimationFrame(frame);
     return {
         setDiscardCount(count) {
@@ -351,32 +379,9 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
             }
         },
         setOpponents(players) {
-            opponents = players; renderOpponents();
-            if(!lobby) {
-                const index=players.findIndex(player=>player.isCurrentTurn);
-                const seats=seatPositions(players.length,width<600,width>=601 && height<=550);
-                const target=new THREE.Vector3(index<0?0:(seats[index].x-.5)*10,0,index<0?4:-3);
-                const nextMate=index<0 ? new THREE.Vector3(3.75,0,1.7) : (() => {
-                    const seat=seats[index];
-                    if(seat.x<.35)return new THREE.Vector3(-3.8,0,-1.8);
-                    if(seat.x>.65)return new THREE.Vector3(3.8,0,-1.8);
-                    return new THREE.Vector3(0,0,-3.35);
-                })();
-                if(mateTargetPosition.distanceToSquared(nextMate)>.0001) {
-                    mateFromPosition.copy(environment.mate.position);
-                    mateTargetPosition.copy(nextMate);
-                    mateStarted=performance.now();
-                }
-                const direction=target.sub(environment.mate.position);
-                const angle=Math.atan2(-direction.z,direction.x);
-                const delta=Math.atan2(Math.sin(angle-mateAngle),Math.cos(angle-mateAngle));
-                if(Math.abs(delta)>.001) {
-                    mateFrom=environment.mate.rotation.y;
-                    mateAngle=mateFrom+Math.atan2(Math.sin(angle-mateFrom),Math.cos(angle-mateFrom));
-                    mateStarted=performance.now();
-                }
-            }
+            opponents = players; renderOpponents(); updateMateTarget();
         },
+        setTurnIndicator(active) { turnIndicator=active; updateMateTarget(); },
         setLastPlay(play, animate) { lastPlay = play; renderPile(animate && !reducedMotion); },
         dispose() { disposed = true; window.removeEventListener(GRAPHICS_EVENT,graphicsChanged); host.classList.remove('local-cards-3d'); cancelAnimationFrame(raf); handObserver.disconnect(); host.removeEventListener('scroll', invalidateHandLayout, true); cardEvents.forEach(name=>host.removeEventListener(name,cardInteraction)); window.removeEventListener('resize', invalidateHandLayout); document.removeEventListener('visibilitychange', visibility); observer.disconnect(); hands.traverse(node => { if (node instanceof THREE.SkinnedMesh) node.skeleton.dispose(); }); scene.traverse(node => { if (node instanceof THREE.InstancedMesh) node.dispose(); }); resources.forEach(r => r.dispose()); renderer.dispose(); renderer.domElement.remove(); }
     };
