@@ -19,7 +19,7 @@ export default function Lobby({ onJoin }: { onJoin: (room: string, name: string)
             </form>
             <button type="button" className="rules-link" onClick={() => setRulesOpen(true)}>Cómo se juega Pepino <span>→</span></button>
         </section>
-        <div className="lobby-slogan"><span>LA PRÓXIMA<br/>ES TUYA.</span></div>
+        <div className="lobby-slogan"><span>Te vas a ir<br/>pepineado.</span></div>
         <footer className="brand-footer"><span>© 2026 RayenCo</span><span className="version-footer">v0.1.0-alpha.1</span></footer>
         {rulesOpen && <GameModal title="Cómo se juega Pepino" onClose={() => setRulesOpen(false)}>
             <p>2–8 jugadores · 1–3 mazos de 48 cartas. El primer asiento con 3♦ empieza. Jugá grupos del mismo número; igualá la cantidad y superá o igualá el valor. Orden: 3 → 12 → 1.</p>
