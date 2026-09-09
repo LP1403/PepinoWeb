@@ -1,6 +1,19 @@
 import type { Card } from '../types/Card';
 export const suitColors: Record<Card['suit'], string> = { '♠': '#294754', '♥': '#a03c3c', '♦': '#99702c', '♣': '#655078' };
 const art = new Map<string, HTMLCanvasElement>();
+const customCardAssets = new Map<string, string>([
+    ['wildcard', '/models/CARDS/COMODIN%202.png'],
+    ['gaucho-1', '/models/CARDS/PEPINO%201%20GAUCHO.png'],
+    ['gold-3', '/models/CARDS/3%20DORADO.png']
+]);
+
+/** Final artwork currently available for the limited visual card test. */
+export function cardAssetUrl(card: Card): string | undefined {
+    if (card.value === 2) return customCardAssets.get('wildcard');
+    if (card.suit === '♦' && card.value === 1) return customCardAssets.get('gaucho-1');
+    if (card.suit === '♦' && card.value === 3) return customCardAssets.get('gold-3');
+    return undefined;
+}
 export function cardCanvas(card?: Card): HTMLCanvasElement {
     const key = card ? `${card.suit}${card.value}` : 'back';
     const cached = art.get(key); if (cached) return cached;
@@ -43,6 +56,6 @@ export function cardCanvas(card?: Card): HTMLCanvasElement {
 const urls = new Map<string, string>();
 export function cardImage(card: Card) {
     const key = `${card.suit}${card.value}`;
-    if (!urls.has(key)) urls.set(key, cardCanvas(card).toDataURL());
+    if (!urls.has(key)) urls.set(key, cardAssetUrl(card) ?? cardCanvas(card).toDataURL());
     return urls.get(key)!;
 }
