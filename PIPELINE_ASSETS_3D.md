@@ -101,9 +101,80 @@ en un solo lugar:
 - Animaciones.
 - Optimización del modelo final.
 
-Antes de exportar conviene aplicar escala y rotación, comprobar que las normales
-sean correctas y confirmar que el origen del objeto esté en una posición útil
-para animarlo o colocarlo en la mesa.
+Antes de exportar comprobar escala, normales y pivotes. Preparar las
+transformaciones antes del rigging: no aplicar transformaciones masivamente
+sobre manos ya riggeadas o animadas, porque puede alterar su comportamiento.
+
+### Exportación paso a paso desde Blender para Three.js
+
+Los nombres y la distribución de las opciones pueden variar entre versiones
+de Blender. Esta configuración es para una primera prueba sin compresión.
+
+1. **Guardar el original `.blend`.** Trabajar sobre una copia para preparar
+   cambios de geometría, materiales o animaciones destinados a la exportación.
+2. **Preparar el escenario.** Usar una escala coherente (recomendación: una
+   unidad por metro), con la mesa centrada respecto del conjunto. Mantener
+   separados mesa, sillas, manos y mate; no unir todo con `Ctrl+J`.
+   En objetos estáticos sin rig, aplicar escala con `Ctrl+A > Scale` cuando
+   corresponda. Conservar posiciones relativas y revisar los pivotes.
+3. **Nombrar los objetos y referencias.** Incluir los `Empty` de asientos,
+   cartas y mate descritos arriba. No borrar esos objetos por no tener geometría.
+4. **Preparar los materiales.** Para empezar, utilizar `Principled BSDF` con
+   texturas de imagen y UVs. Hornear a imágenes los efectos procedurales que
+   deban conservarse. Verificar que Blender encuentre todas las texturas.
+5. **Seleccionar lo que se va a exportar.** Incluir las mallas, sus armatures,
+   referencias y cámara deseada. Evitar seleccionar modelos de prueba o
+   duplicados ocultos. Si se exporta una selección, revisar también sus padres.
+6. **Abrir `File > Export > glTF 2.0 (.glb/.gltf)`.** Elegir estas opciones:
+   - **Format:** `glTF Binary (.glb)`, para entregar un archivo con las texturas
+     de imagen incluidas.
+   - **Include > Selected Objects:** activado si se preparó la selección del
+     paso anterior. Desactivado exporta más objetos; revisar los filtros de
+     escena, visibilidad y colección para evitar omisiones o contenido extra.
+   - **Cameras:** activado si se quiere exportar la cámara de referencia.
+   - **Punctual Lights:** opcional para luces compatibles. Para la primera
+     integración se puede dejar desactivado y preparar las luces en Three.js.
+     Las luces de área y el World de Blender no equivalen a luces exportables
+     mediante esta opción.
+   - **Transform > +Y Up:** mantener el valor predeterminado activado.
+     No girar toda la escena manualmente para compensar los ejes de Blender.
+   - **Mesh:** exportar UVs y normales. Mantener materiales en `Export` y
+     texturas en su configuración habitual para incluirlas.
+   - **Apply Modifiers:** usarlo con criterio para modificadores de geometría
+     estática; comprobar el resultado. No activarlo indiscriminadamente en
+     modelos con shape keys o rigs. No aplicar el modificador Armature para
+     exportar una mano que debe seguir animándose.
+   - **Animations:** desactivado si todo es estático; activado si se incluyen
+     manos u objetos animados. Incluir el skinning/esqueleto para las manos.
+   - **Compression / Draco:** desactivado para esta primera prueba. Activarlo
+     más adelante requiere configurar también el decodificador en Three.js.
+7. **Exportar como `pepino-room.glb`.** Guardar el resultado en
+   `Front/game-client/public/models/environments/` (crear la carpeta si falta).
+   Su URL en el cliente será `/models/environments/pepino-room.glb`.
+8. **Comprobar la exportación.** Importar el GLB en un archivo vacío de Blender
+   para detectar objetos o texturas faltantes. Esta comprobación no sustituye
+   verlo con `GLTFLoader` dentro del juego: allí revisar materiales, escala,
+   cámara, agarres y rendimiento en PC y celular.
+
+### Si incluye manos animadas
+
+Exportar tanto la malla como el esqueleto. Nombrar los clips según su acción,
+por ejemplo `Idle`, `PlayCard` y `TakeMate`, y comprobar que el modo de exportación
+de animaciones elegido incluya esas acciones o pistas NLA. No asumir que todas
+las acciones guardadas se exportan automáticamente.
+
+Si el movimiento depende de constraints o IK, hornearlo en una copia a claves
+de los huesos que deforman la malla cuando sea necesario. Revisar cada clip
+exportado antes de integrarlo. Three.js reproducirá los clips; la elección de
+cuándo reproducirlos se conecta por código con los eventos de la partida.
+
+### Entrega para la primera integración
+
+Entregar `pepino-room.glb`, una captura de cómo debería verse desde la cámara
+de juego y los nombres de los clips si hay animaciones. Conservar también el
+`.blend` y las texturas fuente fuera de `public/` para hacer ajustes.
+El archivo exportado todavía necesita conectarse con la escena de Pepino;
+copiarlo a la carpeta no reemplaza automáticamente el escenario actual.
 
 ## Unreal Engine
 
