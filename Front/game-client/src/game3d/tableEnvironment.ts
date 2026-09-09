@@ -33,8 +33,8 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     const c = logo.getContext('2d')!; c.textAlign = 'center'; c.fillStyle = '#b9b084'; c.font = '700 115px Georgia'; c.fillText('PEPINO',512,138); c.font = '24px Arial'; c.fillText('ENTRE AMIGOS · UNA MÁS Y NOS VAMOS',512,204);
     const logoTex = own(new THREE.CanvasTexture(logo)); logoTex.colorSpace = THREE.SRGBColorSpace;
     const mark = add(new THREE.PlaneGeometry(2.5,.625), own(new THREE.MeshBasicMaterial({map:logoTex,transparent:true,opacity:.22,depthWrite:false})),0,.018,-.8); mark.rotation.x = -Math.PI/2;
-    add(new THREE.BoxGeometry(100,.2,100), dark, 0,-2.3,0);
-    add(new THREE.BoxGeometry(25,9,.3), own(new THREE.MeshStandardMaterial({color:0x28201b,roughness:1})),0,1,-8);
+    const fallbackFloor = add(new THREE.BoxGeometry(100,.2,100), dark, 0,-2.3,0);
+    const fallbackWall = add(new THREE.BoxGeometry(25,9,.3), own(new THREE.MeshStandardMaterial({color:0x28201b,roughness:1})),0,1,-8);
     for (const x of [-6,6]) {
         add(new THREE.CylinderGeometry(.7,.9,.12,32),wood,x,-.5,-5.6);
         add(new THREE.CylinderGeometry(.045,.08,1.8,12),brass,x,.4,-5.6);
@@ -86,5 +86,5 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     }
     scene.add(nuts);
     mateGroup.userData.glow=mateGlow;
-    return {mate:mateGroup};
+    return {mate:mateGroup, fallbackRoom:[fallbackFloor,fallbackWall]};
 }
