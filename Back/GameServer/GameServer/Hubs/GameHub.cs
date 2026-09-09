@@ -125,6 +125,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
         }
         if (room.GameMode != null) room.GameMode = CardService.MakeMode(room.GameMode.DeckCount, room.Players.Count);
         await Clients.Group(room.Id).SendAsync("PlayerLeft", player.Name, room.Players.Count);
+        if (manager.RemoveIfEmpty(room)) return;
         await Broadcast(room);
     }
     private async Task Broadcast(GameRoom room)
@@ -166,7 +167,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
         }
         await base.OnDisconnectedAsync(exception);
     }
-    private static async Task ExpireSeat(GameRoom room, string id, IHubClients clients)
+    private async Task ExpireSeat(GameRoom room, string id, IHubClients clients)
     {
         await Task.Delay(TimeSpan.FromSeconds(60));
         await room.Gate.WaitAsync();
@@ -185,6 +186,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
                 var owner = room.Players.FirstOrDefault(x => x.IsConnected) ?? room.Players.FirstOrDefault();
                 room.CreatedBy = owner?.ConnectionId; room.CreatorName = owner?.Name;
             }
+            if (manager.RemoveIfEmpty(room)) return;
             room.Revision++;
             // Clients fetch their private snapshot after this notification.
             await clients.Group(room.Id).SendAsync("PlayerLeft", p.Name, room.Players.Count);

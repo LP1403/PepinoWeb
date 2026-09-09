@@ -5,9 +5,7 @@ import DemoGame from './components/DemoGame';
 import './App.css';
 import { PLAYER_NAME_KEY } from './config/player';
 import './components/TableTheme.css';
-import { APP_VERSION } from './config/version';
-
-document.title = `Pepino ${APP_VERSION}`;
+document.title = 'Pepino';
 
 export default function App() {
     const [session, setSession] = useState<{ room: string; name: string } | null>(null);

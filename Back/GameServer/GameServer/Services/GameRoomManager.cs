@@ -10,4 +10,8 @@ public class GameRoomManager
     public GameRoom? GetRoom(string id) => rooms.GetValueOrDefault(id);
     public List<GameRoom> GetActiveRooms() => rooms.Values.ToList();
     public void RemoveRoom(string id) => rooms.TryRemove(id, out _);
+    public bool RemoveIfEmpty(GameRoom room)
+    {
+        return room.Players.Count == 0 && ((ICollection<KeyValuePair<string, GameRoom>>)rooms).Remove(new KeyValuePair<string, GameRoom>(room.Id, room));
+    }
 }
