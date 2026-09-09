@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Card, PlayedCards, Player } from '../types/Card';
-import { cardCanvas } from './cardArt';
+import { cardAssetUrl, cardCanvas } from './cardArt';
 import { seatPositions } from './layout';
 import { buildTableEnvironment } from './tableEnvironment';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -56,6 +56,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     screen.position.z = 1000;
     const cardGeometry = own(new THREE.PlaneGeometry(1, 1));
     const textures = new Map<string, THREE.MeshBasicMaterial>();
+    const cardLoader = new THREE.TextureLoader();
     function cardMaterial(card?: Card, highlighted=false) {
         const key = (card ? `${card.suit}${card.value}` : 'back') + (highlighted?'-highlight':'');
         if (!textures.has(key)) {
@@ -69,7 +70,17 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
                 pen.beginPath();pen.roundRect(7,7,346,506,20);pen.stroke();
             }
             const tex = own(new THREE.CanvasTexture(art)); tex.colorSpace = THREE.SRGBColorSpace;
-            textures.set(key, own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest:.5, depthTest: true, toneMapped: false })));
+            const material = own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest:.5, depthTest: true, toneMapped: false }));
+            textures.set(key, material);
+            if (card && !highlighted) {
+                const assetUrl = cardAssetUrl(card);
+                if (assetUrl) cardLoader.load(assetUrl, loaded => {
+                    loaded.colorSpace = THREE.SRGBColorSpace;
+                    const current = textures.get(key);
+                    if (current === material) { current.map = own(loaded); current.needsUpdate = true; }
+                    else loaded.dispose();
+                });
+            }
         }
         return textures.get(key)!;
     }
