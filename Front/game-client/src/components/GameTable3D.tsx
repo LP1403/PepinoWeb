@@ -69,6 +69,13 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     }
     function move(e: PointerEvent<HTMLButtonElement>) {
         const g = gesture.current; if (!g || !myTurn || busy) return;
+        const dx = e.clientX - g.x;
+        const dy = g.y - e.clientY;
+        if (!g.dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+            suppressClick.current = true;
+            gesture.current = null;
+            return;
+        }
         if (!g.dragging && g.y - e.clientY > 18) {
             g.dragging = true; e.currentTarget.setPointerCapture(e.pointerId); suppressClick.current = true;
         }
@@ -114,7 +121,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
                         {cards.map((card, i) => <button key={card.id} className={`hand-card ${chosen.some(c => c.id === card.id) ? 'selected' : ''} ${myTurn && playable.has(card.id) ? 'possible' : ''} ${drag?.cards.some(c => c.id === card.id) ? 'dragging-card' : ''}`}
                             style={{ '--index': i } as CSSProperties} aria-label={`${card.value} de ${card.suit}`} aria-pressed={chosen.some(c => c.id === card.id)} data-card-id={card.id} data-value={card.value}
                             onClick={() => toggle(card.id)} disabled={!myTurn || busy}
-                            onPointerDown={e => { if (!e.isPrimary || e.button !== 0) return; e.currentTarget.setPointerCapture(e.pointerId); suppressClick.current = false; gesture.current = { id: card.id, x: e.clientX, y: e.clientY, dragging: false, cards: chosen.some(c => c.id === card.id) ? chosen : [card], revision: state.revision }; }}
+                            onPointerDown={e => { if (!e.isPrimary || e.button !== 0) return; suppressClick.current = false; gesture.current = { id: card.id, x: e.clientX, y: e.clientY, dragging: false, cards: chosen.some(c => c.id === card.id) ? chosen : [card], revision: state.revision }; }}
                             onPointerMove={move} onPointerUp={release} onPointerCancel={() => { gesture.current = null; setDrag(null); }}>
                             <img src={cardImage(card)} alt="" draggable={false} />
                         </button>)}

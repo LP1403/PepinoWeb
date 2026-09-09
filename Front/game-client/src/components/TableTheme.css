@@ -6,9 +6,9 @@
 .wordmark .logo-cucumber { display:inline-block; width:13px; height:29px; margin-left:-2px; border-radius:55% 45% 48% 52%; background:linear-gradient(90deg,#204e2d,#75b832 58%,#b6df63); transform:rotate(18deg); box-shadow:inset 2px 0 #a7d65b,0 2px 5px #0007; }
 .wordmark .logo-cucumber::after { content:''; display:block; width:4px; height:4px; margin:7px 0 0 4px; border-radius:50%; background:#183e25; box-shadow:0 9px #183e25; }
 .wordmark span { flex-basis:100%; margin-left:-48px; margin-top:34px; }
-.entry-screen .game-topbar { justify-content:center; left:68%; width:430px; margin-left:-215px; top:62px; padding:0; }
+.entry-screen .game-topbar, .lobby-screen:not(.entry-screen) .game-topbar { justify-content:center; left:68%; width:430px; margin-left:-215px; top:62px; padding:0; }
 .entry-screen .alpha-tag { display:none; }
-.entry-screen .wordmark { transform:scale(2.3); transform-origin:center bottom; }
+.entry-screen .wordmark, .lobby-screen:not(.entry-screen) .wordmark { transform:scale(2.3); transform-origin:center bottom; }
 .entry-screen .entrance-panel { top:105px; bottom:auto; height:auto; min-height:0; max-height:calc(100dvh - 145px); overflow:auto; }
 .room-tag,.top-actions button,.audio-settings summary,.alpha-tag { background:#151d18d9; border-color:#d7c6a230; color:#f4eddf; }
 .seat-name,.turn-pill { background:#14251edd; color:#ece5d5; }
@@ -75,6 +75,10 @@
  .entry-screen .wordmark { transform:scale(2.2); }
  .entry-screen .entrance-panel { top:52%; left:50%; width:min(420px,calc(100% - 28px)); transform:translate(-50%,-50%); bottom:auto; height:auto; max-height:calc(100dvh - 145px); }
  .entry-screen .lobby-slogan { display:none; }
+ .lobby-screen { height:100dvh; min-height:0; }
+ .lobby-screen:not(.entry-screen) .game-topbar { top:115px; left:5%; width:90%; margin-left:0; transform:none; justify-content:center; }
+ .lobby-screen:not(.entry-screen) .wordmark { transform:scale(2.2); transform-origin:center bottom; }
+ .lobby-screen:not(.entry-screen) .lobby-panel { top:96px; bottom:auto; height:auto; max-height:calc(100dvh - 112px); overflow:auto; }
  .brand-footer { left:5%; width:90%; bottom:10px; font-size:9px; }
  .game-modal { width:min(430px,86vw); padding:22px; border-radius:18px; }
  .game-modal p { font-size:12px; line-height:1.5; }
@@ -87,6 +91,7 @@
 .hand-area .hand-helper { margin:8px 0 0; padding:0 8px; height:auto; min-height:28px; line-height:1.35; text-align:center; }
 .hand-card.dragging-card { opacity:.22; }
 .hand-scroll { scrollbar-width:none; -ms-overflow-style:none; }
+.hand-scroll { overflow-x:auto; overflow-y:hidden; touch-action:pan-x; -webkit-overflow-scrolling:touch; }
 .hand-scroll::-webkit-scrollbar { display:none; width:0; height:0; }
 .drag-ghost.drag-group { width:104px; height:150px; transform:translate(-50%,-75%); }
 .drag-group img { position:absolute; inset:0; width:104px; height:150px; transform-origin:50% 90%; border-radius:9px; animation:drag-lift .14s ease-out; }
