@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace GameServer.Hubs;
 
-public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) : Hub
+public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext, ILogger<GameHub> logger) : Hub
 {
     private readonly GameLogicService logic = new();
 
@@ -33,7 +33,9 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
         if (string.IsNullOrWhiteSpace(id) || id.Length > 32 || string.IsNullOrWhiteSpace(name) || name.Length > 24)
             throw new HubException("Nombre o sala inválidos.");
         if (token != null && (token.Length < 32 || token.Length > 128)) throw new HubException("Sesión inválida.");
+        var roomWasKnown = manager.GetRoom(id) != null;
         manager.GetOrCreateRoom(id);
+        if (!roomWasKnown) logger.LogInformation("room_created room={RoomId} creator={PlayerName}", id, name.Trim());
         await InRoom(id, async room =>
         {
             var player = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
@@ -61,11 +63,15 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
                 if (room.IsFull) throw new InvalidOperationException("La sala está llena.");
                 player = new Player { ConnectionId = Context.ConnectionId, Name = name.Trim(), ResumeToken = token };
                 room.Players.Add(player);
+                logger.LogInformation("player_joined room={RoomId} player={PlayerName} players={PlayerCount} resumed={Resumed}", id, player.Name, room.Players.Count, false);
                 if (room.CreatedBy == null)
                 {
                     room.CreatedBy = player.ConnectionId; room.CreatorName = player.Name;
+                    logger.LogInformation("room_owner_assigned room={RoomId} creator={PlayerName}", id, player.Name);
                 }
             }
+            else if (player.IsConnected)
+                logger.LogInformation("player_reconnected room={RoomId} player={PlayerName} players={PlayerCount}", id, player.Name, room.Players.Count);
             if (room.GameMode != null && !room.IsGameStarted)
                 room.GameMode = CardService.MakeMode(room.GameMode.DeckCount, room.Players.Count);
             await Groups.AddToGroupAsync(Context.ConnectionId, id);
@@ -83,7 +89,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
     });
     public Task StartGame(string roomId) => InRoom(roomId, async room =>
     {
-        Owner(room); logic.StartGame(room);
+        Owner(room); logger.LogInformation("game_started room={RoomId} players={PlayerCount} decks={DeckCount}", roomId, room.Players.Count, room.GameMode?.DeckCount); logic.StartGame(room);
         foreach (var p in room.Players) await Clients.Client(p.ConnectionId).SendAsync("CardsDealt", p.Hand);
         await Clients.Group(roomId).SendAsync("GameStarted", roomId);
         await Broadcast(room);
@@ -94,6 +100,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
         Member(room);
         var before = room.Winners.Count;
         var play = logic.Play(room, Context.ConnectionId, ids);
+        logger.LogInformation("cards_played room={RoomId} player={PlayerName} count={CardCount}", roomId, Member(room).Name, ids.Count);
         await Clients.Group(roomId).SendAsync("CardsPlayed", play);
         if (play.SkippedPlayerName != null) await Clients.Group(roomId).SendAsync("PlayerSkipped", play.SkippedPlayerName);
         if (room.Winners.Count > before) await Clients.Group(roomId).SendAsync("PlayerWon", play.PlayerName);
@@ -101,7 +108,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
     });
     public Task PassTurn(string roomId) => InRoom(roomId, async room =>
     {
-        Member(room); logic.Pass(room, Context.ConnectionId); await Broadcast(room);
+        var player = Member(room); logic.Pass(room, Context.ConnectionId); logger.LogInformation("turn_passed room={RoomId} player={PlayerName}", roomId, player.Name); await Broadcast(room);
     });
     public Task GetGameState(string roomId) => InRoom(roomId, room => SendState(room, Member(room)));
     public Task LeaveRoom(string roomId, string playerName) => InRoom(roomId, async room =>
@@ -112,6 +119,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
     });
     private async Task Remove(GameRoom room, Player player)
     {
+        logger.LogInformation("player_left room={RoomId} player={PlayerName} players_before={PlayerCount} game_started={GameStarted}", room.Id, player.Name, room.Players.Count, room.IsGameStarted);
         if (room.IsGameStarted)
         {
             logic.ResetGame(room);
@@ -125,7 +133,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
         }
         if (room.GameMode != null) room.GameMode = CardService.MakeMode(room.GameMode.DeckCount, room.Players.Count);
         await Clients.Group(room.Id).SendAsync("PlayerLeft", player.Name, room.Players.Count);
-        if (manager.RemoveIfEmpty(room)) return;
+        if (manager.RemoveIfEmpty(room)) { logger.LogInformation("room_deleted room={RoomId} reason=empty_after_leave", room.Id); return; }
         await Broadcast(room);
     }
     private async Task Broadcast(GameRoom room)
@@ -157,7 +165,8 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
             {
                 var p = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId);
                 if (p == null) continue;
-                p.IsConnected = false;
+            p.IsConnected = false;
+                logger.LogInformation("player_disconnected room={RoomId} player={PlayerName} grace_seconds={GraceSeconds}", room.Id, p.Name, 60);
                 await Broadcast(room);
                 var id = p.ConnectionId;
                 var clients = hubContext.Clients;
@@ -186,7 +195,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext) :
                 var owner = room.Players.FirstOrDefault(x => x.IsConnected) ?? room.Players.FirstOrDefault();
                 room.CreatedBy = owner?.ConnectionId; room.CreatorName = owner?.Name;
             }
-            if (manager.RemoveIfEmpty(room)) return;
+            if (manager.RemoveIfEmpty(room)) { logger.LogInformation("room_deleted room={RoomId} reason=empty_after_disconnect_expiry", room.Id); return; }
             room.Revision++;
             // Clients fetch their private snapshot after this notification.
             await clients.Group(room.Id).SendAsync("PlayerLeft", p.Name, room.Players.Count);
