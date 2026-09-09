@@ -2,7 +2,7 @@ import type { Card } from '../types/Card';
 export const suitColors: Record<Card['suit'], string> = { '♠': '#294754', '♥': '#a03c3c', '♦': '#99702c', '♣': '#655078' };
 const art = new Map<string, HTMLCanvasElement>();
 const customCardAssets = new Map<string, string>([
-    ['wildcard', '/models/CARDS/COMODIN%202.png'],
+    ['wildcard', '/assets/cards/front/special/wildcard.png'],
     ['gaucho-1', '/models/CARDS/1%20pepino%20gaucho.png'],
     ['gold-3', '/models/CARDS/3%20de%20oro%20pepino.png']
 ]);

@@ -7,8 +7,8 @@ export function seatPositions(count: number, portrait = false, shortLandscape = 
     }));
     if (count === 1) return [{ x: .5, y: .29, rotation: 0, avatarX: .5, avatarY: .15 }];
     if (count === 2) return [
-        { x: .24, y: .29, rotation: -.55, avatarX: .1, avatarY: .24 },
-        { x: .76, y: .29, rotation: .55, avatarX: .9, avatarY: .24 }
+        { x: .28, y: .38, rotation: -.3, avatarX: .13, avatarY: .28 },
+        { x: .72, y: .38, rotation: .3, avatarX: .87, avatarY: .28 }
     ];
     if (count === 3) return [
         { x: .22, y: .38, rotation: -.3, avatarX: .14, avatarY: .25 },

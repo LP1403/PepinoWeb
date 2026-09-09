@@ -82,7 +82,7 @@
 .play-controls>button { min-width:110px; }
 .play-controls .clear-selection { position:absolute; top:45px; left:50%; transform:translateX(-50%); white-space:nowrap; }
 .hand-area { --card-h:clamp(120px,23vh,215px); }
-.lobby-seating { position:absolute; left:52%; right:4%; top:48%; height:43%; z-index:2; }
+.lobby-seating { position:absolute; inset:0; z-index:2; pointer-events:none; }
 .lobby-place { position:absolute; transform:translate(-50%,-50%); display:flex; align-items:center; gap:9px; padding:8px 12px; max-width:160px; background:#142119e8; border:1px solid #c2b08b44; border-radius:30px; font-size:12px; }
 .lobby-place span:last-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .lobby-place .mini-avatar { width:30px; height:30px; border-radius:50%; }
@@ -158,3 +158,11 @@
  .seat-badge:not(.local-seat) small { display:block; font-size:7px; }
  .seat-badge:not(.local-seat) .seat-status { top:4px; left:calc(50% + 21px); transform:none; max-width:60px; font-size:6px; }
 }
+
+.table-zoom { position:absolute; right:18px; top:76px; z-index:5; display:flex; gap:5px; align-items:center; }
+.table-zoom button { background:#18261e; color:#eee5d4; border:1px solid #aa9a7866; border-radius:16px; padding:7px 10px; }
+.table-zoom span { font-size:10px; padding-right:8px; }
+.table-zoom button:disabled { opacity:.4; }
+.spectating .hand-area { visibility:hidden; pointer-events:none; }
+
+.pepino-game .pile-caption { left:var(--pile-left,50%); top:var(--pile-top,54%); }

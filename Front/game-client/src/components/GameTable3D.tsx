@@ -19,6 +19,7 @@ export interface GameTable3DProps {
 }
 export default function GameTable3D({ state, busy = false, connected = true, onPlay, onPass, onLeave }: GameTable3DProps) {
     const [selected, setSelected] = useState<string[]>([]);
+    const [zoom,setZoom] = useState(1);
     const [portrait, setPortrait] = useState(innerWidth < 600);
     const [shortLandscape,setShortLandscape]=useState(innerWidth>=601 && innerHeight<=550);
     useEffect(() => { const resize = () => {setPortrait(innerWidth < 600);setShortLandscape(innerWidth>=601 && innerHeight<=550);}; addEventListener('resize', resize); return () => removeEventListener('resize', resize); }, []);
@@ -115,9 +116,15 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         if (await onPlay(cards)) setSelected([]);
     }
     const helper = !connected ? 'Recuperando la conexión con la mesa…' : busy ? 'Enviando tu jugada…' : state.isPaused ? 'Partida pausada · esperando reconexión (hasta 60 s)' : local?.hasWon ? '¡Ya estás entre los ganadores!' : !myTurn ? `${turn?.name ?? 'Otro jugador'} está pensando…` : chosen.length ? (validation.isValid ? `${chosen.length} carta${chosen.length > 1 ? 's' : ''} lista${chosen.length > 1 ? 's' : ''}` : validation.reason) : state.isNewRound ? 'Nueva ronda · Juega libremente' : 'Elegí tus cartas · los bordes dorados indican jugadas posibles';
-    return <main className="pepino-game" data-testid="game" data-turn={myTurn} data-revision={state.revision}>
+    return <main className={`pepino-game${local?.hasWon ? ' spectating' : ''}`} data-testid="game" data-turn={myTurn} data-revision={state.revision}>
         <GameAudioControls state={state} runtimeOnly />
-        <SceneView opponents={opponents} yourTurn={myTurn} play={state.lastPlay} discardCount={Math.max(0,state.tableCards.length-(state.lastPlay?.cards.length ?? 0))} />
+        <SceneView opponents={opponents} yourTurn={myTurn} play={state.lastPlay} zoom={zoom} discardCards={state.tableCards.filter(c=>!state.lastPlay?.cards.some(last=>last.id===c.id))} />
+        <nav className="table-zoom" aria-label="Zoom de mesa">
+            {local?.hasWon && <span>ESPECTANDO</span>}
+            <button aria-label="Alejar mesa" disabled={zoom<=1} onClick={()=>setZoom(z=>Math.max(1,z-.15))}>−</button>
+            <button aria-label="Restablecer zoom" onClick={()=>setZoom(1)}>{Math.round(zoom*100)}%</button>
+            <button aria-label="Acercar mesa" disabled={zoom>=1.6} onClick={()=>setZoom(z=>Math.min(1.6,z+.15))}>+</button>
+        </nav>
         <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div>
             <div className="top-actions"><div className="room-tag" title={`Sala ${state.roomId} · Ronda ${state.roundNumber}`}>SALA <b>{state.roomId}</b><span>RONDA {state.roundNumber}</span></div><GameGraphicsControls state={state}/><button onClick={onLeave}>SALIR</button></div>
         </header>

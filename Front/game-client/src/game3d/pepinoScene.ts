@@ -11,7 +11,8 @@ export interface PepinoSceneApi {
     setOpponents(players: Player[]): void;
     setTurnIndicator(active: boolean): void;
     setLastPlay(play: PlayedCards | null, animate: boolean): void;
-    setDiscardCount(count:number):void;
+    setDiscardCards(cards:Card[]):void;
+    setZoom(zoom:number):void;
     dispose(): void;
 }
 // Camera/board are world-space. Cards use a screen-space 3D layer so their reading size
@@ -46,6 +47,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const mateFromPosition=new THREE.Vector3(3.75,0,1.7);
     const mateTargetPosition=new THREE.Vector3(3.75,0,1.7);
     let discardLabelDirty=true;
+    let pileCenter=0;
     const overlay = new THREE.Scene();
     const localCards = new THREE.Scene();
     const localMeshes = new Map<string, THREE.Mesh>();
@@ -76,6 +78,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
             if (!highlighted) {
                 const assetUrl = card ? cardAssetUrl(card) : cardBackUrl(deckIndex);
                 if (assetUrl) cardLoader.load(assetUrl, loaded => {
+                    if(disposed) { loaded.dispose(); return; }
                     loaded.colorSpace = THREE.SRGBColorSpace;
                     const current = textures.get(key);
                     if (current === material) {
@@ -94,7 +97,12 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     let width = 1, height = 1, opponents: Player[] = [], lastPlay: PlayedCards | null = null;
     const pile = new THREE.Group(); scene.add(pile);
     const discard=new THREE.Group();scene.add(discard);
-    const discardMaterial=own(new THREE.MeshStandardMaterial({map:cardMaterial().map,transparent:true,alphaTest:.5,roughness:.85,side:THREE.DoubleSide}));
+    function physicalMaterial(card?: Card, deckIndex=card?.deckIndex ?? 0) {
+        const key=card ? `${card.suit}${card.value}-deck${deckIndex}` : `back-${deckIndex}`;
+        const face=cardMaterial(card,false,deckIndex);
+        if(!physicalMaterials.has(key)) physicalMaterials.set(key,own(new THREE.MeshStandardMaterial({map:face.map,transparent:true,alphaTest:.5,roughness:.85,side:THREE.DoubleSide})));
+        return physicalMaterials.get(key)!;
+    }
     const hands = new THREE.Group(); overlay.add(hands);
     const sleeveGeometry = own(new THREE.CylinderGeometry(.23,.32,1,16));
     const sleeveMaterial = own(new THREE.MeshStandardMaterial({color:0x202a29,roughness:1}));
@@ -176,7 +184,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
                 m.rotation.z = fanRotation + (i - (n - 1) / 2) * -.025;
                 m.renderOrder = i; assembly.add(m);
             }
-            assembly.rotation.set(-.12,(seat.x-.5)*2.8,seat.rotation*.12);
+            assembly.rotation.set(-.08,(seat.x-.5)*.8,-seat.rotation*.35);
         });
         if (!lobby && width >= 600) handPair(.5,.86,Math.min(height*.19,width*.16),true);
     }
@@ -187,15 +195,18 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         const from = opponents.findIndex(p => p.connectionId === lastPlay!.playerId);
         const origin = new THREE.Vector3(from >= 0 ? (seats[from].x-.5)*7 : 0, .7, from >= 0 ? -2 : 3);
         const n = lastPlay.cards.length;
-        const ch = 1.25;
-        const spread = Math.min(.5, 3 / Math.max(1, n - 1));
+        const ch = width<600 ? 1 : 1.25;
+        const spread = Math.min(.5, (width<600 ? 1.35 : 3) / Math.max(1, n - 1));
+        // Reserve the discard's footprint before spreading the current play.
+        const center=Math.max(0,-1.5+.325+.3+ch*360/520/2+(n-1)*spread/2);
+        pileCenter=center;discardLabelDirty=true;
         lastPlay.cards.forEach((card, i) => {
             const face = cardMesh(card);
             const key = `${card.suit}${card.value}-deck${card.deckIndex ?? 0}`;
             if (!physicalMaterials.has(key)) physicalMaterials.set(key, own(new THREE.MeshStandardMaterial({map:face.material.map, transparent:true, alphaTest:.5, roughness:.85, side:THREE.DoubleSide})));
             const m = new THREE.Mesh(cardGeometry, physicalMaterials.get(key)!); m.scale.set(ch * 360 / 520, ch, 1);
             m.castShadow = m.receiveShadow = true;
-            const end = new THREE.Vector3((i - (n - 1) / 2) * spread, .045+i*.004, -.35);
+            const end = new THREE.Vector3(center+(i - (n - 1) / 2) * spread, .045+i*.004, -.35);
             const rotation = -.065 + (i - (n - 1) / 2) * .025;
             m.position.copy(animate ? origin : end); m.rotation.set(-Math.PI/2,0,rotation); m.renderOrder = 30 + i;
             pile.add(m);
@@ -281,6 +292,16 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         const frameInterval=1000/(graphicsQuality==='low'?30:60);
         if(now-lastRendered<frameInterval-1) {raf=requestAnimationFrame(frame);return;}
         lastRendered=now;
+        if(lobby) {
+            // Project table-space seats through the same camera/view offset as the table.
+            camera.updateMatrixWorld();
+            host.querySelectorAll<HTMLElement>('[data-lobby-seat]').forEach(label=>{
+                const angle=Math.PI/2+Number(label.dataset.lobbySeat)*Math.PI*2/Number(label.dataset.seatCount);
+                const seat=new THREE.Vector3(Math.cos(angle)*3.5,.08,Math.sin(angle)*2.75).project(camera);
+                label.style.left=`${(seat.x+1)*width/2}px`;
+                label.style.top=`${(1-seat.y)*height/2}px`;
+            });
+        }
         if (handLayoutDirty || now<layoutUntil) updateHandAnchor();
         const mateProgress=reducedMotion?1:Math.min(1,(now-mateStarted)/650);
         environment.mate.rotation.y=mateFrom+(mateAngle-mateFrom)*(1-Math.pow(1-mateProgress,3));
@@ -296,6 +317,9 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
             const anchor=new THREE.Vector3(-1.5,.02,.38).project(camera);
             host.style.setProperty('--discard-left',`${(anchor.x+1)*width/2}px`);
             host.style.setProperty('--discard-top',`${(1-anchor.y)*height/2+7}px`);
+            const caption=new THREE.Vector3(pileCenter,.02,.5).project(camera);
+            host.style.setProperty('--pile-left',`${(caption.x+1)*width/2}px`);
+            host.style.setProperty('--pile-top',`${(1-caption.y)*height/2+10}px`);
             discardLabelDirty=false;
         }
         const firstFlight=flights[0];
@@ -358,9 +382,9 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         const seats=seatPositions(opponents.length,width<600,width>=601 && height<=550);
         const nextMate = index >= 0 ? (() => {
             const seat=seats[index];
-            if(seat.x<.35)return new THREE.Vector3(-3.8,0,-1.8);
-            if(seat.x>.65)return new THREE.Vector3(3.8,0,-1.8);
-            return new THREE.Vector3(2.25,0,-2.7);
+            if(seat.x<.35)return new THREE.Vector3(width<600?-1.7:-2.8,0,.9);
+            if(seat.x>.65)return new THREE.Vector3(width<600?1.7:2.8,0,.9);
+            return new THREE.Vector3(-1.7,0,-2.5);
         })() : new THREE.Vector3(3.75,0,1.7);
         if(mateTargetPosition.distanceToSquared(nextMate)>.0001) {
             mateFromPosition.copy(environment.mate.position);
@@ -381,13 +405,14 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     }
     resize(); raf = requestAnimationFrame(frame);
     return {
-        setDiscardCount(count) {
+        setZoom(zoom) { camera.zoom=Math.max(1,Math.min(1.65,zoom));camera.updateProjectionMatrix();discardLabelDirty=true; },
+        setDiscardCards(cards) {
             discard.clear();
             // A bounded stack represents the public server count; geometry does
             // not grow with every card played during a long multi-deck match.
-            const layers=Math.min(6,Math.max(0,count));
+            const layers=Math.min(6,cards.length);
             for(let i=0;i<layers;i++) {
-                const card=new THREE.Mesh(cardGeometry,discardMaterial);
+                const card=new THREE.Mesh(cardGeometry,physicalMaterial(undefined,cards[cards.length-layers+i].deckIndex ?? 0));
                 card.scale.set(.65,.94,1);
                 card.position.set(-1.5+(i%2)*.014,.035+i*.022,-.35);
                 card.rotation.set(-Math.PI/2,0,(i%3-1)*.025);

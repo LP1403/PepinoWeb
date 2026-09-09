@@ -56,8 +56,9 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
                     <button className="lobby-leave" onClick={() => void leave()}>SALIR DE LA SALA</button>
                 </section>
             <div className="lobby-seating" aria-label="Asientos de la mesa">{state?.players.map((p,i) => {
-                const angle = Math.PI * 2 * i / state.players.length - Math.PI / 2;
-                return <div className="lobby-place" key={p.connectionId} style={{left:`${50+Math.cos(angle)*38}%`,top:`${50+Math.sin(angle)*37}%`}}><span className="mini-avatar">{p.name.slice(0,2).toUpperCase()}</span><span>{p.name}{p.connectionId===state.yourPlayerId?' (vos)':''}</span></div>;
+                const localIndex=Math.max(0,state.players.findIndex(player=>player.connectionId===state.yourPlayerId));
+                const seat=(i-localIndex+state.players.length)%state.players.length;
+                return <div className="lobby-place" key={p.connectionId} data-lobby-seat={seat} data-seat-count={state.players.length}><span className={`mini-avatar seat-${i % 4}`}>{p.name.slice(0,2).toUpperCase()}</span><span>{p.name}{p.connectionId===state.yourPlayerId?' (vos)':''}</span></div>;
             })}</div>
         </main>}
         {!connected && state && <div className="connection-banner" role="status">{game.status}</div>}

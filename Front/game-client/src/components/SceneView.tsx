@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PlayedCards, Player } from '../types/Card';
+import type { Card, PlayedCards, Player } from '../types/Card';
 import { createPepinoScene } from '../game3d/pepinoScene';
 import type { PepinoSceneApi } from '../game3d/pepinoScene';
 const empty: Player[] = [];
-export default function SceneView({ opponents = empty, play = null, lobby = false, yourTurn = false, discardCount=0 }: { lobby?: boolean; opponents?: Player[]; play?: PlayedCards | null; yourTurn?: boolean; discardCount?:number }) {
+const noCards: Card[] = [];
+export default function SceneView({ opponents = empty, play = null, lobby = false, yourTurn = false, discardCards=noCards, zoom=1 }: { lobby?: boolean; opponents?: Player[]; play?: PlayedCards | null; yourTurn?: boolean; discardCards?:Card[]; zoom?:number }) {
     const host = useRef<HTMLDivElement>(null);
     const api = useRef<PepinoSceneApi | null>(null);
     const sequence = useRef<number | null>(null);
@@ -15,7 +16,8 @@ export default function SceneView({ opponents = empty, play = null, lobby = fals
     }, [lobby]);
     useEffect(() => { api.current?.setOpponents(opponents); }, [opponents]);
     useEffect(() => { api.current?.setTurnIndicator(yourTurn); }, [yourTurn]);
-    useEffect(() => {api.current?.setDiscardCount(discardCount);},[discardCount]);
+    useEffect(() => {api.current?.setDiscardCards(discardCards);},[discardCards]);
+    useEffect(() => {api.current?.setZoom(zoom);},[zoom]);
     useEffect(() => {
         const next = play?.sequence ?? 0;
         if (sequence.current === next) return;
