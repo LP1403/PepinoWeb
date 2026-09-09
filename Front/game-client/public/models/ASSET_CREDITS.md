@@ -1,5 +1,11 @@
 # Pepino hands
 
+`pepino-hand-rigged.glb` uses the same source and license described below.
+It preserves the 18-bone skeleton at the same cupped pose, with a 1024px texture.
+Reproduce with `node scripts/export-rigged-hand.mjs` from the web client while
+Vite runs at port 5174. The script uses the repository FBX and texture, and Edge.
+Skeletons are cloned independently for each rendered hand.
+
 `pepino-hand.glb` is derived from the First Person Hands asset by Robert Ramsay
 already imported into this project's Unity assets. Source:
 `UnityProject/PepinoUnity3D/Assets/FirstPersonHands/MaleHands/MaleHand.FBX`

@@ -90,6 +90,9 @@
 .hand-area .play-controls .clear-selection { position:static; inset:auto; transform:none; min-width:0; padding:10px 8px; }
 .hand-area .hand-helper { margin:8px 0 0; padding:0 8px; height:auto; min-height:28px; line-height:1.35; text-align:center; }
 .hand-card.dragging-card { opacity:.22; }
+.local-cards-3d .hand-card img { opacity:0; }
+.local-cards-3d .hand-card { box-shadow:none; }
+.local-cards-3d .hand-card:not(.selected) { outline:none; }
 .hand-scroll { scrollbar-width:none; -ms-overflow-style:none; }
 .hand-scroll { overflow-x:auto; overflow-y:hidden; touch-action:pan-x; -webkit-overflow-scrolling:touch; }
 .hand-scroll::-webkit-scrollbar { display:none; width:0; height:0; }

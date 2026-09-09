@@ -31,6 +31,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     const previousPlay = useRef(state.lastPlay?.sequence ?? 0);
     const [effect, setEffect] = useState('');
     const scroll = useRef<HTMLDivElement>(null);
+    const pan = useRef<{x:number;y:number;left:number;active:boolean}|null>(null);
     const local = state.players.find(p => p.connectionId === state.yourPlayerId);
     const meIndex = state.players.findIndex(p => p.connectionId === state.yourPlayerId);
     const opponents = useMemo(() => [...state.players.slice(meIndex + 1), ...state.players.slice(0, meIndex)], [state.players, meIndex]);
@@ -100,11 +101,10 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     return <main className="pepino-game" data-testid="game" data-turn={myTurn} data-revision={state.revision}>
         <SceneView opponents={opponents} play={state.lastPlay} />
         <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div>
-            <div className="room-tag">SALA <b>{state.roomId}</b><span>RONDA {state.roundNumber}</span></div>
-            <div className="top-actions"><GameAudioControls state={state} /><button onClick={onLeave}>SALIR</button></div>
+            <div className="top-actions"><div className="room-tag">SALA <b>{state.roomId}</b><span>RONDA {state.roundNumber}</span></div><GameAudioControls state={state} /><button onClick={onLeave}>SALIR</button></div>
         </header>
         {opponents.map((p,i) => <div key={p.connectionId} className={`seat-badge seat-${i % 4} ${p.isCurrentTurn ? 'active' : ''}`} style={{ left: `${seats[i].avatarX * 100}%`, top: `${seats[i].avatarY * 100}%` }} data-testid="opponent">
-            <div className="avatar">{p.name.slice(0,2).toUpperCase()}<span className="seat-count">{p.hasWon ? '★' : p.cardCount}</span></div>
+            <div className="avatar">{p.name.slice(0,2).toUpperCase()}</div>
             <span className="seat-name">{p.name}</span><small>{!p.isConnected ? 'Reconectando…' : p.hasWon ? 'Ganador' : p.isCurrentTurn ? 'JUGANDO' : `${p.cardCount} cartas`}</small>
         </div>)}
         <div className="pile-caption" data-testid="last-play">{state.lastPlay ? <><b>{state.lastPlay.cards.length} × {state.lastPlay.cards[0].value}</b><span>{state.lastPlay.playerName}</span></> : <span>El 3♦ decide quién empieza</span>}</div>
@@ -115,12 +115,27 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         <section className="hand-area" aria-label="Tu mano">
             <div className="play-controls"><button className="primary-button" disabled={!canPlay} onClick={() => setConfirmation({ cards: chosen, revision: state.revision })}>JUGAR</button><button className="secondary-button" disabled={!canPass} onClick={() => { void onPass(); }}>PASAR</button>{chosen.length > 0 && <button className="clear-selection" onClick={() => setSelected([])}>Limpiar ({chosen.length})</button>}</div>
             <p className={`hand-helper${!myTurn ? ' waiting' : ''}`} aria-live="polite">{helper}</p>
-            <div className="hand-scroll" ref={scroll} onWheel={e => { if (scroll.current) scroll.current.scrollLeft += e.deltaY; }}>
+            <div className="hand-scroll" ref={scroll} onWheel={e => { if (scroll.current) scroll.current.scrollLeft += e.deltaY; }}
+                onPointerDown={e=>{if(e.pointerType==='mouse' && e.button===0) pan.current={x:e.clientX,y:e.clientY,left:e.currentTarget.scrollLeft,active:false};}}
+                onPointerMove={e=>{
+                    const p=pan.current;
+                    if(!p || !(e.buttons&1)) return;
+                    const dx=e.clientX-p.x,dy=e.clientY-p.y;
+                    if(!p.active && Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)){pan.current=null;return;}
+                    if(!p.active && Math.abs(dx)>10 && Math.abs(dx)>Math.abs(dy)){
+                        p.active=true;gesture.current=null;suppressClick.current=true;
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                    }
+                    if(p.active){e.preventDefault();e.currentTarget.scrollLeft=p.left-dx;}
+                }}
+                onPointerUp={()=>{pan.current=null;}}
+                onPointerCancel={()=>{pan.current=null;}}
+                onLostPointerCapture={()=>{pan.current=null;}}>
                 <div className="hand-fan">
                     {groups.map(([value, cards], gi) => <div className="value-stack" key={value} style={{ '--cards': cards.length, '--tilt': `${Math.max(-4, Math.min(4, (gi - (groups.length - 1) / 2) * 1.3))}deg` } as CSSProperties}>
                         {cards.map((card, i) => <button key={card.id} className={`hand-card ${chosen.some(c => c.id === card.id) ? 'selected' : ''} ${myTurn && playable.has(card.id) ? 'possible' : ''} ${drag?.cards.some(c => c.id === card.id) ? 'dragging-card' : ''}`}
-                            style={{ '--index': i } as CSSProperties} aria-label={`${card.value} de ${card.suit}`} aria-pressed={chosen.some(c => c.id === card.id)} data-card-id={card.id} data-value={card.value}
-                            onClick={() => toggle(card.id)} disabled={!myTurn || busy}
+                            style={{ '--index': i } as CSSProperties} aria-label={`${card.value} de ${card.suit}`} aria-pressed={chosen.some(c => c.id === card.id)} data-card-id={card.id} data-value={card.value} data-suit={card.suit}
+                            onClick={e => { if(e.detail===0) suppressClick.current=false; toggle(card.id); }} disabled={!myTurn || busy}
                             onPointerDown={e => { if (!e.isPrimary || e.button !== 0) return; suppressClick.current = false; gesture.current = { id: card.id, x: e.clientX, y: e.clientY, dragging: false, cards: chosen.some(c => c.id === card.id) ? chosen : [card], revision: state.revision }; }}
                             onPointerMove={move} onPointerUp={release} onPointerCancel={() => { gesture.current = null; setDrag(null); }}>
                             <img src={cardImage(card)} alt="" draggable={false} />

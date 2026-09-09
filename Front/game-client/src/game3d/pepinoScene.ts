@@ -4,6 +4,7 @@ import { cardCanvas } from './cardArt';
 import { seatPositions } from './layout';
 import { buildTableEnvironment } from './tableEnvironment';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 export interface PepinoSceneApi {
     setOpponents(players: Player[]): void;
@@ -21,6 +22,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.autoClear = false;
+    renderer.info.autoReset = false;
     container.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x171713);
@@ -37,6 +39,9 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const own = <T extends THREE.BufferGeometry | THREE.Material | THREE.Texture>(item: T): T => { resources.add(item); return item; };
     buildTableEnvironment(scene, own);
     const overlay = new THREE.Scene();
+    const localCards = new THREE.Scene();
+    const localMeshes = new Map<string, THREE.Mesh>();
+    const handClip = new THREE.Vector4();
     overlay.add(new THREE.HemisphereLight(0xffeddb, 0x403529, 2));
     const handLight = new THREE.DirectionalLight(0xffe3c4, 2); handLight.position.set(-2,4,10); overlay.add(handLight);
     const screen = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 2000);
@@ -47,17 +52,18 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         const key = card ? `${card.suit}${card.value}` : 'back';
         if (!textures.has(key)) {
             const tex = own(new THREE.CanvasTexture(cardCanvas(card))); tex.colorSpace = THREE.SRGBColorSpace;
-            textures.set(key, own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, toneMapped: false })));
+            textures.set(key, own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest:.5, depthTest: true, toneMapped: false })));
         }
         return new THREE.Mesh(cardGeometry, textures.get(key)!);
     }
     let width = 1, height = 1, opponents: Player[] = [], lastPlay: PlayedCards | null = null;
-    const backs = new THREE.Group(), pile = new THREE.Group(); overlay.add(backs, pile);
+    const pile = new THREE.Group(); scene.add(pile);
+    const physicalMaterials = new Map<string, THREE.MeshStandardMaterial>();
     const hands = new THREE.Group(); overlay.add(hands);
     const sleeveGeometry = own(new THREE.CylinderGeometry(.23,.32,1,16));
     const sleeveMaterial = own(new THREE.MeshStandardMaterial({color:0x202a29,roughness:1}));
     let hand: THREE.Object3D | null = null, disposed = false;
-    if (!lobby) new GLTFLoader().load('/models/pepino-hand.glb', gltf => {
+    if (!lobby) new GLTFLoader().load('/models/pepino-hand-rigged.glb', gltf => {
         gltf.scene.traverse(object => {
             if (object instanceof THREE.Mesh) {
                 own(object.geometry);
@@ -70,37 +76,64 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     }, undefined, () => { /* Cards stay fully playable if the decorative model fails to load. */ });
     let flights: { mesh: THREE.Mesh; start: THREE.Vector3; end: THREE.Vector3; time: number; rotation: number; order: number }[] = [];
     const point = (x: number, y: number) => new THREE.Vector3(x * width - width / 2, height / 2 - y * height, 1);
-    function handPair(x: number, y: number, size: number, local = false, playerId = '') {
+    function handPair(x: number, y: number, size: number, local = false, playerId = '', rotation = 0, cardCount = 1, assembly?: THREE.Group) {
         if (!hand) return;
         for (const side of [-1,1]) {
-            const model = hand.clone();
-            model.position.copy(point(x,y)); model.position.x += side * size * .8; model.position.y += (local?-1:1)*size*.36; model.position.z=-3;
-            model.scale.set(side*size*1.5,size*1.5,size*1.5); model.rotation.set(Math.PI/2,0,(local?0:Math.PI)+side*-.5); hands.add(model);
-            model.userData = { baseY:model.position.y, playerId, local };
+            const model = cloneSkeleton(hand);
+            const fingers: THREE.Bone[] = [];
+            model.traverse(node => {
+                if (node instanceof THREE.Bone && /Mid|Middle|End/.test(node.name)) {
+                    node.rotateX(/End/.test(node.name) ? .16 : .25);
+                    node.userData.restQuaternion = node.quaternion.clone();
+                    fingers.push(node);
+                }
+            });
+            const fanHalfWidth = (360/520 + (cardCount-1)*.22)/2;
+            const dx = side * size * (local ? .65 : fanHalfWidth-.17), dy = local ? -size*.36 : -size*.39;
+            model.position.copy(assembly ? new THREE.Vector3() : point(x,y));
+            model.position.x += Math.cos(rotation)*dx-Math.sin(rotation)*dy;
+            model.position.y += Math.sin(rotation)*dx+Math.cos(rotation)*dy; model.position.z=-size*.3;
+            const handScale = size * (local ? 1.5 : 1.35);
+            model.scale.set(side*handScale,handScale,handScale); model.rotation.set(Math.PI/2,0,(local?side*-.5:Math.PI-side*.85)+rotation); (assembly ?? hands).add(model);
+            // Wrists below/outside, fingertips rising towards the centre of the fan.
+            if (!local) model.rotation.set(Math.PI/2,0,side*1.05+rotation,'ZXY');
+            model.updateMatrixWorld(true);
+            const gripBounds = new THREE.Box3().setFromObject(model,true);
+            // Keep the palm behind the fan and expose the grip at its lower corners.
+            const gripDepth = local ? 13 : size*.16 + (cardCount-1)*.7;
+            model.position.z += gripDepth - gripBounds.max.z;
+            model.userData = { baseX:model.position.x, baseY:model.position.y, playerId, local, fingers };
+            if (!local) continue;
             const sleeve = new THREE.Mesh(sleeveGeometry,sleeveMaterial);
-            sleeve.position.copy(model.position); sleeve.position.y+=(local?-1:1)*size*.87; sleeve.position.z=-8;
-            sleeve.scale.set(size,size*(local?2:.85),size); sleeve.rotation.z=side*-.08; hands.add(sleeve);
-            sleeve.userData = { baseY:sleeve.position.y, playerId, local };
+            sleeve.position.copy(model.position); sleeve.position.x-=Math.sin(rotation)*(local?-1:1)*size*.65; sleeve.position.y+=Math.cos(rotation)*(local?-1:1)*size*.65; sleeve.position.z=-8;
+            sleeve.scale.set(size,size*(local?1:.4),size); sleeve.rotation.z=side*-.08+rotation; hands.add(sleeve);
+            sleeve.userData = { baseX:sleeve.position.x, baseY:sleeve.position.y, playerId, local };
         }
     }
     function renderOpponents() {
-        backs.clear();
+        hands.traverse(node => { if (node instanceof THREE.SkinnedMesh) node.skeleton.dispose(); });
         hands.clear();
         const seats = seatPositions(opponents.length, width < 600);
         opponents.forEach((p, index) => {
             const seat = seats[index];
+            // Hands and cards share the seat orientation, including its foreshortening.
+            const assembly = new THREE.Group();
+            assembly.position.copy(point(seat.x,seat.y));
+            hands.add(assembly);
+            const fanRotation = 0;
             const n = Math.min(p.cardCount, opponents.length > 3 ? 4 : 6);
             const ch = Math.min(height * (opponents.length > 3 ? .085 : .11), width * (opponents.length > 3 ? .13 : .17));
-            if (n > 0 && !(width < 600 && opponents.length > 3)) handPair(seat.x,seat.y,ch,false,p.connectionId);
+            if (n > 0 && !(width < 600 && opponents.length > 3)) handPair(seat.x,seat.y,ch,false,p.connectionId,fanRotation,n,assembly);
             for (let i = 0; i < n; i++) {
                 const m = cardMesh(); m.scale.set(ch * 360 / 520, ch, 1);
-                m.position.copy(point(seat.x, seat.y));
+                m.position.set(0,0,i*.7);
                 const offset = (i - (n - 1) / 2) * ch * .22;
-                m.position.x += Math.cos(seat.rotation) * offset;
-                m.position.y += Math.sin(seat.rotation) * offset - Math.abs(i - (n - 1) / 2) * 2;
-                m.rotation.z = seat.rotation + (i - (n - 1) / 2) * -.025;
-                m.renderOrder = i; backs.add(m);
+                m.position.x += Math.cos(fanRotation) * offset;
+                m.position.y += Math.sin(fanRotation) * offset - Math.abs(i - (n - 1) / 2) * 2;
+                m.rotation.z = fanRotation + (i - (n - 1) / 2) * -.025;
+                m.renderOrder = i; assembly.add(m);
             }
+            assembly.rotation.set(-.12,(seat.x-.5)*2.8,seat.rotation*.12);
         });
         if (!lobby && width >= 600) handPair(.5,.86,Math.min(height*.19,width*.16),true);
     }
@@ -109,21 +142,26 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         if (!lastPlay) return;
         const seats = seatPositions(opponents.length, width < 600);
         const from = opponents.findIndex(p => p.connectionId === lastPlay!.playerId);
-        const origin = from >= 0 ? point(seats[from].x, seats[from].y) : point(.5, .84);
+        const origin = new THREE.Vector3(from >= 0 ? (seats[from].x-.5)*7 : 0, .7, from >= 0 ? -2 : 3);
         const n = lastPlay.cards.length;
-        const ch = Math.min(height * .17, width * .23);
-        const spread = Math.min(ch * .47, width * .35 / Math.max(1, n - 1));
+        const ch = 1.25;
+        const spread = Math.min(.5, 3 / Math.max(1, n - 1));
         lastPlay.cards.forEach((card, i) => {
-            const m = cardMesh(card); m.scale.set(ch * 360 / 520, ch, 1);
-            const end = point(.5, .46); end.x += (i - (n - 1) / 2) * spread;
+            const face = cardMesh(card);
+            const key = `${card.suit}${card.value}`;
+            if (!physicalMaterials.has(key)) physicalMaterials.set(key, own(new THREE.MeshStandardMaterial({map:face.material.map, transparent:true, alphaTest:.5, roughness:.85, side:THREE.DoubleSide})));
+            const m = new THREE.Mesh(cardGeometry, physicalMaterials.get(key)!); m.scale.set(ch * 360 / 520, ch, 1);
+            m.castShadow = m.receiveShadow = true;
+            const end = new THREE.Vector3((i - (n - 1) / 2) * spread, .045+i*.004, -.35);
             const rotation = -.065 + (i - (n - 1) / 2) * .025;
-            m.position.copy(animate ? origin : end); m.rotation.set(-.5,0,rotation); m.renderOrder = 30 + i;
+            m.position.copy(animate ? origin : end); m.rotation.set(-Math.PI/2,0,rotation); m.renderOrder = 30 + i;
             pile.add(m);
             if (animate) flights.push({ mesh: m, start: origin.clone(), end, time: performance.now() + i * 55, rotation, order: i });
         });
     }
     function resize() {
         width = container.clientWidth; height = container.clientHeight || 1;
+        renderer.setPixelRatio(Math.min(devicePixelRatio, width < 600 ? 1.25 : 1.75));
         renderer.setSize(width, height); camera.aspect = width / height;
         camera.fov = width / height < 1 ? 62 : 48;
         camera.position.set(0, lobby ? 10.8 : 5.4, lobby ? 6.8 : 8.3);
@@ -137,33 +175,110 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const enteredAt = performance.now();
     let raf = 0;
+    const localOffset = new THREE.Vector2();
+    let handLayoutDirty = true, localHandVisible = true, layoutUntil = 0;
+    const invalidateHandLayout = () => { handLayoutDirty = true; layoutUntil=performance.now()+250; };
+    const host = container.parentElement!;
+    const handObserver = new MutationObserver(invalidateHandLayout);
+    // Card selection, clearing a hand and horizontal scrolling can change its visible bounds.
+    const handArea = host.querySelector('.hand-area');
+    if (handArea) handObserver.observe(handArea, { childList:true, subtree:true, attributes:true, attributeFilter:['class'] });
+    host.addEventListener('scroll', invalidateHandLayout, true);
+    window.addEventListener('resize', invalidateHandLayout);
+    function updateHandAnchor() {
+        handLayoutDirty = false;
+        const viewport = host.querySelector('.hand-scroll')?.getBoundingClientRect();
+        const bounds = container.getBoundingClientRect();
+        const present = new Set<string>();
+        let left = Infinity, right = -Infinity, bottom = -Infinity;
+        if (viewport) host.querySelectorAll<HTMLButtonElement>('.hand-card').forEach((card,index) => {
+            const r = card.getBoundingClientRect();
+            if (r.right <= viewport.left || r.left >= viewport.right) return;
+            const id=card.dataset.cardId!;
+            present.add(id);
+            let mesh=localMeshes.get(id);
+            if (!mesh) {
+                mesh=cardMesh({ id, value:Number(card.dataset.value) as Card['value'], suit:card.dataset.suit as Card['suit'] });
+                localMeshes.set(id,mesh); localCards.add(mesh);
+            }
+            const matrix=new DOMMatrixReadOnly(getComputedStyle(card.parentElement!).transform);
+            const angle=Math.atan2(matrix.b,matrix.a);
+            // Local cards are the foreground layer: fingers must never paint over them.
+            mesh.position.set((r.left+r.right)/2-bounds.left-width/2,height/2-((r.top+r.bottom)/2-bounds.top),100+index*.01);
+            mesh.scale.set(card.offsetWidth,card.offsetHeight,1);
+            mesh.rotation.z=-angle;
+            mesh.renderOrder=card.classList.contains('selected')?1000+index:index;
+            mesh.visible=!card.classList.contains('dragging-card');
+            left = Math.min(left, Math.max(r.left, viewport.left));
+            right = Math.max(right, Math.min(r.right, viewport.right));
+            bottom = Math.max(bottom, r.bottom);
+        });
+        localHandVisible = Number.isFinite(left);
+        localMeshes.forEach((mesh,id)=>{if(!present.has(id)){localCards.remove(mesh);localMeshes.delete(id);}});
+        if(viewport) handClip.set(viewport.left-bounds.left,height-(viewport.bottom-bounds.top),viewport.width,viewport.height);
+        host.classList.toggle('local-cards-3d',!!viewport);
+        if (localHandVisible) {
+            // Keep wrists beneath the lower edge of the actual, clipped HTML fan.
+            localOffset.set((left+right)/2-bounds.left-width*.5, height*.86-(bottom-bounds.top-18));
+        }
+    }
+    let sampledAt = performance.now(), sampledFrames = 0;
     function frame(now: number) {
+        if (disposed || document.hidden) return;
+        if (handLayoutDirty || now<layoutUntil) updateHandAnchor();
         if (!lobby && !reducedMotion && now-enteredAt<1000) {
             const t=1-Math.pow(1-Math.min(1,(now-enteredAt)/900),3);
             camera.position.set(0,10.8+(5.4-10.8)*t,6.8+(8.3-6.8)*t);camera.lookAt(0,0,-.3);
         }
         const firstFlight=flights[0];
-        hands.children.forEach(model=>{
+        hands.traverse(model=>{
+            if (model.userData.baseX === undefined) return;
             const isAuthor=model.userData.playerId===lastPlay?.playerId || (model.userData.local && !opponents.some(p=>p.connectionId===lastPlay?.playerId));
             const progress=firstFlight?Math.max(0,Math.min(1,(now-firstFlight.time)/540)):0;
-            model.position.y=model.userData.baseY+(isAuthor?Math.sin(progress*Math.PI)*height*.012:0);
+            model.visible = !model.userData.local || localHandVisible;
+            model.position.x=model.userData.baseX+(model.userData.local?localOffset.x:0);
+            model.position.y=model.userData.baseY+(model.userData.local?localOffset.y:0)+(isAuthor?Math.sin(progress*Math.PI)*height*.012:0);
+            for (const finger of (model.userData.fingers ?? []) as THREE.Bone[]) {
+                finger.quaternion.copy(finger.userData.restQuaternion);
+                if (!reducedMotion && isAuthor) finger.rotateX(-Math.sin(progress*Math.PI)*.12);
+            }
         });
         for (const f of flights) {
             const t = Math.max(0, Math.min(1, (now - f.time) / 540));
             const ease = 1 - Math.pow(1 - t, 3);
             f.mesh.position.lerpVectors(f.start, f.end, ease);
-            f.mesh.position.y += Math.sin(t * Math.PI) * height * .09;
+            f.mesh.position.y += Math.sin(t * Math.PI) * .9;
             f.mesh.rotation.z = f.rotation + Math.sin(t * Math.PI) * .15;
         }
         flights = flights.filter(f => now < f.time + 540);
         renderer.domElement.dataset.animating = String(flights.length > 0);
+        renderer.info.reset();
         renderer.clear(); renderer.render(scene, camera); renderer.clearDepth(); renderer.render(overlay, screen);
+        if(localMeshes.size) {
+            renderer.setScissor(handClip); renderer.setScissorTest(true);
+            renderer.render(localCards,screen); renderer.setScissorTest(false);
+        }
+        sampledFrames++;
+        if (now-sampledAt >= 1000) {
+            renderer.domElement.dataset.fps = String(Math.round(sampledFrames*1000/(now-sampledAt)));
+            renderer.domElement.dataset.geometries = String(renderer.info.memory.geometries);
+            renderer.domElement.dataset.textures = String(renderer.info.memory.textures);
+            renderer.domElement.dataset.drawCalls = String(renderer.info.render.calls);
+            renderer.domElement.dataset.triangles = String(renderer.info.render.triangles);
+            renderer.domElement.dataset.pixelRatio = String(renderer.getPixelRatio());
+            sampledFrames=0; sampledAt=now;
+        }
         raf = requestAnimationFrame(frame);
     }
+    const visibility = () => {
+        cancelAnimationFrame(raf);
+        if (!document.hidden && !disposed) { sampledAt=performance.now(); sampledFrames=0; raf=requestAnimationFrame(frame); }
+    };
+    document.addEventListener('visibilitychange', visibility);
     resize(); raf = requestAnimationFrame(frame);
     return {
         setOpponents(players) { opponents = players; renderOpponents(); },
         setLastPlay(play, animate) { lastPlay = play; renderPile(animate && !reducedMotion); },
-        dispose() { disposed = true; cancelAnimationFrame(raf); observer.disconnect(); resources.forEach(r => r.dispose()); renderer.dispose(); renderer.domElement.remove(); }
+        dispose() { disposed = true; host.classList.remove('local-cards-3d'); cancelAnimationFrame(raf); handObserver.disconnect(); host.removeEventListener('scroll', invalidateHandLayout, true); window.removeEventListener('resize', invalidateHandLayout); document.removeEventListener('visibilitychange', visibility); observer.disconnect(); hands.traverse(node => { if (node instanceof THREE.SkinnedMesh) node.skeleton.dispose(); }); scene.traverse(node => { if (node instanceof THREE.InstancedMesh) node.dispose(); }); resources.forEach(r => r.dispose()); renderer.dispose(); renderer.domElement.remove(); }
     };
 }

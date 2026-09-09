@@ -17,8 +17,10 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(felt ? 4 : 2, felt ? 4 : 2);
         return tex;
     }
-    const wood = own(new THREE.MeshStandardMaterial({ map: texture(false), roughness: .64 }));
-    const felt = own(new THREE.MeshStandardMaterial({ map: texture(true), roughness: 1 }));
+    const woodMap = texture(false), feltMap = texture(true);
+    // Reuse existing maps for subtle surface relief without additional texture downloads.
+    const wood = own(new THREE.MeshStandardMaterial({ map: woodMap, bumpMap: woodMap, bumpScale:.025, roughness: .64 }));
+    const felt = own(new THREE.MeshStandardMaterial({ map: feltMap, bumpMap: feltMap, bumpScale:.012, roughness: 1 }));
     const brass = own(new THREE.MeshStandardMaterial({ color: 0xa28b54, metalness: .65, roughness: .4 }));
     const dark = own(new THREE.MeshStandardMaterial({ color: 0x201912, roughness: .65 }));
     function add(g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number) {
@@ -40,18 +42,36 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
         const lamp = new THREE.PointLight(0xffb466,15,12,2); lamp.position.set(x,1.4,-5.5); scene.add(lamp);
     }
     // Mate, yerba and bombilla, kept outside the playable felt.
-    const mate = add(new THREE.SphereGeometry(.32,24,16),wood,3.75,.29,1.7); mate.scale.y = 1.1;
+    const mate = add(new THREE.SphereGeometry(.32,24,16,0,Math.PI*2,.74,Math.PI-.74),wood,3.75,.29,1.7); mate.scale.y = 1.1;
     const mouth = add(new THREE.TorusGeometry(.24,.035,8,32),brass,3.75,.55,1.7); mouth.rotation.x=-Math.PI/2;
     const yerba=add(new THREE.CircleGeometry(.235,24),own(new THREE.MeshStandardMaterial({color:0x55502a,roughness:1})),3.75,.55,1.7); yerba.rotation.x=-Math.PI/2;
+    const leaves = new THREE.InstancedMesh(own(new THREE.SphereGeometry(.014,5,3)),own(new THREE.MeshStandardMaterial({color:0x798045,roughness:1})),64);
+    const leaf = new THREE.Object3D();
+    for(let i=0;i<64;i++) {
+        const angle=random()*Math.PI*2, radius=Math.sqrt(random())*.21;
+        leaf.position.set(3.75+Math.cos(angle)*radius,.555+random()*.018,1.7+Math.sin(angle)*radius);
+        leaf.scale.set(1,.3,1.8); leaf.rotation.y=angle; leaf.updateMatrix(); leaves.setMatrixAt(i,leaf.matrix);
+    }
+    scene.add(leaves);
     const straw=add(new THREE.CylinderGeometry(.025,.025,.8,10),brass,3.84,.87,1.7); straw.rotation.z=-.22;
     for (const [x,z] of [[-3.9,1.7],[3.8,-1.8],[-3.8,-1.8]]) {
         add(new THREE.CylinderGeometry(.26,.28,.045,24),dark,x,.025,z);
         add(new THREE.CylinderGeometry(.22,.19,.58,24,1,true),own(new THREE.MeshStandardMaterial({color:0xb6a48d,transparent:true,opacity:.3,roughness:.16,side:THREE.DoubleSide,depthWrite:false})),x,.34,z);
         add(new THREE.CylinderGeometry(.199,.18,.28,24),own(new THREE.MeshStandardMaterial({color:0x28160c,roughness:.23})),x,.2,z);
     }
+    const snack=own(new THREE.MeshStandardMaterial({color:0xb78c4c,roughness:.95}));
+    const nuts = new THREE.InstancedMesh(own(new THREE.SphereGeometry(.055,8,6)),snack,36);
+    nuts.castShadow=nuts.receiveShadow=true;
+    let nutIndex=0;
     for (const [x,z] of [[-3,2.7],[3,-2.8]]) {
         add(new THREE.CylinderGeometry(.4,.25,.12,24,1,true),dark,x,.07,z);
-        const snack=own(new THREE.MeshStandardMaterial({color:0xb78c4c,roughness:.95}));
-        for(let i=0;i<18;i++) { const angle=random()*Math.PI*2,r=random()*.3; const nut=add(new THREE.SphereGeometry(.055,8,6),snack,x+Math.cos(angle)*r,.12+random()*.05,z+Math.sin(angle)*r);nut.scale.z=1.7;nut.rotation.y=angle; }
+        const rim=add(new THREE.TorusGeometry(.4,.025,6,24),wood,x,.13,z); rim.rotation.x=-Math.PI/2;
+        add(new THREE.CylinderGeometry(.25,.25,.025,24),dark,x,.02,z);
+        for(let i=0;i<18;i++) {
+            const angle=random()*Math.PI*2,r=random()*.3;
+            leaf.position.set(x+Math.cos(angle)*r,.12+random()*.05,z+Math.sin(angle)*r);
+            leaf.scale.set(1,1,1.7);leaf.rotation.set(0,angle,0);leaf.updateMatrix();nuts.setMatrixAt(nutIndex++,leaf.matrix);
+        }
     }
+    scene.add(nuts);
 }
