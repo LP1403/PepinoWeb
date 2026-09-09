@@ -185,7 +185,7 @@ public class GameHub(GameRoomManager manager, IHubContext<GameHub> hubContext, I
     {
         roomId = room.Id, yourPlayerId = player.ConnectionId, revision = room.Revision,
         players = room.Players.Select(p => new { name = p.Name, connectionId = p.ConnectionId,
-            cardCount = p.Hand.Count, p.IsConnected, p.IsCurrentTurn, p.IsSkipped, p.HasWon }),
+            cardCount = p.Hand.Count, cardBacks = p.Hand.Select(card => card.DeckIndex), p.IsConnected, p.IsCurrentTurn, p.IsSkipped, p.HasWon }),
         tableCards = room.TableCards, currentTurnIndex = room.CurrentTurnIndex,
         lastPlayedCards = room.LastPlayedCards, lastPlayerId = room.LastPlayerId, lastPlay = room.LastPlay,
         isGameStarted = room.IsGameStarted, isGameFinished = room.IsGameFinished,

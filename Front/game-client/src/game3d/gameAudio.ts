@@ -9,6 +9,15 @@ export function loadAudioSettings(): AudioSettings {
     } catch { return { music: .22, effects: .35 }; }
 }
 
+let sharedAudio: GameAudio | null = null;
+export function getSharedGameAudio(): GameAudio {
+    return sharedAudio ??= new GameAudio(loadAudioSettings());
+}
+export function disposeSharedGameAudio() {
+    sharedAudio?.dispose();
+    sharedAudio = null;
+}
+
 // Original downtempo ambience: warm pads, rounded bass and brushed percussion.
 // Generated locally, with no downloads, external tracks or looping-file seams.
 export class GameAudio {

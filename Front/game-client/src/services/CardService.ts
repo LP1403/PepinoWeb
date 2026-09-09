@@ -7,7 +7,7 @@ export class CardService {
     /**
      * Crea un mazo de naipes españoles (48 cartas)
      */
-    static createSpanishDeck(): Card[] {
+    static createSpanishDeck(deckIndex = 0): Card[] {
         const deck: Card[] = [];
 
         for (const suit of this.SUITS) {
@@ -16,6 +16,7 @@ export class CardService {
                     suit,
                     value,
                     id: `${suit}-${value}-${Math.random().toString(36).substr(2, 9)}`,
+                    deckIndex,
                     isPepinoOro: suit === '♦' && value === 3 // El 3 de oro es el pepino de oro
                 });
             }
@@ -31,7 +32,7 @@ export class CardService {
         const allCards: Card[] = [];
 
         for (let i = 0; i < deckCount; i++) {
-            const deck = this.createSpanishDeck();
+            const deck = this.createSpanishDeck(i);
             // Agregar sufijo al ID para distinguir mazos
             deck.forEach(card => {
                 card.id = `${card.id}-deck${i}`;

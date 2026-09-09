@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { GameAudio, loadAudioSettings } from '../game3d/gameAudio';
+import { disposeSharedGameAudio, getSharedGameAudio, loadAudioSettings } from '../game3d/gameAudio';
+import type { GameAudio } from '../game3d/gameAudio';
 import type { GameState } from '../types/Card';
 import './GameAudioControls.css';
 
-export default function GameAudioControls({ state, embedded = false }: { state: GameState; embedded?: boolean }) {
+export default function GameAudioControls({ state, embedded = false, runtimeOnly = false }: { state?: GameState; embedded?: boolean; runtimeOnly?: boolean }) {
     const [settings, setSettings] = useState(loadAudioSettings);
     const engine = useRef<GameAudio | null>(null);
     const previousLevels = useRef(settings.music || settings.effects ? settings : {music:.22,effects:.35});
-    const hasWon = state.players.find(p=>p.connectionId===state.yourPlayerId)?.hasWon ?? false;
+    const hasWon = state?.players.find(p=>p.connectionId===state.yourPlayerId)?.hasWon ?? false;
     const panel = useRef<HTMLDetailsElement>(null);
     useEffect(() => {
         const outside = (event: PointerEvent) => {
@@ -26,10 +27,14 @@ export default function GameAudioControls({ state, embedded = false }: { state: 
             document.removeEventListener('keydown',escape);
         };
     }, []);
-    const currentPlayer = state.players.find(p => p.isCurrentTurn)?.connectionId;
-    const previous = useRef({ sequence: state.lastPlay?.sequence, turn: false, player: currentPlayer, paused: !!state.isPaused, won:hasWon });
+    const currentPlayer = state?.players.find(p => p.isCurrentTurn)?.connectionId;
+    const previous = useRef({ sequence: state?.lastPlay?.sequence, turn: false, player: currentPlayer, paused: !!state?.isPaused, won:hasWon });
     useEffect(() => {
-        const audio = new GameAudio(loadAudioSettings()); engine.current = audio;
+        if (!runtimeOnly) {
+            engine.current = getSharedGameAudio();
+            return () => { engine.current = null; };
+        }
+        const audio = getSharedGameAudio(); engine.current = audio;
         const unlock = () => { void audio.unlock(); };
         const visibility = () => { if (document.hidden) audio.pause(); else unlock(); };
         const action = (event: Event) => {
@@ -42,24 +47,27 @@ export default function GameAudioControls({ state, embedded = false }: { state: 
         document.addEventListener('click', action);
         document.addEventListener('visibilitychange', visibility);
         return () => {
+            if (!runtimeOnly) return;
             document.removeEventListener('pointerdown', unlock);
             document.removeEventListener('keydown', unlock);
             document.removeEventListener('click', action);
             document.removeEventListener('visibilitychange', visibility);
-            audio.dispose(); engine.current = null;
+            disposeSharedGameAudio(); engine.current = null;
         };
-    }, []);
+    }, [runtimeOnly]);
     useEffect(() => { engine.current?.update(settings); }, [settings]);
-    const myTurn = !state.isPaused && state.players.some(p => p.connectionId === state.yourPlayerId && p.isCurrentTurn);
+    const myTurn = !!state && !state.isPaused && state.players.some(p => p.connectionId === state.yourPlayerId && p.isCurrentTurn);
     useEffect(() => {
-        const last = state.lastPlay;
+        if (!runtimeOnly) return;
+        const last = state?.lastPlay;
         if (hasWon && !previous.current.won) engine.current?.cue('win');
         else if (last && last.sequence !== previous.current.sequence) {
             engine.current?.cue(last.isPepineado && last.skippedPlayerId ? 'pepino' : last.isWildcard ? 'wildcard' : 'play');
         } else if (myTurn && !previous.current.turn) engine.current?.cue('turn');
-        else if (!state.isPaused && !previous.current.paused && currentPlayer !== previous.current.player) engine.current?.cue('pass');
-        previous.current = { sequence: last?.sequence, turn: myTurn, player: currentPlayer, paused: !!state.isPaused, won:hasWon };
-    }, [state.lastPlay, myTurn, currentPlayer, state.isPaused, hasWon]);
+        else if (!state?.isPaused && !previous.current.paused && currentPlayer !== previous.current.player) engine.current?.cue('pass');
+        previous.current = { sequence: last?.sequence, turn: myTurn, player: currentPlayer, paused: !!state?.isPaused, won:hasWon };
+    }, [runtimeOnly, state?.lastPlay, myTurn, currentPlayer, state?.isPaused, hasWon]);
+    if (runtimeOnly) return null;
     const audioContent = <div className="audio-panel">
             <strong>Ambiente sonoro</strong>
             {(['music', 'effects'] as const).map(key => <label key={key}>

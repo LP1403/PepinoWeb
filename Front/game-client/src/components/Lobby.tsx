@@ -4,6 +4,7 @@ import GameModal from './GameModal';
 import './GameTable3D.css';
 import { PLAYER_NAME_KEY } from '../config/player';
 import { APP_VERSION } from '../config/version';
+import LobbyControls from './LobbyControls';
 export default function Lobby({ onJoin }: { onJoin: (room: string, name: string) => void }) {
     const params = new URLSearchParams(location.search);
     const linkedRoom = params.get('room') ?? params.get('sala') ?? '';
@@ -11,7 +12,7 @@ export default function Lobby({ onJoin }: { onJoin: (room: string, name: string)
     const [room, setRoom] = useState(linkedRoom.toUpperCase().replace(/[^A-Z0-9_-]/g,''));
     const [rulesOpen, setRulesOpen] = useState(false);
     return <main className="pepino-game lobby-screen entry-screen"><SceneView lobby />
-        <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div></header>
+        <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div><LobbyControls /></header>
         <section className="lobby-panel entrance-panel"><span className="eyebrow">ENTRAR A LA MESA</span><h1>Sentate a jugar</h1><p>Elegí tu nombre y la sala. Tus amigos te esperan.</p>
             <form onSubmit={e => { e.preventDefault(); if (name.trim() && room.trim()) onJoin(room.trim().toUpperCase(), name.trim()); }}>
                 <label htmlFor="player-name">TU NOMBRE</label><input id="player-name" autoComplete="nickname" placeholder="¿Cómo te llamás?" value={name} maxLength={24} required onChange={e => setName(e.target.value)} />

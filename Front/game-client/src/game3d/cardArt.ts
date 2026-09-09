@@ -3,8 +3,8 @@ export const suitColors: Record<Card['suit'], string> = { '♠': '#294754', '♥
 const art = new Map<string, HTMLCanvasElement>();
 const customCardAssets = new Map<string, string>([
     ['wildcard', '/models/CARDS/COMODIN%202.png'],
-    ['gaucho-1', '/models/CARDS/PEPINO%201%20GAUCHO.png'],
-    ['gold-3', '/models/CARDS/3%20DORADO.png']
+    ['gaucho-1', '/models/CARDS/1%20pepino%20gaucho.png'],
+    ['gold-3', '/models/CARDS/3%20de%20oro%20pepino.png']
 ]);
 
 /** Final artwork currently available for the limited visual card test. */
@@ -13,6 +13,14 @@ export function cardAssetUrl(card: Card): string | undefined {
     if (card.suit === '♦' && card.value === 1) return customCardAssets.get('gaucho-1');
     if (card.suit === '♦' && card.value === 3) return customCardAssets.get('gold-3');
     return undefined;
+}
+const deckBackAssets = [
+    '/models/CARDS/contra%20carta%20mazo%201.png',
+    '/models/CARDS/Contra%20carta%20mazo%202.png',
+    '/models/CARDS/Contra%20carta%20mazo%203.png'
+];
+export function cardBackUrl(deckIndex = 0): string {
+    return deckBackAssets[Math.max(0, Math.min(deckBackAssets.length - 1, deckIndex))];
 }
 export function cardCanvas(card?: Card): HTMLCanvasElement {
     const key = card ? `${card.suit}${card.value}` : 'back';
@@ -54,8 +62,8 @@ export function cardCanvas(card?: Card): HTMLCanvasElement {
     art.set(key, canvas); return canvas;
 }
 const urls = new Map<string, string>();
-export function cardImage(card: Card) {
-    const key = `${card.suit}${card.value}`;
+export function cardImage(card: Card, deckIndex = card.deckIndex ?? 0) {
+    const key = `${card.suit}${card.value}-deck${deckIndex}`;
     if (!urls.has(key)) urls.set(key, cardAssetUrl(card) ?? cardCanvas(card).toDataURL());
     return urls.get(key)!;
 }

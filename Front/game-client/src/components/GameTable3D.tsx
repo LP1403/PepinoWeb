@@ -6,6 +6,7 @@ import { cardImage } from '../game3d/cardArt';
 import { seatPositions } from '../game3d/layout';
 import SceneView from './SceneView';
 import GameGraphicsControls from './GameGraphicsControls';
+import GameAudioControls from './GameAudioControls';
 import './GameTable3D.css';
 
 export interface GameTable3DProps {
@@ -115,6 +116,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     }
     const helper = !connected ? 'Recuperando la conexión con la mesa…' : busy ? 'Enviando tu jugada…' : state.isPaused ? 'Partida pausada · esperando reconexión (hasta 60 s)' : local?.hasWon ? '¡Ya estás entre los ganadores!' : !myTurn ? `${turn?.name ?? 'Otro jugador'} está pensando…` : chosen.length ? (validation.isValid ? `${chosen.length} carta${chosen.length > 1 ? 's' : ''} lista${chosen.length > 1 ? 's' : ''}` : validation.reason) : state.isNewRound ? 'Nueva ronda · Juega libremente' : 'Elegí tus cartas · los bordes dorados indican jugadas posibles';
     return <main className="pepino-game" data-testid="game" data-turn={myTurn} data-revision={state.revision}>
+        <GameAudioControls state={state} runtimeOnly />
         <SceneView opponents={opponents} yourTurn={myTurn} play={state.lastPlay} discardCount={Math.max(0,state.tableCards.length-(state.lastPlay?.cards.length ?? 0))} />
         <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div>
             <div className="top-actions"><div className="room-tag" title={`Sala ${state.roomId} · Ronda ${state.roundNumber}`}>SALA <b>{state.roomId}</b><span>RONDA {state.roundNumber}</span></div><GameGraphicsControls state={state}/><button onClick={onLeave}>SALIR</button></div>
@@ -167,7 +169,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
                             }}
                             onPointerDown={e => { if (!e.isPrimary || e.button !== 0) return; suppressClick.current = false; gesture.current = { id: card.id, x: e.clientX, y: e.clientY, dragging: false, cards: chosen.some(c => c.id === card.id) ? chosen : [card], revision: state.revision }; }}
                             onPointerMove={move} onPointerUp={release} onPointerCancel={() => { gesture.current = null; setDrag(null); }}>
-                            <img src={cardImage(card)} alt="" draggable={false} />
+                            <img src={cardImage(card, card.deckIndex)} alt="" draggable={false} />
                         </button>)}
                         <span className="stack-count">{cards.length > 1 ? `${cards.length} × ${value}` : value === 2 ? 'COMODÍN' : ''}</span>
                     </div>)}
@@ -176,7 +178,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
             <nav className="hand-navigation" aria-label="Desplazar cartas"><button disabled={handEdges.start} onClick={() => moveHand(-1)} aria-label="Cartas anteriores">‹</button><span>{state.yourHand.length} CARTAS</span><button disabled={handEdges.end} onClick={() => moveHand(1)} aria-label="Cartas siguientes">›</button></nav>
         </section>
         {drag && <div className="drag-ghost drag-group" aria-label={`Arrastrando ${drag.cards.length} cartas`} style={{ left: drag.x, top: drag.y }}>
-            {drag.cards.map((card,i) => <img key={card.id} src={cardImage(card)} alt={`${card.value} de ${card.suit}`} style={{ transform: `translateX(${(i-(drag.cards.length-1)/2)*Math.min(32,220/Math.max(1,drag.cards.length-1))}px) rotate(${(i-(drag.cards.length-1)/2)*Math.min(4,20/Math.max(1,drag.cards.length-1))}deg)`, zIndex:i }} />)}<b>{drag.cards.length} carta{drag.cards.length > 1 ? 's' : ''}</b>
+            {drag.cards.map((card,i) => <img key={card.id} src={cardImage(card, card.deckIndex)} alt={`${card.value} de ${card.suit}`} style={{ transform: `translateX(${(i-(drag.cards.length-1)/2)*Math.min(32,220/Math.max(1,drag.cards.length-1))}px) rotate(${(i-(drag.cards.length-1)/2)*Math.min(4,20/Math.max(1,drag.cards.length-1))}deg)`, zIndex:i }} />)}<b>{drag.cards.length} carta{drag.cards.length > 1 ? 's' : ''}</b>
         </div>}
     </main>;
 }

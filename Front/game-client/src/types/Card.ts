@@ -4,12 +4,14 @@ export interface Card {
     value: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12; // Naipes españoles 1-12
     id: string; // identificador único para cada carta
     isPepinoOro?: boolean; // El 3 de oro (♦) es el pepino de oro
+    deckIndex?: number; // Índice visual del mazo, 0-based
 }
 
 export interface Player {
     connectionId: string;
     name: string;
     cardCount: number; // Solo la cantidad de cartas, no la mano completa
+    cardBacks?: number[]; // Identidad visual de los dorsos, sin exponer valores
     isConnected: boolean;
     isCurrentTurn: boolean;
     isSkipped: boolean; // Para el efecto "PEPINEADO"

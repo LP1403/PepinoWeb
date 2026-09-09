@@ -4,6 +4,7 @@ import GameTable3D from './GameTable3D';
 import SceneView from './SceneView';
 import GameModal from './GameModal';
 import { cardImage } from '../game3d/cardArt';
+import LobbyControls from './LobbyControls';
 import './GameTable3D.css';
 export default function GameTable({ roomId, playerName, onLeave }: { roomId: string; playerName: string; onLeave: () => void }) {
     const game = useGameConnection({ roomId, playerName });
@@ -36,7 +37,7 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
     return <>
         {state && (state.isGameStarted || showFinal) ? <GameTable3D state={state} busy={game.busy} connected={connected} onPlay={game.play} onPass={game.pass} onLeave={() => setLeaving(true)} /> :
         <main className="pepino-game lobby-screen"><SceneView lobby />
-            <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div></header>
+            <header className="game-topbar"><div className="wordmark"><strong>PEPINO</strong><i className="logo-cucumber" aria-hidden="true" /></div><LobbyControls /></header>
             <section className="lobby-panel">
                 <span className="eyebrow">{state?.isGameFinished ? 'PARTIDA TERMINADA' : 'ANTES DE REPARTIR'}</span>
                 <h1>{state?.isGameFinished ? '¡Bien jugado!' : 'Tu mesa, tus amigos.'}</h1>
@@ -63,7 +64,7 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
         {showFinal && state?.lastPlay && <GameModal title="¡Partida terminada!" onClose={()=>setAcknowledgedFinal(state.lastPlay!.sequence)}>
             <ol className="winners-list">{state.winners.map(id=><li key={id}>{state.players.find(p=>p.connectionId===id)?.name}</li>)}</ol>
             <p>Última jugada de {state.lastPlay.playerName}</p>
-            <div className="confirm-cards">{state.lastPlay.cards.map(c=><img key={c.id} src={cardImage(c)} alt={`${c.value} de ${c.suit}`} />)}</div>
+            <div className="confirm-cards">{state.lastPlay.cards.map(c=><img key={c.id} src={cardImage(c, c.deckIndex)} alt={`${c.value} de ${c.suit}`} />)}</div>
             <div className="modal-actions"><button className="primary-button" onClick={()=>setAcknowledgedFinal(state.lastPlay!.sequence)}>VOLVER AL LOBBY</button></div>
         </GameModal>}
         {game.error && <div className="error-toast" role="alert"><span>{game.error}</span><button onClick={game.clearError} aria-label="Cerrar error">×</button></div>}

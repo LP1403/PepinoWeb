@@ -4,13 +4,13 @@ namespace GameServer.Services;
 
 public static class CardService
 {
-    public static List<Card> CreateSpanishDeck() => new[] { "♠", "♥", "♦", "♣" }
-        .SelectMany(s => Enumerable.Range(1, 12).Select(v => new Card(s, v))).ToList();
+    public static List<Card> CreateSpanishDeck(int deckIndex = 0) => new[] { "♠", "♥", "♦", "♣" }
+        .SelectMany(s => Enumerable.Range(1, 12).Select(v => new Card(s, v, deckIndex))).ToList();
 
     public static List<Card> CreateMultipleDecks(int count)
     {
         if (count is < 1 or > 3) throw new ArgumentOutOfRangeException(nameof(count));
-        return Enumerable.Range(0, count).SelectMany(_ => CreateSpanishDeck()).ToList();
+        return Enumerable.Range(0, count).SelectMany(deckIndex => CreateSpanishDeck(deckIndex)).ToList();
     }
 
     public static List<Card> ShuffleDeck(List<Card> cards)
