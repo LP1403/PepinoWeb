@@ -12,6 +12,13 @@ let ui;
 try{
     const width=Number(process.env.QA_WIDTH)||1440;
     const page=await browser.newPage({viewport:{width,height:900}});
+    await page.addInitScript(()=>{
+        const NativeAudioContext=window.AudioContext;
+        window.qaAudioContexts=[];
+        window.AudioContext=class extends NativeAudioContext {
+            constructor(...args){super(...args);window.qaAudioContexts.push(this);}
+        };
+    });
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     page.on('websocket',ws=>ws.on('framereceived',({payload})=>{
         for(const raw of payload.toString().split('\x1e')){if(!raw)continue;try{const m=JSON.parse(raw);if(m.target?.toLowerCase()==='gamestateupdated')ui=m.arguments[0];}catch{}}
@@ -48,7 +55,6 @@ try{
             if(card){
                 await page.locator(`[data-card-id="${card.id}"]`).focus();await page.keyboard.press('Space');
                 await page.getByRole('button',{name:'JUGAR',exact:true}).click();
-                await page.getByRole('button',{name:'CONFIRMAR',exact:true}).click();
             }else await page.getByRole('button',{name:'PASAR',exact:true}).click();
         }
         await wait(()=>ui.revision>rev);
@@ -66,6 +72,8 @@ try{
     console.log(`PASS live game: ${moves} actions, final cards, winners, replay, no JS errors`);
     await page.getByRole('button',{name:'SALIR',exact:true}).click();
     await page.getByRole('dialog').getByRole('button',{name:'SALIR',exact:true}).click();
+    await page.waitForFunction(()=>window.qaAudioContexts.every(context=>context.state==='closed'));
+    console.log('PASS audio disposal: all created match audio contexts closed after leaving.');
 }finally{
     for(const bot of bots){try{await bot.conn.invoke('LeaveRoom',room,bot.name);}catch{}await bot.conn.stop();}
     await browser.close();

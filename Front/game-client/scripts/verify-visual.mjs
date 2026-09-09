@@ -31,8 +31,7 @@ try {
         const zone=await page.locator('.drop-target').boundingBox();
         await page.mouse.move(zone.x+zone.width/2,zone.y+zone.height/2,{steps:10});
         await page.mouse.up();
-        await page.getByRole('dialog').waitFor();
-        await page.getByRole('button',{name:'CANCELAR',exact:true}).click();
+        await page.waitForFunction(()=>Number(document.querySelector('[data-revision]')?.dataset.revision)>1);
         if (width < 600) {
             const cdp=await page.context().newCDPSession(page);
             const r=await hand.boundingBox();

@@ -11,5 +11,5 @@ export default function App() {
     const [session, setSession] = useState<{ room: string; name: string } | null>(null);
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('demo')) return <DemoGame />;
     return session ? <GameTable roomId={session.room} playerName={session.name} onLeave={() => setSession(null)} />
-        : <Lobby onJoin={(room, name) => { localStorage.setItem(PLAYER_NAME_KEY, name); setSession({ room, name }); }} />;
+        : <Lobby onJoin={(room, name) => { try {localStorage.setItem(PLAYER_NAME_KEY, name);} catch { /* Remembering the name is optional. */ } setSession({ room, name }); }} />;
 }

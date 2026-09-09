@@ -42,6 +42,7 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
         const lamp = new THREE.PointLight(0xffb466,15,12,2); lamp.position.set(x,1.4,-5.5); scene.add(lamp);
     }
     // Mate, yerba and bombilla, kept outside the playable felt.
+    const mateStart=scene.children.length;
     const mate = add(new THREE.SphereGeometry(.32,24,16,0,Math.PI*2,.74,Math.PI-.74),wood,3.75,.29,1.7); mate.scale.y = 1.1;
     const mouth = add(new THREE.TorusGeometry(.24,.035,8,32),brass,3.75,.55,1.7); mouth.rotation.x=-Math.PI/2;
     const yerba=add(new THREE.CircleGeometry(.235,24),own(new THREE.MeshStandardMaterial({color:0x55502a,roughness:1})),3.75,.55,1.7); yerba.rotation.x=-Math.PI/2;
@@ -54,6 +55,16 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     }
     scene.add(leaves);
     const straw=add(new THREE.CylinderGeometry(.025,.025,.8,10),brass,3.84,.87,1.7); straw.rotation.z=-.22;
+    const mateParts=scene.children.slice(mateStart);
+    const mateGroup=new THREE.Group();mateGroup.position.set(3.75,0,1.7);scene.add(mateGroup);
+    mateGroup.updateMatrixWorld(true);
+    mateParts.forEach(part=>mateGroup.attach(part));
+    const mateGlow=new THREE.Mesh(
+        new THREE.TorusGeometry(.47,.035,8,32),
+        own(new THREE.MeshBasicMaterial({color:0x9fd36a,transparent:true,opacity:.82,side:THREE.DoubleSide}))
+    );
+    mateGlow.rotation.x=-Math.PI/2; mateGlow.position.y=.035; mateGlow.renderOrder=4;
+    mateGroup.add(mateGlow);
     for (const [x,z] of [[-3.9,1.7],[3.8,-1.8],[-3.8,-1.8]]) {
         add(new THREE.CylinderGeometry(.26,.28,.045,24),dark,x,.025,z);
         add(new THREE.CylinderGeometry(.22,.19,.58,24,1,true),own(new THREE.MeshStandardMaterial({color:0xb6a48d,transparent:true,opacity:.3,roughness:.16,side:THREE.DoubleSide,depthWrite:false})),x,.34,z);
@@ -74,4 +85,6 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
         }
     }
     scene.add(nuts);
+    mateGroup.userData.glow=mateGlow;
+    return {mate:mateGroup};
 }

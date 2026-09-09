@@ -16,14 +16,22 @@ export default function GameTable({ roomId, playerName, onLeave }: { roomId: str
     useEffect(() => {
         if (!state?.notice) { setVisibleNotice(null); return; }
         setVisibleNotice(state.notice);
+    }, [state?.notice]);
+    useEffect(() => {
+        if (!visibleNotice) return;
         const timer = window.setTimeout(() => setVisibleNotice(null), 3600);
         return () => window.clearTimeout(timer);
-    }, [state?.notice]);
+    }, [visibleNotice]);
     async function leave() { await game.leave(); onLeave(); }
     async function shareRoom() {
         const url = `${location.origin}/?room=${encodeURIComponent(roomId)}`;
-        if (navigator.share) await navigator.share({ title: 'Mesa de Pepino', text: `${playerName} te invitó a jugar Pepino`, url });
-        else { await navigator.clipboard.writeText(url); alert('Link de sala copiado.'); }
+        try {
+            if (navigator.share) await navigator.share({ title: 'Mesa de Pepino', text: `${playerName} te invitó a jugar Pepino`, url });
+            else { await navigator.clipboard.writeText(url); setVisibleNotice('Link de sala copiado.'); }
+        } catch (error) {
+            if (error instanceof DOMException && error.name==='AbortError') return;
+            setVisibleNotice(`No se pudo compartir el link. Pasá el código de sala: ${roomId}`);
+        }
     }
     return <>
         {state && (state.isGameStarted || showFinal) ? <GameTable3D state={state} busy={game.busy} connected={connected} onPlay={game.play} onPass={game.pass} onLeave={() => setLeaving(true)} /> :

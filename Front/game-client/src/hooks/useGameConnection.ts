@@ -10,12 +10,14 @@ export function useGameConnection({ roomId, playerName }: { roomId: string; play
     const [busy, setBusy] = useState(false);
     const connection = useRef<HubConnection | null>(null);
     const pending = useRef(false);
+    const transientToken=useRef<string | null>(null);
     useEffect(() => {
         let stopped = false;
         let retry: ReturnType<typeof setTimeout> | undefined;
         const key = `pepino-session:${roomId}`;
-        const token = sessionStorage.getItem(key) ?? crypto.randomUUID();
-        sessionStorage.setItem(key, token);
+        let token=transientToken.current ?? crypto.randomUUID();
+        try {token=sessionStorage.getItem(key) ?? token;sessionStorage.setItem(key,token);} catch { /* Keep reconnect identity in memory when storage is unavailable. */ }
+        transientToken.current=token;
         const url = import.meta.env.VITE_GAME_HUB_URL || `${location.origin}/gamehub`;
         const conn = new HubConnectionBuilder().withUrl(url).withAutomaticReconnect([0, 1000, 3000, 5000, 10000])
             .configureLogging(LogLevel.Warning).build();

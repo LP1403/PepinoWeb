@@ -1,4 +1,4 @@
-export type SoundCue = 'select' | 'play' | 'pepino' | 'wildcard' | 'turn' | 'pass';
+export type SoundCue = 'select' | 'play' | 'pepino' | 'wildcard' | 'turn' | 'pass' | 'win';
 export type AudioSettings = { music: number; effects: number };
 const KEY = 'pepino-audio-v1';
 export function loadAudioSettings(): AudioSettings {
@@ -37,6 +37,7 @@ export class GameAudio {
             }
             await this.context.resume();
             if (this.disposed) return;
+            if (document.hidden) { this.pause(); return; }
             if (!this.timer) this.timer = setInterval(() => this.schedule(), 200);
             this.schedule();
         } catch { /* Unsupported or browser-blocked audio must never block gameplay. */ }
@@ -66,6 +67,7 @@ export class GameAudio {
         if (!ctx || ctx.state !== 'running' || !this.music || document.hidden) return;
         if (this.nextBar < ctx.currentTime) this.nextBar = ctx.currentTime + .1;
         if (this.nextBar > ctx.currentTime + .4) return;
+        if (this.settings.music===0) { this.nextBar=ctx.currentTime+.5; return; }
         const beat = 60 / 82;
         const chords = [[57,60,64,67], [53,57,60,64], [48,55,59,62], [55,59,62,69]];
         const roots = [33,29,36,31];
@@ -103,11 +105,14 @@ export class GameAudio {
         source.start(at);source.stop(at+duration+.01);
     }
     cue(cue: SoundCue) {
-        if (!this.context || this.context.state !== 'running' || !this.effects || document.hidden) return;
-        const notes: Record<SoundCue, number[]> = { select: [76], play: [60, 67], pepino: [76, 72, 67], wildcard: [67, 72, 79], turn: [72, 76], pass: [64, 60] };
+        if (!this.context || this.context.state !== 'running' || !this.effects || document.hidden || this.settings.effects===0) return;
+        const notes: Record<SoundCue, number[]> = { select: [76], play: [60, 67], pepino: [76, 72, 67], wildcard: [67, 72, 79], turn: [72, 76], pass: [64, 60], win:[60,64,67,72] };
         notes[cue].forEach((note, i) => this.tone(note, this.context!.currentTime + i * .085, cue === 'select' ? .07 : .28, cue === 'select' ? .035 : .07, this.effects!));
     }
-    pause() { void this.context?.suspend().catch(() => {}); }
+    pause() {
+        clearInterval(this.timer); this.timer=undefined;
+        void this.context?.suspend().catch(() => {});
+    }
     dispose() {
         this.disposed = true;
         clearInterval(this.timer);

@@ -2,6 +2,101 @@
 
 Las ideas se toman como hipótesis de diseño: primero se valida si mejoran la lectura y el ritmo de la partida, y después se decide cuánto invertir en cada una.
 
+## Revisión y decisión actual — 9 de septiembre de 2026
+
+### Avance del pulido continuo
+
+- Cantidad de cartas visible durante turno, pausa y reconexión; señal discreta de
+  una/dos cartas y pulso del avatar activo con movimiento reducido respetado.
+- Flechas deshabilitadas en extremos, desplazamiento proporcional al viewport,
+  navegación por flechas/Inicio/Fin y sincronización de hover/foco con las cartas 3D.
+- Audio: restaurar volúmenes después de silenciar, señal de victoria y menor trabajo
+  de síntesis cuando los volúmenes están en cero.
+- Compartir sala con aviso integrado y cancelación controlada; códigos largos no
+  desplazan los controles fuera de pantalla. Entrada tolerante a storage bloqueado.
+- Mate orientado suavemente al turno. Pila de descarte limitada a seis capas
+  visuales y cantidad de cartas jugadas tomadas de `state.tableCards` del servidor.
+- Configuración: automática, ahorro (resolución reducida, sin sombras) y alta;
+  persistencia y cambio en vivo. Automática/alta limitadas a 60 FPS y ahorro a 30.
+  El contador de FPS se quitó de la interfaz. Pantalla completa tiene un botón
+  independiente junto a la tuerca cuando el navegador la admite.
+- Pantallas horizontales bajas: navegación dentro del viewport, cantidades visibles
+  y acciones fuera de la última jugada; comprobado con 4 y 8 jugadores.
+- Prueba específica de 12×1 sobre 12×1: confirma salto, mesa conservada y rechazo
+  de una carta inferior. Pasaron 28 comprobaciones de reglas, sin cambiar las reglas.
+
+Verificaciones añadidas: `verify-game-polish.mjs`, `verify-storage-fallback.mjs`, `verify-landscape.mjs`,
+y `QA_QUALITY=low` para `verify-hand-interactions.mjs`. Sigue pendiente la prueba
+sostenida en teléfonos físicos. La partida local automatizada de este lote pasó
+48 acciones, reconexión, final y nueva partida; no reproduce por sí sola el reporte
+histórico de una partida particular.
+
+Esta revisión tiene prioridad sobre el orden original de bloques de abajo. El
+objetivo es que Pepino se sienta como una partida en una mesa: lectura inmediata,
+respuesta clara a las acciones y decoración que acompañe el juego.
+
+### Próximo tramo recomendado
+
+1. **Lectura del turno y del pepineado (M).** Mostrar al jugador activo, el siguiente
+   elegible y una transición breve cuando alguien es salteado. Derivar todo del
+   estado del servidor; no asumir que el siguiente asiento siempre juega. Mantener
+   visible la cantidad de cartas incluso durante su turno. Evitar indicadores de
+   carga porcentual: no sabemos cuánto va a tardar una persona en decidir.
+2. **Confiabilidad del caso reportado (S–M).** Ya hay pruebas de igualdad con cuatros
+   y el escenario específico 12×1. Falta una reproducción dirigida de eventos/estado
+   en cliente; no afirmar que se reprodujo el reporte original.
+   La expiración completa de la gracia de desconexión queda cubierta por una prueba
+   de integración separada; tarda dos ventanas reales de 60 segundos.
+3. **Calidad gráfica y diagnóstico discreto (M).** Presets ahorro/automática/alta
+   implementados con persistencia. Evaluar en teléfonos físicos
+   antes de aumentar luces, sombras o cantidad de modelos.
+4. **Assets de agarre final (L).** Preparar manos con antebrazo y una pose diseñada
+   para sostener un abanico. El rig actual permite mejorar dedos, pero agregar
+   cilindros como mangas no resolvió la presencia del jugador. Conservar los
+   asientos aprobados y la legibilidad de las cartas locales. Ver
+   [pipeline de assets](PIPELINE_ASSETS_3D.md).
+
+### Hacer después, con alcance acotado
+
+- **Aviso de pocas cartas (S):** probar un aviso al cruzar el umbral de dos cartas,
+  una vez por jugador y ronda. Es una propuesta de experiencia, no una regla nueva.
+- **Mate orientado al turno:** animación implementada; resalte opcional pendiente.
+- **Descarte acumulado:** pila y contador implementados. `tableCards` ya llega en
+  cada snapshot y permite recuperarlo al reconectar. Un historial por jugada/autor
+  requeriría más datos; posponer ese alcance.
+- **Reacciones (M):** preferibles antes que chat completo para dar presencia social.
+  Necesitan límite de frecuencia en servidor, mute y evitar tapar cartas.
+- **Interacción con mate/bowl (M):** un gesto breve sin efecto sobre las reglas.
+- **Confirmación (S–M):** quitada por decisión de experiencia. Las jugadas válidas
+  desde JUGAR o drag se envían directamente; el servidor conserva la validación.
+
+### Posponer o descartar por ahora
+
+- **Cámara libre (L):** la mesa está en perspectiva, pero manos/cartas usan una capa
+  de pantalla. Una órbita libre desalinearía ambas. Primero evaluar un parallax
+  limitado o vistas predefinidas con recentrado; luego decidir si aporta al juego.
+- **Chat completo (M–L):** esperar hasta resolver reacciones; suma moderación,
+  teclado móvil y espacio de interfaz durante una partida.
+- **Puntaje y podio entre partidas (M–L):** necesita reglas de puntuación y desempate.
+  El resultado de una partida ya muestra ganadores; no inventar un sistema persistente.
+- **Bebidas elegibles, paletas, tema claro y luz fría (M):** mantener una dirección
+  visual coherente primero. Los presets de rendimiento tienen más valor inmediato.
+- **Texturas escaneadas y música definitiva (M):** opcionales, con licencia y peso
+  controlados; validar primero la dirección artística en una partida real.
+- **Limitar a un comodín:** descartado como corrección. La regla canónica permite
+  varios doses. Solo reconsiderar con una decisión explícita de cambiar el juego.
+
+### Cerrado o mejorado en el cliente
+
+Drag vertical, desplazamiento horizontal, resultado con última jugada, bowls,
+yerba, música y efectos ya existen. Los controles y el final cuentan con recorridos
+automatizados; eso no reemplaza la prueba sostenida en Android/iOS físicos.
+
+En esta revisión: flexión de dedos sobre ejes consistentes del rig; cartas locales
+siempre por encima de manos y seleccionadas por delante del resto; borde de jugadas
+posibles, borde único de selección y foco restaurados; audio cierra al tocar afuera o con Escape sin cerrarse
+al ajustar el volumen. Las posiciones de los asientos se conservan.
+
 ## Criterio de prioridad
 
 - **P0 — Corregir primero:** rompe reglas, confunde el estado de la partida o impide continuar.
@@ -17,7 +112,7 @@ El esfuerzo es orientativo: **S** pequeño, **M** mediano, **L** grande.
 |---|---|---:|---|
 | P0 | Respetar el pepineado cuando se repite valor y cantidad | M | Si ya hay, por ejemplo, 12×1 en mesa y se juega otro 12×1, se muestra y aplica el salto al siguiente jugador. Agregar una prueba de backend para ese caso. |
 | P0 | Mostrar la última jugada al terminar | S | La partida no vuelve inmediatamente al lobby: aparece el resultado, los ganadores, la última combinación y una acción clara para volver o jugar otra. |
-| P0 | No permitir acumular comodines innecesariamente | S | El cliente no permite seleccionar más de un 2 cuando uno ya cumple la función del comodín. El backend sigue siendo la validación final. |
+| Fuera de alcance | Limitar a un solo comodín | — | Contradice la regla canónica; no implementar como arreglo. |
 | P0 | Verificar el flujo de reinicio al terminar y al abandonar | M | La mesa se limpia en el momento correcto, los jugadores vuelven al lobby sin estados viejos y las salas vacías se eliminan. |
 
 ## P1 — Controles y lectura durante la partida
@@ -111,28 +206,28 @@ Estados usados: **Hecho en código** significa que la funcionalidad ya existe; *
 
 | Área | Estado actual | Evidencia y próximo control |
 |---|---|---|
-| Pepineado | Parcial | El backend calcula `IsPepineado`, salta al jugador correcto y ya hay una prueba específica. Falta reproducir el caso reportado de 12×1 y agregar una prueba de integración cliente-servidor si vuelve a fallar. |
-| Resultado y última jugada | Parcial | El backend conserva `LastPlay` antes de finalizar y el cliente muestra la última combinación durante la mesa; el lobby muestra ganadores. Falta confirmar que la pantalla final conserve la jugada visible el tiempo suficiente antes de permitir volver a jugar. |
+| Pepineado | Implementado / regresión de reglas probada | Caso 12×1 sobre 12×1 cubierto junto con salto, mesa conservada y rechazo de inferior. El reporte histórico no se reprodujo de punta a punta. |
+| Resultado y última jugada | Implementado / integración local probada | `GameTable` conserva la escena final y muestra ganadores y última jugada hasta volver explícitamente al lobby. La suite local probó final y nueva partida en ambos tamaños. |
 | Comodines | Decisión pendiente | La regla canónica actual permite jugar el 2 como comodín libre. La idea de limitar a un solo comodín contradice esa regla y no debe implementarse sin cambiar primero la regla del juego y sus pruebas. |
-| Reinicio y salas huérfanas | Hecho en código | El backend limpia la partida al abandonar, da 60 segundos de gracia a una desconexión y elimina la sala cuando queda vacía. Falta una prueba de integración con desconexión, reconexión y expiración. |
-| Drag and drop | Hecho en código / QA pendiente | Hay arrastre vertical de una carta o grupo, ghost visual, zona de drop y validación antes de abrir la confirmación. Probar en PC con una carta, grupo, drop válido e inválido, y en mobile con touch portrait y landscape. |
-| Swipe horizontal de la mano | Hecho en código / QA pendiente | `hand-scroll` usa overflow horizontal, touch action y rueda vertical como desplazamiento horizontal; el gesto horizontal suprime el click para no seleccionar cartas. Probar mouse, trackpad, touch y una mano que exceda el ancho. |
-| Confirmación de jugada | Hecho en código | Tanto JUGAR como soltar abren confirmación. Queda decidir si el drop válido debe jugar directamente para reducir pasos. |
-| Turno y jugador activo | Parcial | Hay avatar resaltado, etiqueta `TU TURNO`, `TURNO DE ...`, estado de pausa y texto “está pensando…”. Falta un indicador claro de dirección de la ronda y un pulso más visible sobre la mano activa. |
-| Carga / espera | Parcial | Se muestran “está pensando…” y “Reconectando…”. No hay una animación de espera específica. |
-| Audio | Parcial | Existen música procedural, efectos separados, volúmenes, mute, persistencia local y cues para selección, jugada, comodín, pepineado, turno y pase. El panel es un `<details>` y todavía no cierra explícitamente al hacer click fuera. |
-| Última jugada y descarte | Parcial | Se muestra la última combinación y hay una pila visual animada en la escena. No existe historial consultable ni contador del acumulado completo. |
-| Mate con yerba | Parcial | El mate, la yerba y la bombilla ya existen como decoración fija. Falta rotarlo y resaltarlo según el jugador activo. |
+| Reinicio y salas huérfanas | Implementado / integración probada | Desconexión, pausa, reconexión conservando asiento, reset después de 60 segundos, transferencia de creador y eliminación de sala vacía verificadas con `verify-disconnect-expiry.mjs`. |
+| Drag and drop | Implementado / QA automatizada | Carta/grupo, válido/inválido, revisión vieja y confirmación probados en escritorio y viewport móvil. Touch físico queda pendiente. |
+| Swipe horizontal de la mano | Implementado / QA automatizada | Mouse, navegación y touch emulado probados con mano larga. Quedan trackpad y dispositivos físicos. |
+| Confirmación de jugada | Eliminada | Tanto JUGAR como soltar envían directamente las jugadas válidas; el servidor conserva la validación. |
+| Turno y jugador activo | Parcial | Avatar con pulso suave, contador persistente y estado separado, pausa sin pulso. Pendiente dirección de ronda; no predecir el siguiente turno antes de resolver comodines/pepineado. |
+| Carga / espera | Implementado | Texto distingue envío, jugador pensando, reconexión y pausa. No agregar porcentaje ficticio de espera de una persona. |
+| Audio | Implementado / ajuste artístico pendiente | Música, efectos, volúmenes, mute y persistencia. Cierre por pointer fuera y Escape probado; interacción con volumen conserva el panel abierto. Falta validar mezcla y ambiente en partida real. |
+| Última jugada y descarte | Implementado / historial pospuesto | Última combinación, pila acotada y contador desde `tableCards` del servidor. No hay historial agrupado por jugada/autor. |
+| Mate con yerba | Implementado / resalte visual | Mate, yerba y bombilla se reubican suavemente en un punto periférico asociado al jugador activo y muestran un aro verde tenue. Interacción queda como extra. |
 | Bowl de maníes | Hecho en código | Ya hay dos bowls procedurales con maníes en la escena. Falta decidir si se agrega interacción. |
 | Bebidas por jugador | Pendiente | La escena tiene vasos decorativos, pero no una bebida asociada a cada asiento ni selección por jugador. |
 | Manos y orientación | Parcial | Ya se carga un modelo de manos y se generan manos para rivales y jugador local. La orientación se calcula por asiento, pero necesita revisión visual en cada posición y sigue siendo un área con riesgo de espejado. |
-| Perspectiva de cartas | Parcial | Las cartas propias conservan legibilidad en una capa 3D de pantalla y las cartas jugadas se inclinan; falta una perspectiva coherente para las manos rivales. |
+| Perspectiva de cartas | Parcial | Manos y abanicos rivales comparten giro por asiento; cartas centrales en mundo 3D y propias en capa de pantalla legible. No es una escena apta aún para cámara libre. |
 | Cámara y entorno movible | Pendiente | La cámara es fija y no encontré controles de órbita, zoom o recentrado. |
 | Música de ambiente | Hecho en código / ajuste pendiente | Hay ambiente cálido original generado con Web Audio y control independiente. Falta validación estética en partida real. |
 | Chat, reacciones, podio y puntaje | Pendiente | No encontré una primera versión de estas funciones; el lobby sí muestra ganadores al finalizar. |
-| Advertencia de pocas cartas | Pendiente | No encontré aviso específico para jugadores cerca de ganar. |
+| Advertencia de pocas cartas | Implementado | Color destacado al tener una o dos cartas, usando únicamente el contador público. No repite toasts ni agrega una regla. |
 | Interacciones del entorno | Pendiente | No encontré acciones sobre mate, bowls o bebidas; la escena decorativa no afecta la partida. |
-| Ajustes gráficos, FPS, temas y luz | Pendiente | No encontré un panel de calidad, FPS, tema claro/oscuro ni presets de iluminación. |
+| Ajustes gráficos, FPS, temas y luz | Implementado / temas pospuestos | Configuración de calidad ahorro/automática/alta y pantalla completa junto a la tuerca; el contador de FPS se quitó de la interfaz. Cambio repetido de presets no aumenta geometrías en las pruebas. Temas e iluminación alternativa pospuestos. |
 
 ## QA manual pendiente para controles
 
@@ -142,7 +237,10 @@ Estados usados: **Hecho en código** significa que la funcionalidad ya existe; *
 4. **Estados de partida:** repetirlo durante el turno propio, durante el turno rival, con partida pausada y después de una actualización de estado mientras se arrastra.
 5. **Cierre:** comprobar que un drop válido no envíe cartas con una revisión vieja y que una jugada inválida no cambie la selección de forma inesperada.
 
-La auditoría de código confirma qué existe, pero no reemplaza estas pruebas en un navegador de escritorio y en un teléfono real. El primer bloque recomendado es ejecutar esta matriz y, si aparece una falla, convertir cada caso en una prueba automatizada o una corrección concreta.
+La parte automatizada de esta matriz está cubierta por `verify-visual.mjs` y
+`verify-hand-interactions.mjs`. La integración local figura en
+`verify-live-game.mjs`. Mantener la prueba manual en teléfonos físicos y trackpad;
+convertir las fallas reproducibles en casos de regresión.
 
 ## Observabilidad agregada al backend
 

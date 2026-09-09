@@ -11,17 +11,45 @@
 .entry-screen .wordmark, .lobby-screen:not(.entry-screen) .wordmark { transform:scale(2.3); transform-origin:center bottom; }
 .entry-screen .entrance-panel { top:105px; bottom:auto; height:auto; min-height:0; max-height:calc(100dvh - 145px); overflow:auto; }
 .room-tag,.top-actions button,.audio-settings summary,.alpha-tag { background:#151d18d9; border-color:#d7c6a230; color:#f4eddf; }
+.game-topbar .wordmark { flex-shrink:0; }
+.top-actions { min-width:0; }
+.top-actions>.audio-settings,.top-actions>button { flex-shrink:0; }
+.top-actions .room-tag { min-width:0; white-space:nowrap; }
+.top-actions .room-tag b { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.top-actions .room-tag span { flex-shrink:0; }
+.graphics-quality { display:grid; gap:8px; font-size:13px; }
+.graphics-section h3 { margin:0 0 10px; font-size:15px; color:#f0e5ce; }
+.graphics-section p { margin:10px 0 0; }
+.graphics-quality select { background:#243529; color:#f4eddf; padding:12px; border:1px solid #8f967566; border-radius:9px; font:inherit; }
+.graphics-fps { display:flex; align-items:center; gap:8px; font-size:12px; }
+.graphics-fps input { accent-color:#c7ae6b; }
+.audio-settings-embedded { margin:20px 0 4px; padding-top:18px; border-top:1px solid #aa9a7833; }
+.audio-settings-embedded h3 { margin:0 0 10px; color:#f0e5ce; font-size:15px; letter-spacing:.5px; }
+.audio-settings-embedded .audio-panel { position:static; display:block; width:auto; max-width:none; padding:0; background:transparent; border:0; box-shadow:none; }
+.audio-settings-embedded .audio-panel label { margin-top:12px; }
+.error-toast span,.connection-banner { overflow-wrap:anywhere; }
+.top-actions .graphics-button { font-size:16px; line-height:1; min-width:34px; padding:9px; }
+.top-actions .fullscreen-button { font-size:17px; }
 .seat-name,.turn-pill { background:#14251edd; color:#ece5d5; }
 .avatar { background:linear-gradient(140deg,#d6c2a0,#9b805c); color:#332a20; border-color:#d7c5a8; box-shadow:0 6px 16px #0005; }
 .active .avatar { outline-color:#c3b47c; outline-width:2px; }
 .seat-count { background:#253f35; border-color:#ded3ba; }
 .seat-badge small { color:#e1d4be; text-shadow:0 1px 4px #000; }
+.seat-badge .seat-status { position:absolute; top:100%; left:50%; transform:translateX(-50%); width:max-content; max-width:130px; color:#e9d49d; font-size:8px; }
+.seat-badge .few-cards { color:#ffcf75; }
+.seat-badge.active .avatar { animation:turn-breathe 2.4s ease-in-out infinite; }
+@keyframes turn-breathe { 50% { box-shadow:0 0 20px #dbc47470; } }
+@media(prefers-reduced-motion:reduce) { .seat-badge.active .avatar { animation:none; } }
+@media(prefers-reduced-motion:reduce) { .hand-card { transition:none; } .hand-scroll { scroll-behavior:auto; } }
 .primary-button { background:linear-gradient(#4b7045,#345431); color:#fff8e8; border:1px solid #829468; box-shadow:0 4px 12px #0003; }
 .secondary-button { background:#202a24ef; color:#e8dfcf; border:1px solid #c9b79055; }
 .hand-helper,.hand-navigation,.clear-selection { color:#e5d7bd; text-shadow:0 1px 3px #000; }
 .stack-count { color:#e4d6b8; }
 .hand-navigation button { background:#24352b; color:#e4d6b8; border-color:#a595724d; }
+.hand-navigation button:disabled { opacity:.3; cursor:default; }
 .pile-caption { top:54%; background:#18261ed9; color:#e3d7bd; border:1px solid #b9a88033; border-radius:14px; padding:5px 12px; }
+.discard-count { position:absolute; left:var(--discard-left,36%); top:var(--discard-top,53%); transform:translate(-50%,-50%); z-index:2; font-size:9px; color:#d7c7a7; text-shadow:0 1px 3px #000; pointer-events:none; white-space:nowrap; }
+@media(max-width:600px) { .discard-count { font-size:8px; } }
 .turn-pill { top:63%; }
 .turn-pill.your-turn { background:#385135; color:#fff4ca; box-shadow:0 0 18px #c7b37020; }
 .lobby-panel { color:#ece4d4; background:#131b17ec; border-color:#bba78335; box-shadow:0 20px 80px #0006; border-radius:18px; }
@@ -92,7 +120,11 @@
 .hand-card.dragging-card { opacity:.22; }
 .local-cards-3d .hand-card img { opacity:0; }
 .local-cards-3d .hand-card { box-shadow:none; }
-.local-cards-3d .hand-card:not(.selected) { outline:none; }
+.local-cards-3d .hand-card:not(:focus-visible) { outline:none; }
+.local-cards-3d .hand-card.selected {
+ outline:none; outline-offset:0; filter:none;
+}
+.local-cards-3d .hand-card.selected:focus-visible { outline:2px solid #56a894; outline-offset:1px; }
 .hand-scroll { scrollbar-width:none; -ms-overflow-style:none; }
 .hand-scroll { overflow-x:auto; overflow-y:hidden; touch-action:pan-x; -webkit-overflow-scrolling:touch; }
 .hand-scroll::-webkit-scrollbar { display:none; width:0; height:0; }
@@ -113,4 +145,16 @@
 }
 @media(max-height:700px) and (max-width:600px) {
  .hand-area { --card-h:clamp(90px,17dvh,119px); }
+}
+/* Landscape phones need room for the whole hand, including its navigation. */
+@media(max-height:550px) and (min-width:601px) {
+ .pepino-game:not(.lobby-screen) { min-height:0; }
+ .hand-area { --card-h:clamp(60px,18dvh,90px); }
+ .hand-scroll { padding-top:18px; }
+ .hand-area .play-controls { position:absolute; left:auto; right:-18%; bottom:55px; width:18%; min-height:0; flex-direction:column; gap:8px; }
+ .hand-area .play-controls>button { padding:8px 6px; min-width:0; width:100%; }
+ .hand-area .hand-helper { position:absolute; right:-18%; bottom:5px; width:18%; min-height:32px; margin:0; padding:0; font-size:8px; }
+ .seat-badge:not(.local-seat) .avatar { width:28px; height:28px; font-size:12px; border-radius:9px; }
+ .seat-badge:not(.local-seat) small { display:block; font-size:7px; }
+ .seat-badge:not(.local-seat) .seat-status { top:4px; left:calc(50% + 21px); transform:none; max-width:60px; font-size:6px; }
 }

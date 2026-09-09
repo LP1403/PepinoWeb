@@ -41,6 +41,15 @@ logic.Pass(r,"p3"); logic.Pass(r,"p0");
 Check(r.CurrentTurnIndex == 1 && r.FreeLeadPlayerId == "p1" && r.LastPlayedCards.Count == 0, "full circuit frees last author");
 Reject(() => logic.Pass(r,"p1"), "cannot pass a free round");
 
+// Regression for the reported single twelve repeated on an occupied table.
+r = Room(new[] { 12, 1 }, new[] { 12, 1 }, new[] { 5, 10 }, new[] { 6, 11 });
+Play(r,0,12); var repeatedTwelve = Play(r,1,12);
+Check(repeatedTwelve.IsPepineado && repeatedTwelve.SkippedPlayerId=="p2" && r.CurrentTurnIndex==3,
+    "12 x 1 over 12 x 1 skips the next player");
+Check(r.LastPlayedCards.Count==1 && r.LastPlayedCards[0].Value==12 && r.FreeLeadPlayerId==null,
+    "repeated twelve preserves the table instead of granting free lead");
+Reject(() => Play(r,3,6), "lower card cannot open after repeated twelve");
+
 r = Room(new[] { 1 }, new[] { 4, 5 }, new[] { 6, 7 });
 Play(r,0,1); logic.Pass(r,"p1"); logic.Pass(r,"p2");
 Check(r.CurrentTurnIndex == 1 && r.FreeLeadPlayerId == "p1", "round can end when last author already won");

@@ -13,12 +13,17 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 - Bowls con borde y fondo; maníes y hojas con instancing.
 - Cámara elevada de lobby y transición de entrada al juego.
 - Cartas centrales en el mundo 3D, con perspectiva, iluminación, sombras y vuelo.
+- Pila de descarte acotada a seis capas y contador público desde el servidor;
+  etiqueta proyectada desde la posición 3D para conservar el anclaje al redimensionar.
+- Bombilla orientada suavemente al turno; sin cambiar la posición de la mesa.
 
 ### Manos y cartas locales
 
 - Asset `pepino-hand-rigged.glb`: 18 huesos conservados desde el FBX, pose de agarre,
   textura a 1024px, aproximadamente 1.7 MB. Licencia en `public/models/ASSET_CREDITS.md`.
 - Esqueleto independiente por mano, flexión de falanges y movimiento al jugar.
+  Flexión revisada sobre un eje transversal común: los huesos importados tienen
+  orientaciones locales diferentes. Dedos curvados en base, falange y punta.
 - Orientación por asiento. Quitadas las mangas de los oponentes: se veían como
   bloques negros. Manos rivales ampliadas de escala 0.8 a 1.35 respecto de la carta.
 - Agarre rival en las esquinas inferiores; rotación ZXY corregida para orientar
@@ -40,18 +45,43 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 - Cartas locales dibujadas como meshes WebGL ortográficos. Los botones HTML mantienen
   selección, foco, teclado y accesibilidad. Solo se representan cartas visibles,
   con recorte horizontal y texturas compartidas por valor/palo.
-- Profundidad compartida con las manos; selección en primer plano.
+- Cartas locales renderizadas con profundidad independiente de las manos: ningún
+  dedo puede ocultarlas. La selección queda delante del resto del abanico.
+- Selección reforzada con un único borde verde petróleo, sin halo separado;
+  las jugables conservan su borde sutil, por lo que ambas señales no se confunden.
+- Bordes de jugadas posibles y foco de teclado visibles también con cartas WebGL.
 - En mobile no se dibujan manos locales; con más de cuatro jugadores se omiten
   también las manos rivales para reducir decoración/costo.
 
 ### Controles y final de partida
 
 - Scroll horizontal con navegación, rueda, mouse arrastrado y touch.
-- Drag vertical de carta/grupo, destino visible y confirmación. Las caras originales
+- Extremos de navegación deshabilitados, paso proporcional al ancho, flechas e
+  Inicio/Fin por teclado; hover y foco sincronizados con las cartas WebGL.
+- Vista horizontal baja: partida dentro de 100dvh, navegación inferior visible,
+  acciones al costado de la mano y cantidades de cartas conservadas. Verificada
+  en 844×390 y 1280×500, con 4 y 8 jugadores (navegador emulado).
+  Con más de cuatro jugadores, el arco se comprime en altura para dejar los
+  avatares debajo de la barra superior. No cambia el layout de escritorio normal.
+- Render limitado a 60 FPS en automática/alta y 30 FPS en ahorro; la animación
+  sigue usando tiempo transcurrido, sin modificar el ritmo del juego. El contador
+  de FPS quedó fuera de la interfaz.
+- Cantidad de cartas persistente bajo el nombre, estado de turno/pausa separado,
+  pulso suave del avatar activo y color de aviso cuando quedan una o dos cartas.
+- Drag vertical de carta/grupo, destino visible y envío directo de jugadas válidas. Las caras originales
   se ocultan durante el drag WebGL y el ghost muestra las cartas arrastradas.
 - Drop inválido no envía jugada; una revisión nueva invalida el drop.
 - Selección con teclado después de arrastrar corregida.
 - Audio ambiental y controles independientes de música/efectos.
+- Audio integrado dentro de Ajustes gráficos; la barra de partida conserva solo
+  la tuerca y Salir. El panel mantiene mute, volúmenes, cierre afuera y Escape.
+- Al ocultar la pestaña se suspenden el contexto y el temporizador de audio;
+  el sonido de pepineado requiere un jugador efectivamente salteado.
+- Panel de audio con cierre por toque/click exterior y Escape; Escape devuelve
+  foco al botón Audio. Ajustar el volumen conserva el panel abierto.
+- Reactivar audio restaura los volúmenes anteriores; cue de victoria y síntesis
+  reducida cuando los canales están silenciados.
+- Compartir sala usa avisos integrados, tolera cancelación y errores del navegador.
 - Fin de partida conserva la mesa y muestra ganadores y última jugada en un modal.
   Volver al lobby es explícito; desde allí se puede iniciar otra partida.
 
@@ -63,14 +93,20 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 - Canvas: `data-fps`, `data-geometries`, `data-textures`, `data-draw-calls`,
   `data-triangles` y `data-pixel-ratio`. Los conteos de dibujo incluyen las capas.
 - Estas métricas no equivalen a memoria total del navegador ni consumo de batería.
+- Panel gráfico accesible durante la partida: automática, ahorro y alta. Ahorro
+  usa pixel ratio máximo .85, desactiva sombras y limita a 30 FPS. La elección se
+  guarda cuando storage lo permite. Pantalla completa tiene un botón independiente
+  junto a la tuerca.
+- Pantalla completa opcional mediante acción explícita del jugador, cuando el
+  navegador admite la API; entrada/salida probadas en Edge headless.
 
 ## Validación realizada
 
 - TypeScript y build de producción.
 - Edge headless: 2, 4 y 8 jugadores; 1440×900 y 390×900; mano de 48 cartas.
-- Drag hasta confirmación, cancelación, navegación horizontal y swipe touch emulado.
+- Drag con envío directo, navegación horizontal y swipe touch emulado.
 - Selección de grupo con teclado, Escape, drop inválido, revisión nueva durante drag,
-  arrastre horizontal con mouse, confirmación que reduce la mano y resize.
+  arrastre horizontal con mouse, jugada directa que reduce la mano y resize.
 - Integración con backend .NET/SignalR local: cuatro jugadores (un navegador y tres
   clientes automatizados), desconexión/reconexión conservando asiento, partida completa,
   ganadores/última jugada, retorno al lobby y nueva partida. Ejecutado a 1440 y 390 px.
@@ -86,6 +122,12 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
   materiales procedurales. Requiere selección de assets, licencia y evaluación de peso.
 - **Agarre de calidad final:** la integración y profundidad están implementadas, pero
   la naturalidad artística sigue siendo revisable; no se afirma un agarre físico exacto.
+  Se descartó una prueba de mangas cilíndricas porque se veían como tubos cortados.
+  Está autorizado cambiar pose, manos y antebrazos como conjunto para mejorar el
+  resultado; no conservar el modelo actual a costa del agarre. Revisar siempre las
+  posiciones aprobadas, cartas por delante en mano propia y controles sin invasión.
+
+La priorización del próximo trabajo está en [PLAN_MEJORAS_PARTIDA.md](PLAN_MEJORAS_PARTIDA.md).
 
 ## Repetir verificaciones
 
@@ -94,15 +136,21 @@ Desde `Front/game-client`, con Vite en 5174:
 ```sh
 node scripts/verify-visual.mjs
 node scripts/verify-hand-interactions.mjs
+node scripts/verify-game-polish.mjs
+node scripts/verify-landscape.mjs
+node scripts/verify-audio-lifecycle.mjs
 ```
 
 Para la integración, iniciar además el backend en localhost:5264:
 
 ```sh
 node scripts/verify-live-game.mjs
+node scripts/verify-storage-fallback.mjs
+node scripts/verify-disconnect-expiry.mjs
 ```
 
 Para viewport angosto, definir `QA_WIDTH=390` al ejecutar la integración.
+La prueba de expiración tarda al menos 60 segundos: usa la gracia real del servidor.
 Las suites usan Edge instalado. Las capturas y métricas visuales quedan en
 `pepino-visual-qa` dentro del directorio temporal; los finales en
 `pepino-live-final-1440.png` y `pepino-live-final-390.png` del mismo directorio temporal.
