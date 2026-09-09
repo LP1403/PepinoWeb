@@ -101,42 +101,39 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const sleeveGeometry = own(new THREE.CylinderGeometry(.23,.32,1,16));
     const sleeveMaterial = own(new THREE.MeshStandardMaterial({color:0x202a29,roughness:1}));
     let hand: THREE.Object3D | null = null, disposed = false;
-    renderer.domElement.dataset.room = 'loading';
-    new GLTFLoader().load('/models/Structure-room.glb', gltf => {
-        const room = gltf.scene;
-        const roomResources = new Set<THREE.BufferGeometry | THREE.Material | THREE.Texture>();
-        room.traverse(object => {
+    renderer.domElement.dataset.room = 'disabled';
+    renderer.domElement.dataset.floor = 'loading';
+    new GLTFLoader().load('/models/Floor.glb', gltf => {
+        const floor = gltf.scene;
+        const floorResources = new Set<THREE.BufferGeometry | THREE.Material | THREE.Texture>();
+        floor.traverse(object => {
             if (!(object instanceof THREE.Mesh)) return;
             object.receiveShadow = true;
-            roomResources.add(object.geometry);
+            floorResources.add(object.geometry);
             const materials = Array.isArray(object.material) ? object.material : [object.material];
             materials.forEach(material => {
-                roomResources.add(material);
+                floorResources.add(material);
                 Object.values(material).forEach(value => {
-                    if (value instanceof THREE.Texture) roomResources.add(value);
+                    if (value instanceof THREE.Texture) floorResources.add(value);
                 });
             });
         });
-        if (disposed) { roomResources.forEach(resource => resource.dispose()); return; }
-        roomResources.forEach(resource => own(resource));
-        // The exported room is 5 units wide; the existing table is 11.
-        // Keep the room uniformly scaled and both game/lobby cameras inside it.
-        const bounds = new THREE.Box3().setFromObject(room);
+        if (disposed) { floorResources.forEach(resource => resource.dispose()); return; }
+        floorResources.forEach(resource => own(resource));
+        const bounds = new THREE.Box3().setFromObject(floor);
         const size = bounds.getSize(new THREE.Vector3());
         const center = bounds.getCenter(new THREE.Vector3());
         const scale = 24 / Math.max(size.x, size.z, .001);
-        const placement = new THREE.Group();
-        placement.name = 'BlenderRoom';
-        placement.scale.setScalar(scale);
-        placement.position.set(-center.x * scale, -2.2 - bounds.min.y * scale, -center.z * scale);
-        placement.add(room);
-        scene.add(placement);
-        environment.fallbackRoom.forEach(object => { object.visible = false; });
-        renderer.domElement.dataset.room = 'ready';
+        floor.scale.setScalar(scale);
+        floor.position.set(-center.x * scale, -2.2 - bounds.min.y * scale, -center.z * scale);
+        floor.name = 'BlenderFloor';
+        scene.add(floor);
+        environment.fallbackRoom[0].visible = false;
+        renderer.domElement.dataset.floor = 'ready';
     }, undefined, error => {
         if (disposed) return;
-        renderer.domElement.dataset.room = 'error';
-        console.warn('Could not load Structure-room.glb; using the fallback room.', error);
+        renderer.domElement.dataset.floor = 'error';
+        console.warn('Could not load Floor.glb; using the fallback floor.', error);
     });
     if (!lobby) new GLTFLoader().load('/models/pepino-hand-rigged.glb', gltf => {
         gltf.scene.traverse(object => {
