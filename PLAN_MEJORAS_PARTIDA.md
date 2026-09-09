@@ -217,7 +217,7 @@ Estados usados: **Hecho en código** significa que la funcionalidad ya existe; *
 | Carga / espera | Implementado | Texto distingue envío, jugador pensando, reconexión y pausa. No agregar porcentaje ficticio de espera de una persona. |
 | Audio | Implementado / ajuste artístico pendiente | Música, efectos, volúmenes, mute y persistencia. Cierre por pointer fuera y Escape probado; interacción con volumen conserva el panel abierto. Falta validar mezcla y ambiente en partida real. |
 | Última jugada y descarte | Implementado / historial pospuesto | Última combinación, pila acotada y contador desde `tableCards` del servidor. No hay historial agrupado por jugada/autor. |
-| Mate con yerba | Implementado / resalte visual | Mate, yerba y bombilla se reubican suavemente en un punto periférico asociado al jugador activo y muestran un aro verde tenue. Interacción queda como extra. |
+| Mate con yerba | Implementado / resalte visual | Mate, yerba y bombilla se mantienen en una posición periférica fija; solo el jugador cuyo turno es activa la reubicación asociada y ve el aro verde tenue. Interacción queda como extra. |
 | Bowl de maníes | Hecho en código | Ya hay dos bowls procedurales con maníes en la escena. Falta decidir si se agrega interacción. |
 | Bebidas por jugador | Pendiente | La escena tiene vasos decorativos, pero no una bebida asociada a cada asiento ni selección por jugador. |
 | Manos y orientación | Parcial | Ya se carga un modelo de manos y se generan manos para rivales y jugador local. La orientación se calcula por asiento, pero necesita revisión visual en cada posición y sigue siendo un área con riesgo de espejado. |

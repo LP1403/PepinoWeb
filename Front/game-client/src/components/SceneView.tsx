@@ -3,7 +3,7 @@ import type { PlayedCards, Player } from '../types/Card';
 import { createPepinoScene } from '../game3d/pepinoScene';
 import type { PepinoSceneApi } from '../game3d/pepinoScene';
 const empty: Player[] = [];
-export default function SceneView({ opponents = empty, play = null, lobby = false, discardCount=0 }: { lobby?: boolean; opponents?: Player[]; play?: PlayedCards | null; discardCount?:number }) {
+export default function SceneView({ opponents = empty, play = null, lobby = false, yourTurn = false, discardCount=0 }: { lobby?: boolean; opponents?: Player[]; play?: PlayedCards | null; yourTurn?: boolean; discardCount?:number }) {
     const host = useRef<HTMLDivElement>(null);
     const api = useRef<PepinoSceneApi | null>(null);
     const sequence = useRef<number | null>(null);
@@ -14,6 +14,7 @@ export default function SceneView({ opponents = empty, play = null, lobby = fals
         return () => { api.current?.dispose(); api.current = null; sequence.current = null; };
     }, [lobby]);
     useEffect(() => { api.current?.setOpponents(opponents); }, [opponents]);
+    useEffect(() => { api.current?.setTurnIndicator(yourTurn); }, [yourTurn]);
     useEffect(() => {api.current?.setDiscardCount(discardCount);},[discardCount]);
     useEffect(() => {
         const next = play?.sequence ?? 0;
