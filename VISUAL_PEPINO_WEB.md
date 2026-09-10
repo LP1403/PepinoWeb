@@ -1,7 +1,25 @@
 # Ambiente de mesa — implementación web
 
-Estado revisado: 9 de septiembre de 2026. Implementación estilizada de mesa argentina
+Estado revisado: 10 de septiembre de 2026. Implementación estilizada de mesa argentina
 con madera, paño verde e iluminación cálida; no fotorrealista.
+
+## Actualización contra el código actual
+
+- Mate: se desplaza según el turno y solo el jugador activo ve el aro verde.
+  Implementado por zonas; resta validar anclajes individuales, colisiones y resize.
+- Zoom 100–160% con restablecer; espectador al quedarse sin cartas. No hay órbita libre.
+- Home/lobby/partida comparten Configuración con audio integrado y botón separado
+  de pantalla completa. Logo y controles se posicionan independientemente.
+- Caras personalizadas y dorsos por mazo integrados; la caché de selección se
+  unificó, pero falta cubrir primer acceso resaltado con carga lenta.
+- `Floor.glb` activo como prueba. ROOM importado desactivado; aún existe una pared
+  procedural de respaldo. No considerar terminado el entorno ni validado su color.
+- Audio: la persistencia de volumen existe; continuidad entre pantallas pendiente
+  de prueba y ajuste del runtime. La prueba de visibilidad no cubre ese recorrido.
+
+Ver pendientes y prioridades vigentes en [PLAN_MEJORAS_PARTIDA.md](PLAN_MEJORAS_PARTIDA.md).
+La validación detallada de abajo es histórica; hoy se repitieron TypeScript y las
+28 comprobaciones de reglas, no toda la matriz visual/multiplayer.
 
 ## Implementado
 
@@ -15,7 +33,7 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 - Cartas centrales en el mundo 3D, con perspectiva, iluminación, sombras y vuelo.
 - Pila de descarte acotada a seis capas y contador público desde el servidor;
   etiqueta proyectada desde la posición 3D para conservar el anclaje al redimensionar.
-- Bombilla orientada suavemente al turno; sin cambiar la posición de la mesa.
+- Mate reubicado suavemente según el turno, con aro exclusivo para el jugador local activo.
 
 ### Manos y cartas locales
 
@@ -35,7 +53,7 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
   los laterales. La palma queda detrás y los dedos visibles en el borde inferior.
   No hay simulación de colisiones ni IK para cada carta individual.
 - En escritorio se conservó la plantilla original de posiciones de los rivales;
-  Sala y ronda viven junto a Audio/Salir y el contador circular se eliminó porque
+  Sala y ronda viven junto a Configuración/Pantalla completa/Salir y el contador circular rival se eliminó porque
   ya figura bajo el nombre.
 - Revisado con capturas de escritorio y mobile emulado; pruebas de drag y scroll
   con 2, 4 y 8 jugadores y compilación pasan. Aún faltan antebrazos y una pose de
@@ -73,12 +91,13 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 - Drop inválido no envía jugada; una revisión nueva invalida el drop.
 - Selección con teclado después de arrastrar corregida.
 - Audio ambiental y controles independientes de música/efectos.
-- Audio integrado dentro de Ajustes gráficos; la barra de partida conserva solo
-  la tuerca y Salir. El panel mantiene mute, volúmenes, cierre afuera y Escape.
+- Audio integrado dentro de Configuración en home, lobby y partida; la barra de
+  partida incluye tuerca, pantalla completa y Salir. El modal mantiene mute,
+  volúmenes, cierre afuera y Escape.
 - Al ocultar la pestaña se suspenden el contexto y el temporizador de audio;
   el sonido de pepineado requiere un jugador efectivamente salteado.
-- Panel de audio con cierre por toque/click exterior y Escape; Escape devuelve
-  foco al botón Audio. Ajustar el volumen conserva el panel abierto.
+- El audio se presenta como sección del modal de Configuración, sin popup anidado
+  ni botón AUDIO separado. Ajustar el volumen conserva el modal abierto.
 - Reactivar audio restaura los volúmenes anteriores; cue de victoria y síntesis
   reducida cuando los canales están silenciados.
 - Compartir sala usa avisos integrados, tolera cancelación y errores del navegador.
@@ -118,8 +137,8 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 - **Android/iOS físicos:** no disponibles en esta ejecución. Falta medir FPS/memoria,
   temperatura/batería y estabilidad sostenida, así como gestos en Safari iOS real.
   La emulación de viewport/touch no reemplaza esas pruebas.
-- **Materiales escaneados (opcional):** no incorporados. El detalle se implementó con
-  materiales procedurales. Requiere selección de assets, licencia y evaluación de peso.
+- **Materiales importados:** `Floor.glb` en prueba junto con mesa procedural.
+  Falta validar exportación, color bajo las luces del juego y peso de texturas.
 - **Agarre de calidad final:** la integración y profundidad están implementadas, pero
   la naturalidad artística sigue siendo revisable; no se afirma un agarre físico exacto.
   Se descartó una prueba de mangas cilíndricas porque se veían como tubos cortados.
