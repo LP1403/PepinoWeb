@@ -10,13 +10,17 @@ function fixture(): GameState {
     const values: Card['value'][] = [2,3,4,4,5,5,5,7,8,9,12,1];
     const played: Card[]=Array.from({length:Math.max(1,Math.min(12,Number(query.get('played'))||1))},(_,i)=>({id:`pile-${i}`,value:4,suit:'♦',deckIndex:i%3}));
     const hand: Card[] = Array.from({ length: handSize }, (_,i) => ({ id: `demo-${i}`, value: values[i % values.length], suit: (['♠','♥','♦','♣'] as const)[i % 4] }));
+    if (query.has('customCards')) {
+        hand.splice(0,3,{id:'custom-wildcard',value:2,suit:'♠'},
+            {id:'custom-gold',value:3,suit:'♦'},{id:'custom-ace',value:1,suit:'♦'});
+    }
     return {
         roomId: query.get('demoRoom')?.slice(0,32) || 'VISTA-PREVIA', yourPlayerId: 'local', revision: 1, currentTurnIndex: turnIndex,
         players: Array.from({ length: count }, (_, i) => ({ connectionId: i ? `rival-${i}` : 'local', name: ['Vos','Ángela','Katie','Miranda','Nico','Sofi','Leo','Vale'][i], cardCount: i ? rivalHand ?? 7+i : handSize, isConnected: true, isCurrentTurn: i === turnIndex, isSkipped: false, hasWon: false })),
         tableCards: Array.from({length:Math.min(144,Math.max(1,Number(query.get('discard'))||1))},(_,i)=>({id:`discard-${i}`,value:4,suit:'♦'} as Card)), lastPlayedCards: [{ id: 'pile', value: 4, suit: '♦' }], lastPlayerId: 'rival-1',
         lastPlay: { sequence: 1, cards: played, playerId: 'rival-1', playerName: 'Ángela', isPepineado: false },
         isGameStarted: true, isGameFinished: false, isPaused: query.get('paused')==='1', notice: null,
-        gameMode: { deckCount: 1, cardsPerPlayer: 12, maxWinners: 2 }, winners: [], roundNumber: 1, yourHand: hand, isRoomCreator: true, isNewRound: false
+        gameMode: { deckCount: 1, cardsPerPlayer: 12, maxWinners: 2 }, winners: [], roundNumber: 1, yourHand: hand, isRoomCreator: true, isNewRound: query.has('customCards')
     };
 }
 export default function DemoGame() {

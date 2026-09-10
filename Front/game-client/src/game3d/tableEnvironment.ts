@@ -34,7 +34,6 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     const logoTex = own(new THREE.CanvasTexture(logo)); logoTex.colorSpace = THREE.SRGBColorSpace;
     const mark = add(new THREE.PlaneGeometry(2.5,.625), own(new THREE.MeshBasicMaterial({map:logoTex,transparent:true,opacity:.22,depthWrite:false})),0,.018,-.8); mark.rotation.x = -Math.PI/2;
     const fallbackFloor = add(new THREE.BoxGeometry(100,.2,100), dark, 0,-2.3,0);
-    const fallbackWall = add(new THREE.BoxGeometry(25,9,.3), own(new THREE.MeshStandardMaterial({color:0x28201b,roughness:1})),0,1,-8);
     for (const x of [-6,6]) {
         add(new THREE.CylinderGeometry(.7,.9,.12,32),wood,x,-.5,-5.6);
         add(new THREE.CylinderGeometry(.045,.08,1.8,12),brass,x,.4,-5.6);
@@ -65,10 +64,15 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     );
     mateGlow.rotation.x=-Math.PI/2; mateGlow.position.y=.035; mateGlow.renderOrder=4;
     mateGroup.add(mateGlow);
+    const drinks: {group:THREE.Group; home:THREE.Vector3}[]=[];
     for (const [x,z] of [[-3.9,1.7],[3.8,-1.8],[-3.8,-1.8]]) {
+        const start=scene.children.length;
         add(new THREE.CylinderGeometry(.26,.28,.045,24),dark,x,.025,z);
         add(new THREE.CylinderGeometry(.22,.19,.58,24,1,true),own(new THREE.MeshStandardMaterial({color:0xb6a48d,transparent:true,opacity:.3,roughness:.16,side:THREE.DoubleSide,depthWrite:false})),x,.34,z);
         add(new THREE.CylinderGeometry(.199,.18,.28,24),own(new THREE.MeshStandardMaterial({color:0x28160c,roughness:.23})),x,.2,z);
+        const parts=scene.children.slice(start);
+        const group=new THREE.Group();scene.add(group);parts.forEach(part=>group.attach(part));
+        drinks.push({group,home:new THREE.Vector3(x,0,z)});
     }
     const snack=own(new THREE.MeshStandardMaterial({color:0xb78c4c,roughness:.95}));
     const nuts = new THREE.InstancedMesh(own(new THREE.SphereGeometry(.055,8,6)),snack,36);
@@ -86,5 +90,14 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     }
     scene.add(nuts);
     mateGroup.userData.glow=mateGlow;
-    return {mate:mateGroup, fallbackRoom:[fallbackFloor,fallbackWall]};
+    return {mate:mateGroup, fallbackRoom:[fallbackFloor], placeDrinks(target:THREE.Vector3) {
+        for(const {group,home} of drinks) {
+            group.position.set(0,0,0);
+            if(home.distanceTo(target)<.95) {
+                // Move the decorative glass inward; the mate keeps its canonical anchor.
+                const offset=home.clone().normalize().multiplyScalar(-1.1);
+                group.position.copy(offset);
+            }
+        }
+    }};
 }

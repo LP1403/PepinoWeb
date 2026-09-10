@@ -6,20 +6,24 @@ con madera, paño verde e iluminación cálida; no fotorrealista.
 ## Actualización contra el código actual
 
 - Mate: se desplaza según el turno y solo el jugador activo ve el aro verde.
-  Implementado por zonas; resta validar anclajes individuales, colisiones y resize.
+  Destinos individuales, orientación hacia el dueño y recálculo con resize;
+  posiciones laterales móviles con dos filas de rivales. QA física pendiente.
 - Zoom 100–160% con restablecer; espectador al quedarse sin cartas. No hay órbita libre.
 - Home/lobby/partida comparten Configuración con audio integrado y botón separado
   de pantalla completa. Logo y controles se posicionan independientemente.
-- Caras personalizadas y dorsos por mazo integrados; la caché de selección se
-  unificó, pero falta cubrir primer acceso resaltado con carga lenta.
-- `Floor.glb` activo como prueba. ROOM importado desactivado; aún existe una pared
-  procedural de respaldo. No considerar terminado el entorno ni validado su color.
-- Audio: la persistencia de volumen existe; continuidad entre pantallas pendiente
-  de prueba y ajuste del runtime. La prueba de visibilidad no cubre ese recorrido.
+- Caras personalizadas y dorsos por mazo integrados; caché de selección compartida
+  y carga independiente de selección. PNGs demorados y selección comprobados.
+- `Floor.glb` activo como prueba. ROOM y pared procedural retirados. El piso se
+  ve sin superposición; color sujeto a iluminación cálida y tone mapping.
+- Audio: runtime único en App y continuidad entre pantallas probada con partida
+  local completa, revancha y salida; volumen y cierre del modal comprobados.
+- Consulta de orden de turnos desde el indicador, usando asientos del servidor.
+- Zoom dentro de Configuración en móvil con 5–8 jugadores para liberar la mesa.
 
 Ver pendientes y prioridades vigentes en [PLAN_MEJORAS_PARTIDA.md](PLAN_MEJORAS_PARTIDA.md).
-La validación detallada de abajo es histórica; hoy se repitieron TypeScript y las
-28 comprobaciones de reglas, no toda la matriz visual/multiplayer.
+La validación detallada de abajo es histórica. El lote actual pasó TypeScript,
+build, controles de mano, audio, `verify-review-polish.mjs` y multiplayer local
+en 1440/390 (45/48 acciones). Las 28 comprobaciones de reglas pasaron en la auditoría.
 
 ## Implementado
 

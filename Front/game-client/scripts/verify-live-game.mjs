@@ -72,8 +72,9 @@ try{
     console.log(`PASS live game: ${moves} actions, final cards, winners, replay, no JS errors`);
     await page.getByRole('button',{name:'SALIR',exact:true}).click();
     await page.getByRole('dialog').getByRole('button',{name:'SALIR',exact:true}).click();
-    await page.waitForFunction(()=>window.qaAudioContexts.every(context=>context.state==='closed'));
-    console.log('PASS audio disposal: all created match audio contexts closed after leaving.');
+    await page.waitForFunction(()=>window.qaAudioContexts.some(context=>context.state==='running'));
+    assert.equal(await page.evaluate(()=>window.qaAudioContexts.length),1,'one audio context across home, lobby, match, replay and exit');
+    console.log('PASS audio continuity: same running context after leaving for home.');
 }finally{
     for(const bot of bots){try{await bot.conn.invoke('LeaveRoom',room,bot.name);}catch{}await bot.conn.stop();}
     await browser.close();

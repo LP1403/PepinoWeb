@@ -31,7 +31,42 @@ conservan como catálogo de ideas, no como lista de pendientes.
 - **Lobby:** etiquetas de jugadores proyectadas desde posiciones de mesa;
   logo y controles tienen posicionamiento independiente.
 
-### Pendientes concretos encontrados en esta revisión
+### Resolución del lote — 10 de septiembre de 2026
+
+Corrección posterior a capturas: label de jugada limitado por los límites reales
+de los botones, con 12px de separación. Mate con un único anclaje relativo al dueño
+rotado sobre la mesa ovalada por orden de asiento; reemplaza destinos independientes
+para rivales/móvil. Vasos decorativos se apartan si invaden ese anclaje.
+El encuadre angosto puede recortar objetos periféricos; no se altera la posición
+física del mate para compensar ese recorte. Falta revisar encuadre móvil específico.
+
+- **Audio cerrado en este lote:** runtime único en `App`; la partida solo emite
+  efectos. Conserva el mismo AudioContext entre home, lobby, partida, revancha
+  y salida. Cerrar Configuración no suspende música; volumen persistido comprobado.
+- **Selección cerrada:** eliminada la bifurcación por resaltado del cargador.
+  La misma textura se conserva en todas las selecciones. Fixture `customCards`
+  cubre comodín, 3 de Oro y as de diamantes, con carga PNG demorada.
+- **Mate mejorado:** destinos individuales por orden de asiento, recálculo al
+  redimensionar y orientación hacia el dueño sin exigir turno local simultáneo.
+  En móvil con 5–8 jugadores se usan posiciones laterales separadas para evitar
+  las dos filas de cartas. No hay colisiones físicas; conservar QA visual por asiento.
+- **UI móvil:** logo grande centrado y controles arriba a la derecha en otra fila.
+  Para 5–8 jugadores móviles el zoom se controla dentro de Configuración; los
+  botones sobre la mesa invadían avatares o mate. En escritorio siguen directos.
+- **Piso aislado:** eliminada también la pared procedural; Floor reemplaza el
+  piso de respaldo al cargar. Material importado conservado bajo las luces del juego.
+- **Orden de ronda:** tocar el indicador de turno abre la lista de asientos del
+  servidor, con turno actual, ganador, pausa y pepineado. No predice la próxima
+  jugada ni altera las reglas. No es una flecha animada entre avatares.
+- **Modal:** cierre por click exterior y Escape; controles internos no lo cierran.
+
+Validación del lote: TypeScript y build; `verify-hand-interactions.mjs` a 1440/390;
+`verify-audio-lifecycle.mjs` ampliado; `verify-review-polish.mjs` a 1440/390;
+integración real local de 45 acciones en escritorio y 48 en viewport móvil,
+reconexión, final/revancha/salida y un único contexto de audio activo.
+Capturas de cartas personalizadas seleccionadas revisadas en PC y móvil.
+
+### Hallazgos de partida del lote (resueltos arriba salvo lo indicado)
 
 1. **P1 · Continuidad de audio (S–M).** El motor todavía se destruye al desmontar
    cada `runtimeOnly` entre pantallas. La prueba de audio actual cubre visibilidad
@@ -53,14 +88,13 @@ conservan como catálogo de ideas, no como lista de pendientes.
 5. **P2 · Piso de prueba (S).** Queda una pared procedural (`fallbackWall`) aunque
    se retiró el ROOM importado. Revisar el resultado aislado de `Floor.glb` antes
    de afirmar fidelidad de color; las luces cálidas y tone mapping afectan el aspecto.
-6. **P2 · Agarre final (L).** Manos y perspectiva siguen parciales. Preparar el
+6. **P2 · Agarre final (L) — sigue pendiente.** Manos y perspectiva siguen parciales. Preparar el
    conjunto manos/antebrazos y anclajes en Blender según el pipeline web.
 
 ### Orden para retomar
 
-Primero cerrar selección/audio y validar mate/UI en los recorridos anteriores.
-Después agregar dirección de ronda si aporta lectura, usando el estado del
-servidor; luego continuar assets y agarres. Mantener reacciones, interacciones
+Selección/audio y la consulta del orden de ronda están cerrados en este lote.
+Seguir con validación física del mate/UI y assets de agarre final. Mantener reacciones, interacciones
 decorativas y personalización para después. No cambiar reglas ni volver a
 agregar confirmaciones. No crear un indicador porcentual de pensamiento.
 
@@ -69,8 +103,8 @@ agregar confirmaciones. No crear un indicador porcentual de pensamiento.
 TypeScript pasó. Las 28 comprobaciones de `GameServer.RuleTests` pasaron con
 `dotnet run --project Back/GameServer/GameServer.RuleTests --no-restore`, incluido
 12×1 sobre 12×1, conservación de mesa y rechazo de una carta inferior.
-No se repitieron aquí las suites de navegador/integración ni una partida en
-teléfonos físicos. Los resultados históricos de abajo se conservan como antecedentes.
+Las suites de navegador/integración repetidas se enumeran en la resolución del
+lote. No se jugó en teléfonos físicos. Lo listado abajo es antecedente histórico.
 
 ## Antecedentes del pulido — 9 de septiembre de 2026
 
@@ -286,9 +320,9 @@ Estados usados: **Hecho en código** significa que la funcionalidad ya existe; *
 | Confirmación de jugada | Eliminada | Tanto JUGAR como soltar envían directamente las jugadas válidas; el servidor conserva la validación. |
 | Turno y jugador activo | Parcial | Avatar con pulso suave, contador persistente y estado separado, pausa sin pulso. Pendiente dirección de ronda; no predecir el siguiente turno antes de resolver comodines/pepineado. |
 | Carga / espera | Implementado | Texto distingue envío, jugador pensando, reconexión y pausa. No agregar porcentaje ficticio de espera de una persona. |
-| Audio | Parcial | Música/efectos y volumen persistido dentro de Configuración. Falta cubrir continuidad entre pantallas: el runtime se desmonta y destruye el motor. |
+| Audio | Implementado / integración actual probada | Runtime en App, música/efectos y volumen en Configuración. Mismo contexto en home/lobby/partida/revancha/salida; mezcla artística y dispositivos físicos pendientes. |
 | Última jugada y descarte | Implementado / historial pospuesto | Última combinación, pila acotada y contador desde `tableCards` del servidor. No hay historial agrupado por jugada/autor. |
-| Mate con yerba | Movimiento y resalte implementados / anclajes por validar | Todos ven su reubicación según el turno; solo quien juega ve el aro. Destinos por zonas, pendientes colisiones, resize y 2–8 asientos. |
+| Mate con yerba | Movimiento y resalte implementados / QA física pendiente | Todos ven su reubicación; solo quien juega ve el aro. Destinos individuales, resize recalculado y modo móvil para dos filas. Colisiones no físicas. |
 | Bowl de maníes | Hecho en código | Ya hay dos bowls procedurales con maníes en la escena. Falta decidir si se agrega interacción. |
 | Bebidas por jugador | Pendiente | La escena tiene vasos decorativos, pero no una bebida asociada a cada asiento ni selección por jugador. |
 | Manos y orientación | Parcial | Ya se carga un modelo de manos y se generan manos para rivales y jugador local. La orientación se calcula por asiento, pero necesita revisión visual en cada posición y sigue siendo un área con riesgo de espejado. |

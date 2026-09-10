@@ -4,7 +4,7 @@ import type { GameAudio } from '../game3d/gameAudio';
 import type { GameState } from '../types/Card';
 import './GameAudioControls.css';
 
-export default function GameAudioControls({ state, embedded = false, runtimeOnly = false }: { state?: GameState; embedded?: boolean; runtimeOnly?: boolean }) {
+export default function GameAudioControls({ state, embedded = false, runtimeOnly = false, applicationRuntime = false }: { state?: GameState; embedded?: boolean; runtimeOnly?: boolean; applicationRuntime?: boolean }) {
     const [settings, setSettings] = useState(loadAudioSettings);
     const engine = useRef<GameAudio | null>(null);
     const previousLevels = useRef(settings.music || settings.effects ? settings : {music:.22,effects:.35});
@@ -30,7 +30,7 @@ export default function GameAudioControls({ state, embedded = false, runtimeOnly
     const currentPlayer = state?.players.find(p => p.isCurrentTurn)?.connectionId;
     const previous = useRef({ sequence: state?.lastPlay?.sequence, turn: false, player: currentPlayer, paused: !!state?.isPaused, won:hasWon });
     useEffect(() => {
-        if (!runtimeOnly) {
+        if (!applicationRuntime) {
             engine.current = getSharedGameAudio();
             return () => { engine.current = null; };
         }
@@ -47,18 +47,18 @@ export default function GameAudioControls({ state, embedded = false, runtimeOnly
         document.addEventListener('click', action);
         document.addEventListener('visibilitychange', visibility);
         return () => {
-            if (!runtimeOnly) return;
             document.removeEventListener('pointerdown', unlock);
             document.removeEventListener('keydown', unlock);
             document.removeEventListener('click', action);
             document.removeEventListener('visibilitychange', visibility);
             disposeSharedGameAudio(); engine.current = null;
         };
-    }, [runtimeOnly]);
-    useEffect(() => { engine.current?.update(settings); }, [settings]);
+    }, [applicationRuntime]);
+    useEffect(() => { if (!runtimeOnly) getSharedGameAudio().update(settings); }, [settings, runtimeOnly]);
     const myTurn = !!state && !state.isPaused && state.players.some(p => p.connectionId === state.yourPlayerId && p.isCurrentTurn);
     useEffect(() => {
-        if (!runtimeOnly) return;
+        if (!runtimeOnly || applicationRuntime) return;
+        engine.current = getSharedGameAudio();
         const last = state?.lastPlay;
         if (hasWon && !previous.current.won) engine.current?.cue('win');
         else if (last && last.sequence !== previous.current.sequence) {
@@ -69,9 +69,8 @@ export default function GameAudioControls({ state, embedded = false, runtimeOnly
     }, [runtimeOnly, state?.lastPlay, myTurn, currentPlayer, state?.isPaused, hasWon]);
     if (runtimeOnly) return null;
     const audioContent = <div className="audio-panel">
-            <strong>Ambiente sonoro</strong>
             {(['music', 'effects'] as const).map(key => <label key={key}>
-                <span>{key === 'music' ? 'Música chill' : 'Efectos'} <output>{Math.round(settings[key] * 100)}%</output></span>
+                <span>{key === 'music' ? 'Música' : 'Efectos'} <output>{Math.round(settings[key] * 100)}%</output></span>
                 <input aria-label={key === 'music' ? 'Volumen de música' : 'Volumen de efectos'} type="range" min="0" max="100" value={Math.round(settings[key] * 100)} onChange={e => setSettings(s => ({ ...s, [key]: Number(e.target.value) / 100 }))} />
             </label>)}
             <button onClick={() => {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Card, PlayedCards, Player } from '../types/Card';
 import { createPepinoScene } from '../game3d/pepinoScene';
 import type { PepinoSceneApi } from '../game3d/pepinoScene';
+import FpsCounter from './FpsCounter';
 const empty: Player[] = [];
 const noCards: Card[] = [];
 export default function SceneView({ opponents = empty, play = null, lobby = false, yourTurn = false, discardCards=noCards, zoom=1 }: { lobby?: boolean; opponents?: Player[]; play?: PlayedCards | null; yourTurn?: boolean; discardCards?:Card[]; zoom?:number }) {
@@ -24,5 +25,5 @@ export default function SceneView({ opponents = empty, play = null, lobby = fals
         api.current?.setLastPlay(play, sequence.current !== null && next > sequence.current);
         sequence.current = next;
     }, [play]);
-    return <div className="scene-view" ref={host} aria-hidden={!error}>{error && <p className="gpu-error">No pudimos iniciar el render 3D. Activá la aceleración gráfica del navegador y recargá.</p>}</div>;
+    return <><div className="scene-view" ref={host} aria-hidden={!error}>{error && <p className="gpu-error">No pudimos iniciar el render 3D. Activá la aceleración gráfica del navegador y recargá.</p>}</div><FpsCounter sceneHost={host}/></>;
 }

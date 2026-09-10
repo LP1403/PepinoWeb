@@ -60,7 +60,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const textures = new Map<string, THREE.MeshBasicMaterial>();
     const cardLoader = new THREE.TextureLoader();
     const physicalMaterials = new Map<string, THREE.MeshStandardMaterial>();
-    function cardMaterial(card?: Card, highlighted=false, deckIndex = card?.deckIndex ?? 0) {
+    function cardMaterial(card?: Card, deckIndex = card?.deckIndex ?? 0) {
         // Selection must never replace a custom card asset with the procedural
         // fallback. The HTML hand supplies the selection outline separately.
         const key = card ? `${card.suit}${card.value}-deck${deckIndex}` : `back-${deckIndex}`;
@@ -69,7 +69,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
             const tex = own(new THREE.CanvasTexture(source)); tex.colorSpace = THREE.SRGBColorSpace;
             const material = own(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest:.5, depthTest: true, toneMapped: false }));
             textures.set(key, material);
-            if (!highlighted) {
+            {
                 const assetUrl = card ? cardAssetUrl(card) : cardBackUrl(deckIndex);
                 if (assetUrl) cardLoader.load(assetUrl, loaded => {
                     if(disposed) { loaded.dispose(); return; }
@@ -87,13 +87,13 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         }
         return textures.get(key)!;
     }
-    function cardMesh(card?: Card, deckIndex = card?.deckIndex ?? 0) { return new THREE.Mesh(cardGeometry,cardMaterial(card, false, deckIndex)); }
+    function cardMesh(card?: Card, deckIndex = card?.deckIndex ?? 0) { return new THREE.Mesh(cardGeometry,cardMaterial(card, deckIndex)); }
     let width = 1, height = 1, opponents: Player[] = [], lastPlay: PlayedCards | null = null;
     const pile = new THREE.Group(); scene.add(pile);
     const discard=new THREE.Group();scene.add(discard);
     function physicalMaterial(card?: Card, deckIndex=card?.deckIndex ?? 0) {
         const key=card ? `${card.suit}${card.value}-deck${deckIndex}` : `back-${deckIndex}`;
-        const face=cardMaterial(card,false,deckIndex);
+        const face=cardMaterial(card,deckIndex);
         if(!physicalMaterials.has(key)) physicalMaterials.set(key,own(new THREE.MeshStandardMaterial({map:face.map,transparent:true,alphaTest:.5,roughness:.85,side:THREE.DoubleSide})));
         return physicalMaterials.get(key)!;
     }
@@ -255,7 +255,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         if(lobby && width>900) camera.setViewOffset(width,height,-width*.18,0,width,height);
         else camera.clearViewOffset();
         screen.left = -width / 2; screen.right = width / 2; screen.top = height / 2; screen.bottom = -height / 2; screen.updateProjectionMatrix();
-        renderOpponents(); renderPile(false);
+        renderOpponents(); renderPile(false); updateMateTarget();
     }
     const observer = new ResizeObserver(resize); observer.observe(container);
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -263,7 +263,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     let raf = 0;
     const localOffset = new THREE.Vector2();
     let handLayoutDirty = true, localHandVisible = true, layoutUntil = 0;
-    const invalidateHandLayout = () => { handLayoutDirty = true; layoutUntil=performance.now()+250; };
+    const invalidateHandLayout = () => { handLayoutDirty = true; discardLabelDirty=true; layoutUntil=performance.now()+250; };
     const host = container.parentElement!;
     const handObserver = new MutationObserver(invalidateHandLayout);
     // Card selection, clearing a hand and horizontal scrolling can change its visible bounds.
@@ -292,7 +292,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
                 mesh=cardMesh({ id, value:Number(card.dataset.value) as Card['value'], suit:card.dataset.suit as Card['suit'] });
                 localMeshes.set(id,mesh); localCards.add(mesh);
             }
-            mesh.material=cardMaterial({id,value:Number(card.dataset.value) as Card['value'],suit:card.dataset.suit as Card['suit']},card.classList.contains('selected'));
+            mesh.material=cardMaterial({id,value:Number(card.dataset.value) as Card['value'],suit:card.dataset.suit as Card['suit']});
             const matrix=new DOMMatrixReadOnly(getComputedStyle(card.parentElement!).transform);
             const angle=Math.atan2(matrix.b,matrix.a);
             // Local cards are the foreground layer: fingers must never paint over them.
@@ -340,14 +340,24 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
             const t=1-Math.pow(1-Math.min(1,(now-enteredAt)/900),3);
             camera.position.set(0,10.8+(5.4-10.8)*t,6.8+(8.3-6.8)*t);camera.lookAt(0,0,-.3);
         }
-        if(discardLabelDirty || now-enteredAt<1000) {
+        if(discardLabelDirty || now-enteredAt<1000 || now<layoutUntil) {
             camera.updateMatrixWorld();
             const anchor=new THREE.Vector3(-1.5,.02,.38).project(camera);
             host.style.setProperty('--discard-left',`${(anchor.x+1)*width/2}px`);
             host.style.setProperty('--discard-top',`${(1-anchor.y)*height/2+7}px`);
             const caption=new THREE.Vector3(pileCenter,.02,.5).project(camera);
             host.style.setProperty('--pile-left',`${(caption.x+1)*width/2}px`);
-            host.style.setProperty('--pile-top',`${(1-caption.y)*height/2+10}px`);
+            let captionTop=(1-caption.y)*height/2+10;
+            const label=host.querySelector<HTMLElement>('.pile-caption');
+            const controls=host.querySelector<HTMLElement>('.play-controls');
+            if(label && controls && !host.classList.contains('spectating')) {
+                const bounds=container.getBoundingClientRect();
+                const buttons=controls.getBoundingClientRect();
+                const labelX=(caption.x+1)*width/2;
+                if(labelX+label.offsetWidth/2>buttons.left-bounds.left && labelX-label.offsetWidth/2<buttons.right-bounds.left)
+                    captionTop=Math.min(captionTop,buttons.top-bounds.top-label.offsetHeight-12);
+            }
+            host.style.setProperty('--pile-top',`${captionTop}px`);
             discardLabelDirty=false;
         }
         const firstFlight=flights[0];
@@ -407,27 +417,28 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     function updateMateTarget() {
         if (lobby) return;
         const index=opponents.findIndex(player=>player.isCurrentTurn);
-        const seats=seatPositions(opponents.length,width<600,width>=601 && height<=550);
-        const nextMate = index >= 0 ? (() => {
-            const seat=seats[index];
-            if(seat.x<.35)return new THREE.Vector3(width<600?-1.7:-2.8,0,.9);
-            if(seat.x>.65)return new THREE.Vector3(width<600?1.7:2.8,0,.9);
-            return new THREE.Vector3(-1.7,0,-2.5);
-        })() : new THREE.Vector3(3.75,0,1.7);
+        // One anchor in the owner's frame, rotated by relative seat order.
+        // Normalize the oval before rotating so every client sees the same
+        // physical place at the owner's right, including the opposite seat.
+        const seatAngle=index<0 ? 0 : (index+1)*Math.PI*2/(opponents.length+1);
+        const right=3.75/5.5, forward=1.7/4.4;
+        const nextMate=new THREE.Vector3(
+            (right*Math.cos(seatAngle)-forward*Math.sin(seatAngle))*5.5,0,
+            (right*Math.sin(seatAngle)+forward*Math.cos(seatAngle))*4.4);
+        environment.placeDrinks(nextMate);
         if(mateTargetPosition.distanceToSquared(nextMate)>.0001) {
             mateFromPosition.copy(environment.mate.position);
             mateTargetPosition.copy(nextMate);
             mateStarted=performance.now();
         }
-        if (!turnIndicator || index < 0) return;
-        const seat=seats[index];
-        const target=new THREE.Vector3((seat.x-.5)*10,0,-3);
-        const direction=target.sub(environment.mate.position);
+        const target=new THREE.Vector3(-Math.sin(seatAngle)*5.5,0,Math.cos(seatAngle)*4.4);
+        const direction=target.sub(nextMate);
         const angle=Math.atan2(-direction.z,direction.x);
         const delta=Math.atan2(Math.sin(angle-mateAngle),Math.cos(angle-mateAngle));
         if(Math.abs(delta)>.001) {
             mateFrom=environment.mate.rotation.y;
             mateAngle=mateFrom+Math.atan2(Math.sin(angle-mateFrom),Math.cos(angle-mateFrom));
+            mateFromPosition.copy(environment.mate.position);
             mateStarted=performance.now();
         }
     }
