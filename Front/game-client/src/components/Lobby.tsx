@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SceneView from './SceneView';
 import GameModal from './GameModal';
 import './GameTable3D.css';
@@ -11,10 +11,16 @@ export default function Lobby({ onJoin }: { onJoin: (room: string, name: string)
     const [name, setName] = useState(() => { try {return localStorage.getItem(PLAYER_NAME_KEY) ?? '';} catch {return '';} });
     const [room, setRoom] = useState(linkedRoom.toUpperCase().replace(/[^A-Z0-9_-]/g,''));
     const [rulesOpen, setRulesOpen] = useState(false);
+    const autoJoined = useRef(false);
     useEffect(() => {
         // A shared room link already contains the destination. If this device
         // remembers the player's name, join directly and show the room lobby.
-        if (!linkedRoom || !name.trim() || !room.trim()) return;
+        if (autoJoined.current || !linkedRoom || !name.trim() || !room.trim()) return;
+        autoJoined.current = true;
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('room');
+        cleanUrl.searchParams.delete('sala');
+        window.history.replaceState({}, document.title, `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
         onJoin(room.trim().toUpperCase(), name.trim());
     }, []);
     return <main className="pepino-game lobby-screen entry-screen"><SceneView lobby />
