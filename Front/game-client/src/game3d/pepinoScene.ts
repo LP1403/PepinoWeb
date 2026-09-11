@@ -19,6 +19,7 @@ export interface PepinoSceneApi {
 // Camera/board are world-space. Cards use a screen-space 3D layer so their reading size
 // stays invariant when the board changes. UI seats use the same normalized layout.
 export function createPepinoScene(container: HTMLElement, lobby = false): PepinoSceneApi {
+    const titleScene = lobby && !!container.parentElement?.classList.contains('entry-screen');
     let graphicsQuality=loadGraphicsQuality();
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
@@ -129,6 +130,21 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         const face=cardMaterial(card,deckIndex);
         if(!physicalMaterials.has(key)) physicalMaterials.set(key,own(new THREE.MeshStandardMaterial({map:face.map,transparent:true,alphaTest:.5,roughness:.85,side:THREE.DoubleSide})));
         return physicalMaterials.get(key)!;
+    }
+    if (lobby) {
+        const lobbyDeck = new THREE.Group();
+        // Decorative deck 1: only the back is visible while waiting in the lobby.
+        for (let i=0; i<48; i++) {
+            const card = new THREE.Mesh(cardGeometry, physicalMaterial(undefined, 0));
+            card.scale.set(.72,.98,1);
+            const edge = i > 40 ? (i-40)*.002 : 0;
+            card.position.set(Math.sin(i*2.17)*edge,.04+i*.004,.05+Math.cos(i*1.71)*edge);
+            card.rotation.set(-Math.PI/2,0,Math.sin(i*1.93)*edge*.7);
+            card.castShadow = card.receiveShadow = true;
+            card.renderOrder = 8+i;
+            lobbyDeck.add(card);
+        }
+        scene.add(lobbyDeck);
     }
     const hands = new THREE.Group(); overlay.add(hands);
     const sleeveGeometry = own(new THREE.CylinderGeometry(.23,.32,1,16));
@@ -360,6 +376,20 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     function frame(now: number) {
         if (disposed || document.hidden) return;
         if(!frameLimiter.shouldRender(now,graphicsQuality==='low'?30:60)) {raf=requestAnimationFrame(frame);return;}
+        if(titleScene) {
+            const elapsed=(now-enteredAt)/1000;
+            const entrance=reducedMotion ? 1 : 1-Math.pow(1-Math.min(1,elapsed/1.8),3);
+            const driftX=reducedMotion || width<601 ? 0 : Math.sin(elapsed*.12)*.42+Math.sin(elapsed*.047+1.7)*.18;
+            const driftY=reducedMotion || width<601 ? 0 : Math.cos(elapsed*.083)*.12+Math.sin(elapsed*.031)*.06;
+            camera.position.set(1.5+driftX,7.2+(1-entrance)*.6+driftY,10+(1-entrance)*.8+Math.sin(elapsed*.067)*.18);
+            camera.lookAt(driftX*.28,driftY*.35,-.6);
+        } else if (lobby) {
+            const elapsed=(now-enteredAt)/1000;
+            const driftX=reducedMotion || width<601 ? 0 : Math.sin(elapsed*.1)*.22+Math.sin(elapsed*.041+2)*.09;
+            const driftY=reducedMotion || width<601 ? 0 : Math.cos(elapsed*.071)*.07;
+            camera.position.set(driftX,10.8+driftY,6.8+Math.sin(elapsed*.058)*.1);
+            camera.lookAt(driftX*.2,0,-.05);
+        }
         if(lobby) {
             // Project table-space seats through the same camera/view offset as the table.
             camera.updateMatrixWorld();

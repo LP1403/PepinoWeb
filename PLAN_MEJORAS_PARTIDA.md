@@ -342,6 +342,8 @@ Pulido de escena: iluminación ambiental más baja y luz amplia sobre el paño, 
 
 Entorno definitivo pospuesto por decisión del dueño: se recibirán GLB de Blender para prácticamente todos los objetos. Hasta entonces, priorizar materiales, legibilidad e interacción con los modelos actuales; evitar invertir en reconstruir el escenario provisional.
 
+Portada: el acceso se rediseñó como pantalla de título. El logotipo y subtítulo forman un encabezado único sobre la mesa, con cámara inicial oblicua y entrada suave; el movimiento es sutil y se desactiva con `prefers-reduced-motion`. El formulario conserva enlace directo a sala y acceso a reglas, con composición adaptada a móvil.
+
 Detalle de objetos actuales: mate con material propio más oscuro y menos rugoso que la mesa; vasos con borde, base y superficie del líquido definidos, transparencia más clara y sin sombra opaca del vidrio. Materiales de vasos compartidos. También se registra la geometría del aro del mate para liberarla al desmontar la escena. Compilación y revisión visual en escritorio realizadas.
 
 - Jugar y pasar comparten un bloqueo inmediato mientras se envía la acción, para evitar dobles envíos antes de que llegue el estado del servidor.

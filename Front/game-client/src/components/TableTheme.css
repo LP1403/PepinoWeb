@@ -226,4 +226,58 @@
 .play-controls>.primary-button:not(:disabled) { box-shadow:inset 0 1px 0 #e8edbe33, 0 3px 0 #1c301d, 0 6px 14px #0004; }
 .play-controls>button:not(:disabled):active { translate:0 2px; box-shadow:inset 0 2px 4px #0004; }
 .play-controls>button:focus-visible, .table-zoom button:focus-visible, .top-actions button:focus-visible { outline:2px solid #dfce94; outline-offset:3px; }
+
+/* Home concept: a title-screen menu, open to the room rather than a form card. */
+.pepino-game.entry-screen .entrance-panel { top:15%; left:7%; width:390px; padding:22px 0; border:0; border-radius:0; background:transparent; box-shadow:none; max-height:calc(85dvh - 48px); overflow-x:hidden; animation:entry-menu-arrive .65s ease-out both; }
+.entry-screen .scene-view::after { background:linear-gradient(90deg,#0d1410f5 0%,#0d1410ed 24%,#0d141099 36%,transparent 58%),radial-gradient(ellipse at 68% 48%,transparent 35%,#08070555 100%); }
+.entry-screen .entrance-panel .eyebrow { font-size:9px; letter-spacing:2px; color:#c4b27d; }
+.entry-screen .entrance-panel h1 { font-family:Georgia,serif; font-size:clamp(40px,3.5vw,60px); line-height:1.04; letter-spacing:-1.8px; margin:20px 0 16px; font-weight:700; text-shadow:0 3px 15px #0005; }
+.entry-screen .entrance-panel>p { color:#bebdaf; font-size:13px; margin-bottom:30px; }
+.entry-session-heading { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #bba77544; padding-bottom:12px; font-size:9px; letter-spacing:1.4px; color:#d9cba9; }
+.entry-session-heading span:last-child { color:#8c9a8c; font-size:8px; letter-spacing:1px; }
+.entry-screen .entrance-panel input { box-sizing:border-box; width:100%; background:#17271fde; border:1px solid #8b98714d; border-radius:5px; color:#f4eddf; padding:14px; font-size:14px; box-shadow:inset 0 2px 5px #0003; }
+.entry-screen .entrance-panel input:focus { outline:none; border-color:#d6c57f; box-shadow:inset 0 0 0 1px #d6c57f, 0 0 16px #d6c57f2e; }
+.entry-screen .entrance-panel input:hover:not(:focus) { border-color:#b9b77c88; background-color:#1b3025; }
+.entry-screen .entrance-panel form>small { color:#a4afa2; font-size:11px; }
+.entry-screen .entrance-panel .start-button { display:flex; justify-content:space-between; align-items:center; min-height:52px; padding:15px 18px; border-radius:5px; letter-spacing:1px; margin-top:23px; }
+.entry-screen .start-button svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.entry-screen .entrance-panel .rules-link { margin-top:20px; padding-top:17px; max-width:100%; }
+.entry-screen .rules-link span { font-size:9px; letter-spacing:1px; transform:none; }
+.entry-screen .rules-link:hover span { transform:none; }
+.entry-screen .rules-link { color:#d8cfb8; transition:color .16s ease, background-color .16s ease, padding-left .16s ease; }
+.entry-screen .rules-link:hover { color:#f0dda8; padding-left:6px; text-shadow:0 0 12px #d9bd6d66; }
+.entry-screen .rules-link:hover span { color:#f0dda8; text-shadow:0 0 10px #d9bd6d88; }
+.entry-screen .rules-link:active { color:#fff4cd; padding-left:8px; }
+.entry-screen .start-button:not(:disabled) { transition:filter .16s ease, box-shadow .16s ease, transform .1s ease; }
+.entry-screen .start-button:not(:disabled):hover { filter:brightness(1.16); box-shadow:0 0 18px #9bbd6d44, inset 0 1px 0 #e9f0b044; }
+.entry-screen .start-button:not(:disabled):active { transform:translateY(2px); filter:brightness(.95); }
+@keyframes entry-menu-arrive { from { opacity:0; translate:0 12px; } to { opacity:1; translate:0 0; } }
+.entry-title { position:absolute; z-index:2; left:68%; top:9%; width:52%; transform:translateX(-50%); text-align:center; pointer-events:none; animation:entry-menu-arrive 1s ease-out both; }
+.entry-title-kicker { display:block; color:#c8b787; letter-spacing:3.5px; font-size:10px; margin-bottom:20px; }
+.entry-screen .entry-title .wordmark { position:static; transform:none; justify-content:center; gap:10px; }
+.entry-screen .entry-title .wordmark strong { font-size:clamp(64px,6.6vw,116px); letter-spacing:-5px; text-shadow:0 4px 0 #151c15,0 10px 28px #0008; }
+.entry-screen .entry-title .logo-cucumber { width:clamp(26px,2.8vw,45px); height:clamp(57px,6vw,96px); }
+.entry-title .logo-cucumber::after { width:9px; height:9px; margin:18px 0 0 10px; box-shadow:0 24px #183e25; }
+.entry-title p { margin:20px 0 16px; font-family:Georgia,serif; font-size:clamp(20px,2vw,30px); color:#e6d9bc; text-shadow:0 2px 8px #000; }
+.entry-title p em { color:#d7c082; }
+.entry-title-rule { display:block; width:110px; height:1px; margin:auto; background:linear-gradient(90deg,transparent,#c5af75,transparent); }
+@media(max-width:900px) and (min-width:601px) { .entry-title { left:73%; width:45%; } .entry-screen .entry-title .wordmark strong { font-size:64px; } }
+@media(max-width:600px) {
+ .entry-title { left:50%; top:58px; width:90%; }
+ .entry-title-kicker,.entry-title-rule { display:none; }
+ .entry-screen .entry-title .wordmark strong { font-size:56px; letter-spacing:-3px; }
+ .entry-screen .entry-title .logo-cucumber { width:24px; height:53px; }
+ .entry-title p { font-size:17px; margin:10px 0; }
+ .entry-title .logo-cucumber::after { width:5px; height:5px; margin:12px 0 0 6px; box-shadow:0 15px #183e25; }
+}
+@media(prefers-reduced-motion:reduce) { .entry-title { animation:none; } }
+@media(max-width:900px) and (min-width:601px) { .pepino-game.entry-screen .entrance-panel { left:5%; width:340px; } }
+@media(max-width:600px) {
+ .pepino-game.entry-screen .entrance-panel { top:165px; left:7%; width:86%; transform:none; padding:12px 0; max-height:calc(100dvh - 207px); }
+ .entry-screen .scene-view::after { background:linear-gradient(#0d141088,#0d1410e8 28%,#0d1410e8 85%,#0d141099); }
+ .entry-screen .entrance-panel h1 { font-size:38px; margin:12px 0; }
+ .entry-screen .entrance-panel>p { margin-bottom:20px; font-size:12px; }
+ .entry-screen .entrance-panel .eyebrow { font-size:8px; letter-spacing:1px; }
+}
+@media(prefers-reduced-motion:reduce) { .pepino-game.entry-screen .entrance-panel { animation:none; } }
 @media(prefers-reduced-motion:reduce) { .play-controls>.primary-button:not(:disabled), .play-controls>.secondary-button:not(:disabled) { transition:none; } .play-controls>button:not(:disabled):active { translate:none; } }
