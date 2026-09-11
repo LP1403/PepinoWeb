@@ -378,11 +378,16 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         if(!frameLimiter.shouldRender(now,graphicsQuality==='low'?30:60)) {raf=requestAnimationFrame(frame);return;}
         if(titleScene) {
             const elapsed=(now-enteredAt)/1000;
+            if (width < 601) {
+                camera.position.set(0,5.9,7.4);
+                camera.lookAt(0,0,-.25);
+            } else {
             const entrance=reducedMotion ? 1 : 1-Math.pow(1-Math.min(1,elapsed/1.8),3);
-            const driftX=reducedMotion || width<601 ? 0 : Math.sin(elapsed*.12)*.42+Math.sin(elapsed*.047+1.7)*.18;
-            const driftY=reducedMotion || width<601 ? 0 : Math.cos(elapsed*.083)*.12+Math.sin(elapsed*.031)*.06;
-            camera.position.set(1.5+driftX,7.2+(1-entrance)*.6+driftY,10+(1-entrance)*.8+Math.sin(elapsed*.067)*.18);
+            const driftX=reducedMotion || width<601 ? 0 : Math.sin(elapsed*.18)*.56+Math.sin(elapsed*.071+1.7)*.22;
+            const driftY=reducedMotion || width<601 ? 0 : Math.cos(elapsed*.125)*.16+Math.sin(elapsed*.047)*.08;
+            camera.position.set(1.5+driftX,7.2+(1-entrance)*.6+driftY,10+(1-entrance)*.8+Math.sin(elapsed*.1)*.24);
             camera.lookAt(driftX*.28,driftY*.35,-.6);
+            }
         } else if (lobby) {
             const elapsed=(now-enteredAt)/1000;
             const driftX=reducedMotion || width<601 ? 0 : Math.sin(elapsed*.1)*.22+Math.sin(elapsed*.041+2)*.09;

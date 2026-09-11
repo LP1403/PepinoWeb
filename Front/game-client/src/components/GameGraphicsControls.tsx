@@ -22,7 +22,9 @@ export default function GameGraphicsControls({state,zoom,onZoom}:{state?:GameSta
         setMessage('');
         try {
             if(document.fullscreenElement)await document.exitFullscreen();
-            else await (fullscreenButton.current ?? button.current)?.closest<HTMLElement>('.pepino-game')?.requestFullscreen();
+            // Fullscreen belongs to the document, not to the current screen.
+            // Lobby and game replace their root view during navigation.
+            else await document.documentElement.requestFullscreen();
         } catch {setMessage('El navegador no permitió activar la pantalla completa.');}
     }
     return <>

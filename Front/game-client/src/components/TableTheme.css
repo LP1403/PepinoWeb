@@ -12,6 +12,8 @@
 .entry-screen .wordmark { left:68%; top:35px; }
 .lobby-top-actions { position:absolute; right:24px; }
 .entry-screen .entrance-panel { top:105px; bottom:auto; height:auto; min-height:0; max-height:calc(100dvh - 145px); overflow:auto; }
+.entry-screen .entrance-panel { background:#131b17ec; border:1px solid #bba78335; border-radius:18px; box-shadow:0 20px 80px #0006; padding:30px; }
+.lobby-screen:not(.entry-screen) .lobby-panel { bottom:auto; height:fit-content; max-height:calc(100dvh - 135px); }
 .room-tag,.top-actions button,.audio-settings summary,.alpha-tag { background:#151d18d9; border-color:#d7c6a230; color:#f4eddf; }
 .game-topbar .wordmark { flex-shrink:0; }
 .top-actions { min-width:0; }
@@ -117,7 +119,7 @@
  .lobby-screen:not(.entry-screen) .game-topbar { top:115px; left:0; width:100%; margin-left:0; transform:none; justify-content:center; padding:0 10px; }
  .lobby-screen:not(.entry-screen) .wordmark { transform:translateX(-50%) scale(2.2); transform-origin:center bottom; }
  .lobby-top-actions { right:10px; top:-101px; }
- .lobby-screen:not(.entry-screen) .lobby-panel { top:250px; left:50%; width:min(430px,calc(100% - 28px)); transform:translateX(-50%); bottom:auto; height:auto; max-height:calc(100dvh - 270px); overflow:auto; }
+ .lobby-screen:not(.entry-screen) .lobby-panel { top:180px; left:50%; width:min(430px,calc(100% - 24px)); transform:translateX(-50%); bottom:auto; height:fit-content; max-height:calc(100dvh - 200px); overflow:hidden; padding:18px; }
  .brand-footer { left:5%; width:90%; bottom:10px; font-size:9px; }
  .game-modal { width:min(430px,86vw); padding:22px; border-radius:18px; }
  .game-modal p { font-size:12px; line-height:1.5; }
@@ -228,7 +230,7 @@
 .play-controls>button:focus-visible, .table-zoom button:focus-visible, .top-actions button:focus-visible { outline:2px solid #dfce94; outline-offset:3px; }
 
 /* Home concept: a title-screen menu, open to the room rather than a form card. */
-.pepino-game.entry-screen .entrance-panel { top:15%; left:7%; width:390px; padding:22px 0; border:0; border-radius:0; background:transparent; box-shadow:none; max-height:calc(85dvh - 48px); overflow-x:hidden; animation:entry-menu-arrive .65s ease-out both; }
+.pepino-game.entry-screen .entrance-panel { top:15%; left:7%; width:390px; padding:22px 30px; max-height:calc(85dvh - 48px); overflow-x:hidden; animation:entry-menu-arrive .65s ease-out both; }
 .entry-screen .scene-view::after { background:linear-gradient(90deg,#0d1410f5 0%,#0d1410ed 24%,#0d141099 36%,transparent 58%),radial-gradient(ellipse at 68% 48%,transparent 35%,#08070555 100%); }
 .entry-screen .entrance-panel .eyebrow { font-size:9px; letter-spacing:2px; color:#c4b27d; }
 .entry-screen .entrance-panel h1 { font-family:Georgia,serif; font-size:clamp(40px,3.5vw,60px); line-height:1.04; letter-spacing:-1.8px; margin:20px 0 16px; font-weight:700; text-shadow:0 3px 15px #0005; }
@@ -273,11 +275,16 @@
 @media(prefers-reduced-motion:reduce) { .entry-title { animation:none; } }
 @media(max-width:900px) and (min-width:601px) { .pepino-game.entry-screen .entrance-panel { left:5%; width:340px; } }
 @media(max-width:600px) {
- .pepino-game.entry-screen .entrance-panel { top:165px; left:7%; width:86%; transform:none; padding:12px 0; max-height:calc(100dvh - 207px); }
- .entry-screen .scene-view::after { background:linear-gradient(#0d141088,#0d1410e8 28%,#0d1410e8 85%,#0d141099); }
- .entry-screen .entrance-panel h1 { font-size:38px; margin:12px 0; }
- .entry-screen .entrance-panel>p { margin-bottom:20px; font-size:12px; }
+ .pepino-game.entry-screen .entrance-panel { box-sizing:border-box; top:165px; left:50%; width:calc(100% - 32px); transform:translateX(-50%); padding:22px 18px 20px; max-height:calc(100dvh - 207px); overflow-x:hidden; overflow-y:auto; }
+ .entry-screen .scene-view::after { background:linear-gradient(rgba(13,20,16,.42),rgba(13,20,16,.68) 28%,rgba(13,20,16,.74) 85%,rgba(13,20,16,.42)); }
+ .entry-screen .entrance-panel h1 { font-size:clamp(32px,9.5vw,38px); line-height:1.02; margin:10px 0 16px; }
+ .entry-screen .entrance-panel>p { margin-bottom:18px; font-size:12px; }
  .entry-screen .entrance-panel .eyebrow { font-size:8px; letter-spacing:1px; }
+ .entry-screen .entry-session-heading { padding-bottom:10px; }
+ .entry-screen .entrance-panel label { font-size:10px; }
+ .entry-screen .entrance-panel input { padding:13px 12px; }
+ .entry-screen .entrance-panel .start-button { min-height:50px; margin-top:20px; padding:13px 15px; }
+ .entry-screen .entrance-panel .rules-link { margin-top:17px; padding-top:14px; }
 }
 @media(prefers-reduced-motion:reduce) { .pepino-game.entry-screen .entrance-panel { animation:none; } }
 @media(prefers-reduced-motion:reduce) { .play-controls>.primary-button:not(:disabled), .play-controls>.secondary-button:not(:disabled) { transition:none; } .play-controls>button:not(:disabled):active { translate:none; } }
