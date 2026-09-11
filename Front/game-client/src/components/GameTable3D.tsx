@@ -18,7 +18,10 @@ export interface GameTable3DProps {
     onPass: () => Promise<boolean>;
     onLeave: () => void;
 }
-export default function GameTable3D({ state, busy = false, connected = true, onPlay, onPass, onLeave }: GameTable3DProps) {
+export default function GameTable3D({ state, busy: parentBusy = false, connected = true, onPlay, onPass, onLeave }: GameTable3DProps) {
+    const actionInFlight = useRef(false);
+    const [sending, setSending] = useState(false);
+    const busy = parentBusy || sending;
     const [selected, setSelected] = useState<string[]>([]);
     const [zoom,setZoom] = useState(1);
     const [showTurnOrder,setShowTurnOrder] = useState(false);
@@ -29,6 +32,18 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
     const gesture = useRef<{ id: string; x: number; y: number; dragging: boolean; cards: Card[]; revision: number } | null>(null);
     const dropTarget = useRef<HTMLDivElement>(null);
     const suppressClick = useRef(false);
+    useEffect(() => {
+        const cancel = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (event.key !== 'Escape' || document.querySelector('dialog[open]') || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+            gesture.current = null;
+            pan.current = null;
+            setDrag(null);
+            setSelected([]);
+        };
+        addEventListener('keydown', cancel);
+        return () => removeEventListener('keydown', cancel);
+    }, []);
 
 
     const previousPlay = useRef(state.lastPlay?.sequence ?? 0);
@@ -110,12 +125,23 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         if (g?.dragging && zone && myTurn && !busy && g.revision === state.revision && e.clientX >= zone.left && e.clientX <= zone.right && e.clientY >= zone.top && e.clientY <= zone.bottom) {
             const valid = CardService.validatePlay(g.cards, state.lastPlayedCards, !state.lastPlayedCards.length, !!state.isNewRound);
             if (valid.isValid) void playCards(g.cards);
+            else setSelected(g.cards.map(card => card.id));
         }
         gesture.current = null; setDrag(null);
     }
     async function playCards(cards: Card[]) {
-        if (!cards.length || !myTurn || busy) return;
-        if (await onPlay(cards)) setSelected([]);
+        if (!cards.length || !myTurn || busy || actionInFlight.current) return;
+        actionInFlight.current = true;
+        setSending(true);
+        try { if (await onPlay(cards)) setSelected([]); }
+        finally { actionInFlight.current = false; setSending(false); }
+    }
+    async function passTurn() {
+        if (!canPass || actionInFlight.current) return;
+        actionInFlight.current = true;
+        setSending(true);
+        try { if (await onPass()) setSelected([]); }
+        finally { actionInFlight.current = false; setSending(false); }
     }
     const helper = !connected ? 'Recuperando la conexión con la mesa…' : busy ? 'Enviando tu jugada…' : state.isPaused ? 'Partida pausada · esperando reconexión (hasta 60 s)' : local?.hasWon ? '¡Ya estás entre los ganadores!' : !myTurn ? `${turn?.name ?? 'Otro jugador'} está pensando…` : chosen.length ? (validation.isValid ? `${chosen.length} carta${chosen.length > 1 ? 's' : ''} lista${chosen.length > 1 ? 's' : ''}` : validation.reason) : state.isNewRound ? 'Nueva ronda · Juega libremente' : 'Elegí tus cartas · los bordes dorados indican jugadas posibles';
     return <main className={`pepino-game${local?.hasWon ? ' spectating' : ''}${opponents.length>3 ? ' crowded-table' : ''}`} data-testid="game" data-turn={myTurn} data-revision={state.revision}>
@@ -139,9 +165,6 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         <div className="pile-caption" data-testid="last-play">{state.lastPlay ? <><b>{state.lastPlay.cards.length} × {state.lastPlay.cards[0].value}</b><span>{state.lastPlay.playerName}</span></> : <span>El 3♦ decide quién empieza</span>}</div>
         {state.tableCards.length>0 && <div className="discard-count">{state.tableCards.length} carta{state.tableCards.length===1?'':'s'} jugada{state.tableCards.length===1?'':'s'}</div>}
         {effect && <div className="play-effect" role="status"><strong>{state.lastPlay?.isPepineado ? '¡PEPINEADO!' : 'COMODÍN'}</strong><span>{effect}</span></div>}
-        <button className={`turn-pill ${myTurn ? 'your-turn' : ''}`} aria-label="Ver orden de turnos" onClick={()=>setShowTurnOrder(true)}>
-            {myTurn ? 'TU TURNO' : state.isPaused ? 'EN PAUSA' : `TURNO DE ${turn?.name.toUpperCase() ?? '…'}`} <span aria-hidden="true">↻</span>
-        </button>
         {showTurnOrder && <GameModal title="Orden de turnos" onClose={()=>setShowTurnOrder(false)}>
             <p>La ronda sigue este orden de asientos y vuelve al primero. Los ganadores dejan de jugar; el pepineado salta un turno y el comodín permite abrir otra vez.</p>
             <ol className="turn-order">{state.players.map(p=><li key={p.connectionId} aria-current={p.isCurrentTurn ? 'step' : undefined}>
@@ -152,10 +175,16 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
         </GameModal>}
         {drag && <div className="drop-target" ref={dropTarget}>{CardService.validatePlay(drag.cards, state.lastPlayedCards, !state.lastPlayedCards.length, !!state.isNewRound).isValid ? `Soltá para jugar ${drag.cards.length} carta${drag.cards.length > 1 ? 's' : ''}` : 'Esta combinación no se puede jugar'}</div>}
         <div className={`seat-badge local-seat seat-0 ${myTurn ? 'active' : ''}`}><div className="avatar">{local?.name.slice(0,2).toUpperCase()}<span className="seat-count">{state.yourHand.length}</span></div><span className="seat-name">{local?.name}</span><small>VOS</small></div>
+        {local?.hasWon && <button className="turn-status spectator-turn" aria-label="Ver orden de turnos" onClick={()=>setShowTurnOrder(true)}>{!connected ? 'RECONECTANDO' : state.isPaused ? 'PARTIDA EN PAUSA' : `TURNO DE ${turn?.name.toUpperCase() ?? '…'}`}</button>}
         <section className="hand-area" aria-label="Tu mano">
-            <div className="play-controls"><button className="primary-button" disabled={!canPlay} onClick={() => void playCards(chosen)}>JUGAR</button><button className="secondary-button" disabled={!canPass} onClick={() => { void onPass(); }}>PASAR</button>{chosen.length > 0 && <button className="clear-selection" onClick={() => setSelected([])}>Limpiar ({chosen.length})</button>}</div>
-            <p className={`hand-helper${!myTurn ? ' waiting' : ''}`} aria-live="polite">{helper}</p>
-            <div className="hand-scroll" ref={scroll} onWheel={e => { if (scroll.current) scroll.current.scrollLeft += e.deltaY; }}
+            <div className="play-controls"><button className="primary-button" disabled={!canPlay} onClick={() => void playCards(chosen)}>JUGAR</button><button className="secondary-button" disabled={!canPass} onClick={() => { void passTurn(); }}>PASAR</button>{chosen.length > 0 && <button className="clear-selection" onClick={() => setSelected([])}>Limpiar ({chosen.length})</button>}</div>
+            <div className="hand-helper turn-readout" aria-live="polite">
+                <button className={`turn-status ${myTurn ? 'your-turn' : ''}`} aria-label="Ver orden de turnos" onClick={()=>setShowTurnOrder(true)}>
+                    {!connected ? 'RECONECTANDO' : state.isPaused ? 'PARTIDA EN PAUSA' : busy ? 'ENVIANDO JUGADA' : local?.hasWon ? 'ESPECTANDO' : myTurn ? 'TU TURNO' : `TURNO DE ${turn?.name.toUpperCase() ?? '…'}`}
+                </button>
+                {(myTurn && !busy || !connected || state.isPaused) && <span className="turn-detail">{myTurn && !chosen.length ? (state.isNewRound ? 'Nueva ronda · Elegí tus cartas' : 'Elegí tus cartas para jugar') : helper}</span>}
+            </div>
+            <div className={`hand-scroll${handEdges.start ? '' : ' more-left'}${handEdges.end ? '' : ' more-right'}`} ref={scroll} onWheel={e => { if (scroll.current) scroll.current.scrollLeft += e.deltaY; }}
                 onPointerDown={e=>{if(e.pointerType==='mouse' && e.button===0) pan.current={x:e.clientX,y:e.clientY,left:e.currentTarget.scrollLeft,active:false};}}
                 onPointerMove={e=>{
                     const p=pan.current;
@@ -194,7 +223,7 @@ export default function GameTable3D({ state, busy = false, connected = true, onP
                     </div>)}
                 </div>
             </div>
-            <nav className="hand-navigation" aria-label="Desplazar cartas"><button disabled={handEdges.start} onClick={() => moveHand(-1)} aria-label="Cartas anteriores">‹</button><span>{state.yourHand.length} CARTAS</span><button disabled={handEdges.end} onClick={() => moveHand(1)} aria-label="Cartas siguientes">›</button></nav>
+            <nav className="hand-navigation" aria-label="Desplazar cartas"><button disabled={handEdges.start} onClick={() => moveHand(-1)} aria-label="Cartas anteriores"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6" /></svg></button><span>{state.yourHand.length} CARTAS</span><button disabled={handEdges.end} onClick={() => moveHand(1)} aria-label="Cartas siguientes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button></nav>
         </section>
         {drag && <div className="drag-ghost drag-group" aria-label={`Arrastrando ${drag.cards.length} cartas`} style={{ left: drag.x, top: drag.y }}>
             {drag.cards.map((card,i) => <img key={card.id} src={cardImage(card, card.deckIndex)} alt={`${card.value} de ${card.suit}`} style={{ transform: `translateX(${(i-(drag.cards.length-1)/2)*Math.min(32,220/Math.max(1,drag.cards.length-1))}px) rotate(${(i-(drag.cards.length-1)/2)*Math.min(4,20/Math.max(1,drag.cards.length-1))}deg)`, zIndex:i }} />)}<b>{drag.cards.length} carta{drag.cards.length > 1 ? 's' : ''}</b>

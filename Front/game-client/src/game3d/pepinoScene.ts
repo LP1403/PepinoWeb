@@ -6,6 +6,7 @@ import { buildTableEnvironment } from './tableEnvironment';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {GRAPHICS_EVENT,loadGraphicsQuality} from './graphicsSettings';
+import {createFrameLimiter} from './frameLimiter';
 
 export interface PepinoSceneApi {
     setOpponents(players: Player[]): void;
@@ -34,12 +35,18 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     scene.fog = new THREE.FogExp2(0x171713, .027);
     const camera = new THREE.PerspectiveCamera(43, 1, .1, 100);
     camera.position.set(0, 5.4, 8.3); camera.lookAt(0, 0, -.3);
-    scene.add(new THREE.HemisphereLight(0xffedd7, 0x332619, 1.65));
-    const sunlight = new THREE.DirectionalLight(0xffe0ad, 2.65);
+    scene.add(new THREE.HemisphereLight(0xffedd7, 0x332619, .85));
+    const sunlight = new THREE.DirectionalLight(0xffe0ad, 1.25);
     sunlight.position.set(-4, 9, 5); sunlight.castShadow = true;
     sunlight.shadow.mapSize.set(1024, 1024);
     Object.assign(sunlight.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 });
     sunlight.shadow.bias = -.002; scene.add(sunlight);
+    // A broad, feathered pool of light keeps attention on the playing surface.
+    // Reuse the directional shadow map; this light does not add a shadow pass.
+    const tableLight = new THREE.SpotLight(0xffe8c9, 95, 18, Math.PI / 3, .85, 2);
+    tableLight.position.set(0, 6, 1);
+    tableLight.target.position.set(0, 0, 0);
+    scene.add(tableLight, tableLight.target);
     const resources = new Set<THREE.BufferGeometry | THREE.Material | THREE.Texture>();
     const own = <T extends THREE.BufferGeometry | THREE.Material | THREE.Texture>(item: T): T => { resources.add(item); return item; };
     const environment=buildTableEnvironment(scene, own);
@@ -51,6 +58,30 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     const overlay = new THREE.Scene();
     const localCards = new THREE.Scene();
     const localMeshes = new Map<string, THREE.Mesh>();
+    const localMaterials = new Map<string, THREE.MeshBasicMaterial>();
+    const handFade = { value: new THREE.Vector4(0, 1, 0, 0) };
+    function localCardMaterial(source: THREE.MeshBasicMaterial) {
+        let material = localMaterials.get(source.uuid);
+        if (!material) {
+            material = own(source.clone());
+            material.onBeforeCompile = shader => {
+                shader.uniforms.handFade = handFade;
+                shader.fragmentShader = 'uniform vec4 handFade;\n' + shader.fragmentShader;
+                shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+                    float edgeAlpha = 1.0;
+                    if (handFade.z > 0.0) edgeAlpha *= smoothstep(handFade.x, handFade.x + handFade.z, gl_FragCoord.x);
+                    if (handFade.w > 0.0) edgeAlpha *= 1.0 - smoothstep(handFade.y - handFade.w, handFade.y, gl_FragCoord.x);
+                    diffuseColor.a *= edgeAlpha;
+                    #include <opaque_fragment>
+                `);
+            };
+            material.customProgramCacheKey = () => 'local-card-edge-fade';
+            localMaterials.set(source.uuid, material);
+        }
+        // Textures may finish loading after the local material was created.
+        material.map = source.map;
+        return material;
+    }
     const handClip = new THREE.Vector4();
     overlay.add(new THREE.HemisphereLight(0xffeddb, 0x403529, 2));
     const handLight = new THREE.DirectionalLight(0xffe3c4, 2); handLight.position.set(-2,4,10); overlay.add(handLight);
@@ -78,6 +109,8 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
                     if (current === material) {
                         const texture = own(loaded);
                         current.map = texture; current.needsUpdate = true;
+                        const local = localMaterials.get(current.uuid);
+                        if (local) { local.map = texture; local.needsUpdate = true; }
                         const physical = physicalMaterials.get(key);
                         if (physical) { physical.map = texture; physical.needsUpdate = true; }
                     }
@@ -278,7 +311,8 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     window.addEventListener('resize', invalidateHandLayout);
     function updateHandAnchor() {
         handLayoutDirty = false;
-        const viewport = host.querySelector('.hand-scroll')?.getBoundingClientRect();
+        const scrollElement = host.querySelector<HTMLElement>('.hand-scroll');
+        const viewport = scrollElement?.getBoundingClientRect();
         const bounds = container.getBoundingClientRect();
         const present = new Set<string>();
         let left = Infinity, right = -Infinity, bottom = -Infinity;
@@ -292,7 +326,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
                 mesh=cardMesh({ id, value:Number(card.dataset.value) as Card['value'], suit:card.dataset.suit as Card['suit'] });
                 localMeshes.set(id,mesh); localCards.add(mesh);
             }
-            mesh.material=cardMaterial({id,value:Number(card.dataset.value) as Card['value'],suit:card.dataset.suit as Card['suit']});
+            mesh.material=localCardMaterial(cardMaterial({id,value:Number(card.dataset.value) as Card['value'],suit:card.dataset.suit as Card['suit']}));
             const matrix=new DOMMatrixReadOnly(getComputedStyle(card.parentElement!).transform);
             const angle=Math.atan2(matrix.b,matrix.a);
             // Local cards are the foreground layer: fingers must never paint over them.
@@ -308,18 +342,24 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         localHandVisible = Number.isFinite(left);
         localMeshes.forEach((mesh,id)=>{if(!present.has(id)){localCards.remove(mesh);localMeshes.delete(id);}});
         if(viewport) handClip.set(viewport.left-bounds.left,height-(viewport.bottom-bounds.top),viewport.width,viewport.height);
+        if(viewport && scrollElement) {
+            const ratio=renderer.getPixelRatio();
+            const fade=Math.min(34,viewport.width*.07)*ratio;
+            handFade.value.set((viewport.left-bounds.left)*ratio,(viewport.right-bounds.left)*ratio,
+                scrollElement.scrollLeft>1 ? fade : 0,
+                scrollElement.scrollLeft+scrollElement.clientWidth<scrollElement.scrollWidth-1 ? fade : 0);
+        }
         host.classList.toggle('local-cards-3d',!!viewport);
         if (localHandVisible) {
             // Keep wrists beneath the lower edge of the actual, clipped HTML fan.
             localOffset.set((left+right)/2-bounds.left-width*.5, height*.86-(bottom-bounds.top-18));
         }
     }
-    let sampledAt = performance.now(), sampledFrames = 0,lastRendered=0;
+    let sampledAt = performance.now(), sampledFrames = 0;
+    const frameLimiter = createFrameLimiter();
     function frame(now: number) {
         if (disposed || document.hidden) return;
-        const frameInterval=1000/(graphicsQuality==='low'?30:60);
-        if(now-lastRendered<frameInterval-1) {raf=requestAnimationFrame(frame);return;}
-        lastRendered=now;
+        if(!frameLimiter.shouldRender(now,graphicsQuality==='low'?30:60)) {raf=requestAnimationFrame(frame);return;}
         if(lobby) {
             // Project table-space seats through the same camera/view offset as the table.
             camera.updateMatrixWorld();
@@ -404,6 +444,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
     }
     const visibility = () => {
         cancelAnimationFrame(raf);
+        frameLimiter.reset();
         if (!document.hidden && !disposed) { sampledAt=performance.now(); sampledFrames=0; raf=requestAnimationFrame(frame); }
     };
     document.addEventListener('visibilitychange', visibility);
@@ -411,6 +452,7 @@ export function createPepinoScene(container: HTMLElement, lobby = false): Pepino
         const next=(event as CustomEvent).detail;
         if(next!=='auto' && next!=='low' && next!=='high')return;
         graphicsQuality=next;resize();invalidateHandLayout();
+        frameLimiter.reset();
         sampledAt=performance.now();sampledFrames=0;
     };
     window.addEventListener(GRAPHICS_EVENT,graphicsChanged);

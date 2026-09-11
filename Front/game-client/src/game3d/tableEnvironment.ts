@@ -23,6 +23,11 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     const felt = own(new THREE.MeshStandardMaterial({ map: feltMap, bumpMap: feltMap, bumpScale:.012, roughness: 1 }));
     const brass = own(new THREE.MeshStandardMaterial({ color: 0xa28b54, metalness: .65, roughness: .4 }));
     const dark = own(new THREE.MeshStandardMaterial({ color: 0x201912, roughness: .65 }));
+    const gourd = own(new THREE.MeshStandardMaterial({ color:0x80502b, map:woodMap, bumpMap:woodMap, bumpScale:.008, roughness:.48 }));
+    const glass = own(new THREE.MeshStandardMaterial({color:0xd5d6c4,transparent:true,opacity:.19,roughness:.12,side:THREE.DoubleSide,depthWrite:false}));
+    const glassEdge = own(new THREE.MeshStandardMaterial({color:0xe8dfc7,transparent:true,opacity:.48,roughness:.18,depthWrite:false}));
+    const drink = own(new THREE.MeshStandardMaterial({color:0x28160c,roughness:.23}));
+    const drinkSurface = own(new THREE.MeshStandardMaterial({color:0x493019,roughness:.12}));
     function add(g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number) {
         const mesh = new THREE.Mesh(own(g), m); mesh.position.set(x,y,z); mesh.castShadow = mesh.receiveShadow = true; scene.add(mesh); return mesh;
     }
@@ -35,6 +40,10 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     const mark = add(new THREE.PlaneGeometry(2.5,.625), own(new THREE.MeshBasicMaterial({map:logoTex,transparent:true,opacity:.22,depthWrite:false})),0,.018,-.8); mark.rotation.x = -Math.PI/2;
     const fallbackFloor = add(new THREE.BoxGeometry(100,.2,100), dark, 0,-2.3,0);
     for (const x of [-6,6]) {
+        // Small side tables anchor each lamp to the floor instead of floating.
+        add(new THREE.CylinderGeometry(1.02,1.02,.12,32),wood,x,-.63,-5.6);
+        add(new THREE.CylinderGeometry(.14,.22,1.45,16),dark,x,-1.415,-5.6);
+        add(new THREE.CylinderGeometry(.62,.7,.1,24),dark,x,-2.15,-5.6);
         add(new THREE.CylinderGeometry(.7,.9,.12,32),wood,x,-.5,-5.6);
         add(new THREE.CylinderGeometry(.045,.08,1.8,12),brass,x,.4,-5.6);
         add(new THREE.CylinderGeometry(.35,.65,.75,32,1,true),own(new THREE.MeshStandardMaterial({color:0xd8b076,emissive:0xffad54,emissiveIntensity:.4,side:THREE.DoubleSide,roughness:1})),x,1.5,-5.6);
@@ -42,7 +51,7 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     }
     // Mate, yerba and bombilla, kept outside the playable felt.
     const mateStart=scene.children.length;
-    const mate = add(new THREE.SphereGeometry(.32,24,16,0,Math.PI*2,.74,Math.PI-.74),wood,3.75,.29,1.7); mate.scale.y = 1.1;
+    const mate = add(new THREE.SphereGeometry(.32,24,16,0,Math.PI*2,.74,Math.PI-.74),gourd,3.75,.29,1.7); mate.scale.y = 1.1;
     const mouth = add(new THREE.TorusGeometry(.24,.035,8,32),brass,3.75,.55,1.7); mouth.rotation.x=-Math.PI/2;
     const yerba=add(new THREE.CircleGeometry(.235,24),own(new THREE.MeshStandardMaterial({color:0x55502a,roughness:1})),3.75,.55,1.7); yerba.rotation.x=-Math.PI/2;
     const leaves = new THREE.InstancedMesh(own(new THREE.SphereGeometry(.014,5,3)),own(new THREE.MeshStandardMaterial({color:0x798045,roughness:1})),64);
@@ -59,7 +68,7 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     mateGroup.updateMatrixWorld(true);
     mateParts.forEach(part=>mateGroup.attach(part));
     const mateGlow=new THREE.Mesh(
-        new THREE.TorusGeometry(.47,.035,8,32),
+        own(new THREE.TorusGeometry(.47,.035,8,32)),
         own(new THREE.MeshBasicMaterial({color:0x9fd36a,transparent:true,opacity:.82,side:THREE.DoubleSide}))
     );
     mateGlow.rotation.x=-Math.PI/2; mateGlow.position.y=.035; mateGlow.renderOrder=4;
@@ -68,8 +77,15 @@ export function buildTableEnvironment(scene: THREE.Scene, own: <T extends THREE.
     for (const [x,z] of [[-3.9,1.7],[3.8,-1.8],[-3.8,-1.8]]) {
         const start=scene.children.length;
         add(new THREE.CylinderGeometry(.26,.28,.045,24),dark,x,.025,z);
-        add(new THREE.CylinderGeometry(.22,.19,.58,24,1,true),own(new THREE.MeshStandardMaterial({color:0xb6a48d,transparent:true,opacity:.3,roughness:.16,side:THREE.DoubleSide,depthWrite:false})),x,.34,z);
-        add(new THREE.CylinderGeometry(.199,.18,.28,24),own(new THREE.MeshStandardMaterial({color:0x28160c,roughness:.23})),x,.2,z);
+        const wall=add(new THREE.CylinderGeometry(.22,.19,.58,24,1,true),glass,x,.34,z);
+        wall.castShadow=false;
+        const rim=add(new THREE.TorusGeometry(.22,.009,6,32),glassEdge,x,.63,z);
+        rim.rotation.x=-Math.PI/2; rim.castShadow=false;
+        const base=add(new THREE.TorusGeometry(.19,.014,6,32),glassEdge,x,.06,z);
+        base.rotation.x=-Math.PI/2; base.castShadow=false;
+        add(new THREE.CylinderGeometry(.199,.18,.28,24),drink,x,.2,z);
+        const surface=add(new THREE.CircleGeometry(.199,32),drinkSurface,x,.341,z);
+        surface.rotation.x=-Math.PI/2; surface.castShadow=false;
         const parts=scene.children.slice(start);
         const group=new THREE.Group();scene.add(group);parts.forEach(part=>group.attach(part));
         drinks.push({group,home:new THREE.Vector3(x,0,z)});

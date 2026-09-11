@@ -336,6 +336,19 @@ Estados usados: **Hecho en código** significa que la funcionalidad ya existe; *
 
 ## QA manual pendiente para controles
 
+### Pulido de interacción — 11/09/2026
+
+Pulido de escena: iluminación ambiental más baja y luz amplia sobre el paño, periferia suavemente oscurecida, mesas auxiliares bajo las lámparas y respuesta de presión en JUGAR/PASAR. Sin nuevas texturas ni pasadas de sombras. Revisado con capturas; no equivale a una medición de rendimiento en dispositivos físicos.
+
+Entorno definitivo pospuesto por decisión del dueño: se recibirán GLB de Blender para prácticamente todos los objetos. Hasta entonces, priorizar materiales, legibilidad e interacción con los modelos actuales; evitar invertir en reconstruir el escenario provisional.
+
+Detalle de objetos actuales: mate con material propio más oscuro y menos rugoso que la mesa; vasos con borde, base y superficie del líquido definidos, transparencia más clara y sin sombra opaca del vidrio. Materiales de vasos compartidos. También se registra la geometría del aro del mate para liberarla al desmontar la escena. Compilación y revisión visual en escritorio realizadas.
+
+- Jugar y pasar comparten un bloqueo inmediato mientras se envía la acción, para evitar dobles envíos antes de que llegue el estado del servidor.
+- Escape cancela arrastre y selección; con un modal abierto se reserva para cerrar ese modal.
+- Al soltar una combinación inválida sobre la mesa, las cartas quedan seleccionadas y el texto de ayuda explica el motivo. Pasar correctamente limpia la selección.
+- Las reglas y la confirmación del resultado siguen a cargo del backend.
+
 1. **PC con mouse:** desplazar la mano horizontalmente; seleccionar una carta; seleccionar un grupo; arrastrar una carta hacia arriba; soltar dentro y fuera de la zona; verificar que el swipe no seleccione ni abra una jugada.
 2. **PC con trackpad:** repetir el desplazamiento horizontal y comprobar que la rueda vertical mueva la mano sin mover la página.
 3. **Mobile touch:** repetir tap, swipe horizontal y drag vertical en portrait y landscape; verificar que el gesto horizontal no active el drag y que una carta o grupo pueda llegar a la zona de drop.
